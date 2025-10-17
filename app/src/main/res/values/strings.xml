@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">Futrono</string>
+    <string name="welcome_message">¡Bienvenido a Futrono!</string>
+    <string name="supermarket_subtitle">Supermercado</string>
+    <string name="categories_title">Nuestras Categorías</string>
+    <string name="cart_title">Carrito de Compras</string>
+    <string name="cart_empty_title">Tu carrito está vacío</string>
+    <string name="cart_empty_subtitle">Agrega productos para comenzar a comprar</string>
+    <string name="add_to_cart">Agregar al carrito</string>
+    <string name="remove_from_cart">Eliminar</string>
+    <string name="checkout_button">Finalizar Compra</string>
+    <string name="total_products">Total de productos:</string>
+    <string name="total_to_pay">Total a pagar:</string>
+    <string name="per_unit">por</string>
+    <string name="quantity">Cantidad</string>
+    <string name="decrease_quantity">Reducir cantidad</string>
+    <string name="increase_quantity">Aumentar cantidad</string>
+    <string name="clear_cart">Vaciar carrito</string>
+    <string name="back">Volver</string>
+    <string name="no_products_available">No hay productos disponibles</string>
+    <string name="loading">Cargando...</string>
+</resources>

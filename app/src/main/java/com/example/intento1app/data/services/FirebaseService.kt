@@ -181,7 +181,7 @@ class FirebaseService {
                     newUser
                 }
                 
-                println(" FirebaseService: ✅ Usuario obtenido con roles: ${firebaseUser?.email}, Roles: ${firebaseUser?.roles}")
+                println(" FirebaseService: Usuario obtenido con roles: ${firebaseUser?.email}, Roles: ${firebaseUser?.roles}")
                 Result.success(firebaseUser)
             } else {
                 println("FirebaseService: No hay usuario autenticado")

@@ -18,6 +18,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.intento1app.ui.theme.*
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,7 +76,7 @@ fun WorkerProductsScreen(
                 containerColor = MaterialTheme.colorScheme.primary
             )
         )
-        
+
         // Contenido
         LazyColumn(
             modifier = Modifier
@@ -80,6 +84,93 @@ fun WorkerProductsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Botón para subir nuevos productos
+            item {
+                var isUploading by remember { mutableStateOf(false) }
+                var uploadResult by remember { mutableStateOf<String?>(null) }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = FutronoNaranja.copy(alpha = 0.1f)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Gestión de Inventario",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Sube nuevos productos al inventario de Firebase",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Button(
+                            onClick = {
+                                isUploading = true
+                                uploadResult = null
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    val success = com.example.intento1app.utils.FirebaseDataSeeder.seedProducts()
+
+                                    // Como estamos en un hilo IO, actualizamos la UI en el hilo principal
+                                    withContext(Dispatchers.Main) {
+                                        if (success) {
+                                            uploadResult = "18 nuevos productos agregados exitosamente"
+                                        } else {
+                                            uploadResult = "Error al agregar productos"
+                                        }
+                                        isUploading = false
+                                    }
+                                }
+                            },
+                            enabled = !isUploading,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = FutronoNaranja
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            if (isUploading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = Color.White
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Subiendo...")
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Subir 18 Productos Nuevos")
+                            }
+                        }
+
+                        uploadResult?.let { result ->
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = result,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (result.startsWith("✅"))
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+            }
             // Estadísticas de productos
             item {
                 Card(
@@ -123,7 +214,7 @@ fun WorkerProductsScreen(
                     }
                 }
             }
-            
+
             // Categorías
             item {
                 Text(
@@ -134,7 +225,7 @@ fun WorkerProductsScreen(
                     )
                 )
             }
-            
+
             item {
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -147,7 +238,7 @@ fun WorkerProductsScreen(
                     }
                 }
             }
-            
+
             // Lista de productos
             item {
                 Text(
@@ -158,18 +249,10 @@ fun WorkerProductsScreen(
                     )
                 )
             }
-            
-            items(getSampleProducts()) { product ->
-                ProductCard(
-                    product = product,
-                    onEditProduct = { /* TODO: Implementar edición */ },
-                    onUpdateStock = { /* TODO: Implementar actualización de stock */ },
-                    onViewDetails = { /* TODO: Implementar vista de detalles */ }
-                )
+
             }
         }
     }
-}
 
 @Composable
 private fun ProductStatItem(
@@ -254,9 +337,9 @@ private fun ProductCard(
                         modifier = Modifier.size(24.dp)
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.width(16.dp))
-                
+
                 // Información del producto
                 Column(
                     modifier = Modifier.weight(1f)
@@ -281,13 +364,13 @@ private fun ProductCard(
                         )
                     )
                 }
-                
+
                 // Estado del stock
                 StockStatusChip(stock = product.stock)
             }
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             // Botones de acción
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -305,7 +388,7 @@ private fun ProductCard(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Ver")
                 }
-                
+
                 OutlinedButton(
                     onClick = onEditProduct,
                     modifier = Modifier.weight(1f)
@@ -318,7 +401,7 @@ private fun ProductCard(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Editar")
                 }
-                
+
                 OutlinedButton(
                     onClick = onUpdateStock,
                     modifier = Modifier.weight(1f)
@@ -346,7 +429,7 @@ private fun StockStatusChip(
         stock <= 10 -> Color(0xFFFF9800) to "Bajo Stock"
         else -> Color(0xFF4CAF50) to "En Stock"
     }
-    
+
     Surface(
         modifier = modifier,
         color = color.copy(alpha = 0.1f),
@@ -378,15 +461,4 @@ private fun getProductCategories(): List<String> {
     return listOf("Todos", "Despensa", "Panadería", "Lácteos", "Frutas", "Verduras", "Carnes")
 }
 
-private fun getSampleProducts(): List<SampleProduct> {
-    return listOf(
-        SampleProduct("1", "Aceite de Oliva Extra Virgen", "Despensa", 8990.0, 25, "Aceite de oliva de primera prensada"),
-        SampleProduct("2", "Pan Integral", "Panadería", 1990.0, 8, "Pan integral fresco, rico en fibra"),
-        SampleProduct("3", "Leche Descremada 1L", "Lácteos", 1290.0, 0, "Leche descremada fresca"),
-        SampleProduct("4", "Manzanas Rojas", "Frutas", 2990.0, 15, "Manzanas rojas frescas por kg"),
-        SampleProduct("5", "Tomates", "Verduras", 1990.0, 5, "Tomates frescos por kg"),
-        SampleProduct("6", "Pollo Entero", "Carnes", 5990.0, 12, "Pollo entero fresco"),
-        SampleProduct("7", "Arroz Integral", "Despensa", 2490.0, 30, "Arroz integral de grano largo"),
-        SampleProduct("8", "Yogurt Natural", "Lácteos", 1890.0, 20, "Yogurt natural sin azúcar")
-    )
-}
+

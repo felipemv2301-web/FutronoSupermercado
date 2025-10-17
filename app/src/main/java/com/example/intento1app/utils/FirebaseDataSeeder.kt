@@ -3,25 +3,24 @@ package com.example.intento1app.utils
 import android.util.Log
 import com.example.intento1app.data.models.Product
 import com.example.intento1app.data.models.ProductCategory
+import com.example.intento1app.data.models.ProductFirestore
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.tasks.await
 
-/**
- * Utilidad para poblar Firebase Firestore con datos de productos
- * Este archivo se puede usar para migrar los productos estáticos a Firebase
- */
 object FirebaseDataSeeder {
-    
+
     private val db = FirebaseFirestore.getInstance()
     private const val COLLECTION_NAME = "products"
-    
+
     /**
      * Pobla Firebase con los productos de ejemplo
      */
     suspend fun seedProducts(): Boolean {
         return try {
-            val products = getSampleProducts()
-            
+            val products = getInitialProducts() // <-- ahora devuelve lista
+
             for (product in products) {
                 val productData = mapOf(
                     "id" to product.id,
@@ -34,15 +33,15 @@ object FirebaseDataSeeder {
                     "stock" to product.stock,
                     "isAvailable" to product.isAvailable
                 )
-                
+
                 db.collection(COLLECTION_NAME)
                     .document(product.id)
                     .set(productData)
                     .await()
-                
+
                 Log.d("FirebaseDataSeeder", "Producto agregado: ${product.name}")
             }
-            
+
             Log.d("FirebaseDataSeeder", "Se agregaron ${products.size} productos a Firebase")
             true
         } catch (e: Exception) {
@@ -50,56 +49,179 @@ object FirebaseDataSeeder {
             false
         }
     }
-    
+
     /**
-     * Obtiene los productos de ejemplo (los mismos que estaban en el código estático)
+     * Devuelve los productos de ejemplo
      */
-    private fun getSampleProducts(): List<Product> {
+
+    //Sube los productos de la lista a FireStore de manera arbitraria
+    private fun getInitialProducts(): List<Product> {
         return listOf(
-            // Carnes y Pescados
-            Product("1", "Carne de Vacuno Premium", "Carne de Vacuno de primera calidad, perfecta para asados", 15990.0, ProductCategory.CARNES_PESCADOS, "", null, "kg"),
-            Product("2", "Salmón Fresco", "Salmón fresco del Pacífico, rico en omega-3", 28990.0, ProductCategory.CARNES_PESCADOS, "", null, "kg"),
-            Product("3", "Pollo Entero", "Pollo fresco de granja, sin hormonas", 12990.0, ProductCategory.CARNES_PESCADOS, "", null, "kg"),
-            Product("4", "Cerdo Ahumado", "Cerdo ahumado con especias tradicionales", 15990.0, ProductCategory.CARNES_PESCADOS, "", null, "kg"),
-            Product("5", "Atún Fresco", "Atún fresco de pesca sostenible", 24990.0, ProductCategory.CARNES_PESCADOS, "", null, "kg"),
-            
-            // Despensa
-            Product("6", "Arroz Basmati", "Arroz aromático de grano largo, perfecto para acompañamientos", 3990.0, ProductCategory.DESPENSA, "", null, "kg"),
-            Product("7", "Aceite de Oliva Extra Virgen", "Aceite de oliva de primera prensada en frío", 8990.0, ProductCategory.DESPENSA, "", null, "litro"),
-            Product("8", "Pasta Integral", "Pasta de trigo integral, rica en fibra", 2990.0, ProductCategory.DESPENSA, "", null, "kg"),
-            Product("9", "Lentejas Rojas", "Lentejas rojas orgánicas, ricas en proteínas", 2990.0, ProductCategory.DESPENSA, "", null, "kg"),
-            Product("10", "Harina de Trigo", "Harina de trigo para todo uso, ideal para panadería", 1990.0, ProductCategory.DESPENSA, "", null, "kg"),
-            
-            // Frutas y Verduras
-            Product("11", "Manzanas Gala", "Manzanas dulces y crujientes, perfectas para comer frescas", 2990.0, ProductCategory.FRUTAS_VERDURAS, "", null, "kg"),
-            Product("12", "Brócoli Orgánico", "Brócoli orgánico fresco, rico en vitaminas", 3990.0, ProductCategory.FRUTAS_VERDURAS, "", null, "kg"),
-            Product("13", "Plátanos", "Plátanos maduros y dulces", 1990.0, ProductCategory.FRUTAS_VERDURAS, "", null, "kg"),
-            Product("14", "Tomates Cherry", "Tomates cherry dulces y jugosos", 3990.0, ProductCategory.FRUTAS_VERDURAS, "", null, "kg"),
-            Product("15", "Zanahorias Orgánicas", "Zanahorias orgánicas frescas y crujientes", 1990.0, ProductCategory.FRUTAS_VERDURAS, "", null, "kg"),
-            
-            // Bebidas y Snacks
-            Product("16", "Jugo de Naranja Natural", "Jugo de naranja 100% natural, sin conservantes", 3990.0, ProductCategory.BEBIDAS_SNACKS, "", null, "litro"),
-            Product("17", "Papas Fritas Artesanales", "Papas fritas artesanales con sal marina", 2990.0, ProductCategory.BEBIDAS_SNACKS, "", null, "paquete"),
-            Product("18", "Refresco Cola", "Refresco de cola clásico, 2 litros", 1990.0, ProductCategory.BEBIDAS_SNACKS, "", null, "botella"),
-            Product("19", "Nueces Mixtas", "Mezcla de nueces premium tostadas", 8990.0, ProductCategory.BEBIDAS_SNACKS, "", null, "kg"),
-            Product("20", "Agua Mineral", "Agua mineral natural de manantial", 990.0, ProductCategory.BEBIDAS_SNACKS, "", null, "botella"),
-            
-            // Frescos y Lácteos
-            Product("21", "Leche Entera", "Leche fresca de vaca, rica en calcio", 1990.0, ProductCategory.FRESCOS_LACTEOS, "", null, "litro"),
-            Product("22", "Queso Manchego", "Queso manchego curado, sabor intenso", 15990.0, ProductCategory.FRESCOS_LACTEOS, "", null, "kg"),
-            Product("23", "Yogur Griego Natural", "Yogur griego natural, sin azúcar añadido", 1990.0, ProductCategory.FRESCOS_LACTEOS, "", null, "unidad"),
-            Product("24", "Mantequilla Sin Sal", "Mantequilla sin sal, ideal para cocinar", 3990.0, ProductCategory.FRESCOS_LACTEOS, "", null, "paquete"),
-            Product("25", "Crema Agria", "Crema agria natural, perfecta para salsas", 2990.0, ProductCategory.FRESCOS_LACTEOS, "", null, "unidad"),
-            
-            // Panadería y Pastelería
-            Product("26", "Pan Integral", "Pan integral fresco, rico en fibra", 1990.0, ProductCategory.PANADERIA_PASTELERIA, "", null, "unidad"),
-            Product("27", "Croissants Clásicos", "Croissants clásicos, hojaldrados y dorados", 990.0, ProductCategory.PANADERIA_PASTELERIA, "", null, "unidad"),
-            Product("28", "Pastel de Chocolate", "Pastel de chocolate casero, decorado artesanalmente", 8990.0, ProductCategory.PANADERIA_PASTELERIA, "", null, "unidad"),
-            Product("29", "Galletas de Avena", "Galletas de avena con pasas, horneadas diariamente", 2990.0, ProductCategory.PANADERIA_PASTELERIA, "", null, "paquete"),
-            Product("30", "Baguette Francés", "Baguette francés tradicional, corteza crujiente", 1990.0, ProductCategory.PANADERIA_PASTELERIA, "", null, "unidad")
+            Product(
+                id = "31",
+                name = "Arroz Grano Largo",
+                description = "Arroz grano largo ancho de excelente calidad.",
+                price = 1590.0,
+                category = ProductCategory.DESPENSA,
+                imageUrl = "",
+                unit = "kg"
+            ),
+            Product(
+                id = "32",
+                name = "Aceite Vegetal",
+                description = "Aceite vegetal ideal para cocinar y freír.",
+                price = 2390.0,
+                category = ProductCategory.DESPENSA,
+                imageUrl = "h",
+                unit = "L"
+            ),
+            Product(
+                id = "33",
+                name = "Porotos Negros",
+                description = "Porotos negros seleccionados para guisos y ensaladas.",
+                price = 1890.0,
+                category = ProductCategory.DESPENSA,
+                imageUrl = "",
+                unit = "kg"
+            ),
+            Product(
+                id = "34",
+                name = "Carne de Vacuno Premium",
+                description = "Carne de vacuno premium para asados o guisos.",
+                price = 15990.0,
+                category = ProductCategory.CARNES_PESCADOS,
+                imageUrl = "",
+                unit = "kg"
+            ),
+            Product(
+                id = "35",
+                name = "Pechuga de Pollo",
+                description = "Pechuga de pollo sin piel, ideal para preparaciones saludables.",
+                price = 5990.0,
+                category = ProductCategory.CARNES_PESCADOS,
+                imageUrl = "",
+                unit = "kg"
+            ),
+            Product(
+                id = "36",
+                name = "Salmón Fresco",
+                description = "Filete de salmón fresco del sur de Chile.",
+                price = 13490.0,
+                category = ProductCategory.CARNES_PESCADOS,
+                imageUrl = "",
+                unit = "kg"
+            ),
+            Product(
+                id = "37",
+                name = "Manzana Roja",
+                description = "Manzanas rojas frescas y crujientes.",
+                price = 1990.0,
+                category = ProductCategory.FRUTAS_VERDURAS,
+                imageUrl = "",
+                unit = "kg"
+            ),
+            Product(
+                id = "38",
+                name = "Tomate",
+                description = "Tomates frescos de cultivo local.",
+                price = 1790.0,
+                category = ProductCategory.FRUTAS_VERDURAS,
+                imageUrl = "",
+                unit = "kg"
+            ),
+            Product(
+                id = "39",
+                name = "Zanahoria",
+                description = "Zanahorias frescas ideales para ensaladas y guisos.",
+                price = 1290.0,
+                category = ProductCategory.FRUTAS_VERDURAS,
+                imageUrl = "",
+                unit = "kg"
+            ),
+            Product(
+                id = "40",
+                name = "Bebida Cola",
+                description = "Gaseosa sabor cola en botella retornable.",
+                price = 1590.0,
+                category = ProductCategory.BEBIDAS_SNACKS,
+                imageUrl = "",
+                unit = "L"
+            ),
+            Product(
+                id = "41",
+                name = "Papas Fritas",
+                description = "Papas fritas clásicas con sal marina.",
+                price = 1390.0,
+                category = ProductCategory.BEBIDAS_SNACKS,
+                imageUrl = "",
+                unit = "g"
+            ),
+            Product(
+                id = "42",
+                name = "Jugo de Naranja",
+                description = "Jugo natural de naranja sin azúcar añadida.",
+                price = 2190.0,
+                category = ProductCategory.BEBIDAS_SNACKS,
+                imageUrl = "",
+                unit = "L"
+            ),
+            Product(
+                id = "43",
+                name = "Leche Entera",
+                description = "Leche entera fresca pasteurizada.",
+                price = 1250.0,
+                category = ProductCategory.FRESCOS_LACTEOS,
+                imageUrl = "",
+                unit = "L"
+            ),
+            Product(
+                id = "44",
+                name = "Queso Mantecoso",
+                description = "Queso mantecoso de textura suave y sabor intenso.",
+                price = 4290.0,
+                category = ProductCategory.FRESCOS_LACTEOS,
+                imageUrl = "",
+                unit = "g"
+            ),
+            Product(
+                id = "45",
+                name = "Yogur Natural",
+                description = "Yogur natural sin azúcar.",
+                price = 2890.0,
+                category = ProductCategory.FRESCOS_LACTEOS,
+                imageUrl = "",
+                unit = "kg"
+            ),
+            Product(
+                id = "46",
+                name = "Marraqueta",
+                description = "Pan marraqueta fresco, crujiente por fuera y suave por dentro.",
+                price = 1590.0,
+                category = ProductCategory.PANADERIA_PASTELERIA,
+                imageUrl = "",
+                unit = "kg"
+            ),
+            Product(
+                id = "47",
+                name = "Queque de Vainilla",
+                description = "Queque casero de vainilla con cobertura de azúcar flor.",
+                price = 3290.0,
+                category = ProductCategory.PANADERIA_PASTELERIA,
+                imageUrl = "",
+                unit = "g"
+            ),
+            Product(
+                id = "48",
+                name = "Croissant",
+                description = "Croissants de mantequilla recién horneados.",
+                price = 2990.0,
+                category = ProductCategory.PANADERIA_PASTELERIA,
+                imageUrl = "",
+                unit = "g"
+            )
         )
     }
-    
+
     /**
      * Limpia todos los productos de la colección (útil para testing)
      */
@@ -107,11 +229,11 @@ object FirebaseDataSeeder {
         return try {
             val snapshot = db.collection(COLLECTION_NAME).get().await()
             val batch = db.batch()
-            
+
             for (document in snapshot.documents) {
                 batch.delete(document.reference)
             }
-            
+
             batch.commit().await()
             Log.d("FirebaseDataSeeder", "Productos eliminados de Firebase")
             true

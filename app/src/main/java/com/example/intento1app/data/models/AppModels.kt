@@ -31,6 +31,18 @@ data class User(
     val email: String
 )
 
+data class ProductFirestore(
+    val id: String = "",
+    val name: String = "",
+    val description: String = "",
+    val price: Double = 0.0,
+    val category: String = "",    // 🔹 String, no enum
+    val imageUrl: String = "",
+    val unit: String = "unidad",
+    val stock: Int = 100,
+    val isAvailable: Boolean = true
+)
+
 data class Product(
     val id: String,
     val name: String,
@@ -51,7 +63,9 @@ enum class ProductCategory(
     val textColor: Color,
     @DrawableRes val imageResId: Int,
     val icon: ImageVector
-) {
+)
+
+{
     CARNES_PESCADOS(
         displayName = "Carnes y Pescados",
         containerColor = Color(0xFF791F1F),     // Fondo más serio

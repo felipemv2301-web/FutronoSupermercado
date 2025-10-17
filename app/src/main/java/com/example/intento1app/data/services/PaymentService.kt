@@ -15,7 +15,7 @@ class PaymentService {
         private const val MERCADOPAGO_ACCESS_TOKEN = "TEST-4475320570080614-100917-971534aed0d731aa024ff5ce5cff5bc3-249609398" // Token de prueba real
         private const val MERCADOPAGO_PUBLIC_KEY = "TEST-b5913914-0d55-4bd9-b802-4524602295d8" // Public key de prueba real
         private const val MERCADOPAGO_ENVIRONMENT = "sandbox" // sandbox, production
-        private const val MERCADOPAGO_BASE_URL = "https://api.mercadopago.com"
+        private const val MERCADOPAGO_BASE_URL = "https://api.mercadopago.com" //ENDPOINT
         
         // URLs de retorno
         private const val SUCCESS_URL = "intento1app://payment-success"

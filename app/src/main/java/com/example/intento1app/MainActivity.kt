@@ -1,6 +1,7 @@
 package com.example.intento1app
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.google.firebase.FirebaseApp
@@ -78,6 +79,9 @@ import com.example.intento1app.ui.components.ScalableTitleMedium
 import com.example.intento1app.viewmodel.AccessibilityViewModel
 import com.example.intento1app.viewmodel.AuthViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.intento1app.data.models.ProductFirestore
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -34,14 +34,16 @@ fun WorkerCustomersScreen(
                     text = "Gestión de Clientes",
                     style = MaterialTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.Bold
-                    )
+                    ),
+                    color = FutronoFondo
                 )
             },
             navigationIcon = {
                 IconButton(onClick = onNavigateBack) {
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Volver"
+                        contentDescription = "Volver",
+                        tint = FutronoFondo
                     )
                 }
             },

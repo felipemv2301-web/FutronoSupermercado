@@ -1,5 +1,4 @@
-package com.example.intento1app.ui.screens
-
+package com.example.intento1app.ui.screensimport
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,11 +21,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.example.intento1app.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkerProductsScreen(
     onNavigateBack: () -> Unit,
+    onAddProductClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -41,14 +42,17 @@ fun WorkerProductsScreen(
                     text = "Gestión de Productos",
                     style = MaterialTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.Bold
-                    )
+                    ),
+                    color = FutronoFondo
                 )
             },
             navigationIcon = {
                 IconButton(onClick = onNavigateBack) {
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Volver"
+                        contentDescription = "Volver",
+                        tint = FutronoFondo
+
                     )
                 }
             },
@@ -56,19 +60,22 @@ fun WorkerProductsScreen(
                 IconButton(onClick = { /* TODO: Implementar búsqueda */ }) {
                     Icon(
                         imageVector = Icons.Default.Search,
-                        contentDescription = "Buscar"
+                        contentDescription = "Buscar",
+                        tint = FutronoFondo
                     )
                 }
                 IconButton(onClick = { /* TODO: Implementar filtros */ }) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_filter),
-                        contentDescription = "Filtrar"
+                        contentDescription = "Filtrar",
+                        tint = FutronoFondo
                     )
                 }
-                IconButton(onClick = { /* TODO: Implementar agregar producto */ }) {
+                IconButton(onClick = onAddProductClick) { // <-- Llama a la nueva función aquí
                     Icon(
                         imageVector = Icons.Default.Add,
-                        contentDescription = "Agregar producto"
+                        contentDescription = "Agregar producto",
+                        tint = FutronoFondo
                     )
                 }
             },

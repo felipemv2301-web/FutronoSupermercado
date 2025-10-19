@@ -1,21 +1,26 @@
 package com.example.intento1app.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.ui.res.painterResource
-import com.example.intento1app.R
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -24,6 +29,26 @@ import com.example.intento1app.ui.theme.*
 import com.example.intento1app.viewmodel.AccessibilityViewModel
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.runtime.Composable
+import androidx.core.text.color
+import com.example.intento1app.R
+
+
+data class WorkerFunction(
+    val title: String,
+    val icon: ImageVector,
+    val iconColor: Color,          // color del icono
+    val backgroundColor: Color,
+    val titleColor: Color,  // color de fondo de la tarjeta
+    val onClick: () -> Unit
+)
+
+data class Stat(
+    val titleStat: String,
+    val valueStat: String,
+    val iconStat: ImageVector,
+    val colorStat: Color
+)
 
 @Composable
 fun WorkerHomeScreen(
@@ -44,345 +69,326 @@ fun WorkerHomeScreen(
     accessibilityViewModel: AccessibilityViewModel,
     modifier: Modifier = Modifier
 ) {
-    val currentTime = remember { 
+    // Hora y fecha actuales
+    val currentTime = remember {
         val formatter = SimpleDateFormat("HH:mm", Locale.getDefault())
         formatter.format(Date())
     }
-    
     val currentDate = remember {
-        val formatter = SimpleDateFormat("dd 'de' MMMM, yyyy", Locale.getDefault())
+        val formatter = SimpleDateFormat("dd 'de' MMMM, yyyy", Locale("es", "ES"))
         formatter.format(Date())
     }
-    
+
+    // Funciones principales con colores Futrono
+    val mainFunctions = listOf(
+        WorkerFunction(
+            title = "Gestión de Pedidos",
+            icon = Icons.Filled.ShoppingCart,
+            iconColor = FutronoFondo,             // Naranja principal para icono
+            backgroundColor = FutronoNaranja,
+            titleColor = FutronoFondo,
+            onClick = onOrdersClick
+        ),
+        WorkerFunction(
+            title = "Inventario",
+            icon = Icons.Filled.Inventory,
+            iconColor = FutronoFondo,           // Café claro para icono
+            backgroundColor = FutronoAmarillo,
+            titleColor = FutronoFondo,   // Naranja oscuro para fondo
+            onClick = onInventoryClick
+        ),
+        WorkerFunction(
+            title = "Clientes",
+            icon = Icons.Filled.Groups,
+            iconColor = FutronoFondo,          // Café oscuro para icono
+            backgroundColor = FutronoAzul,
+            titleColor = FutronoFondo,   // Superficie crema para fondo
+            onClick = onCustomersClick
+        ),
+        WorkerFunction(
+            title = "Productos",
+            icon = Icons.Filled.Category,
+            iconColor = FutronoFondo,        // Naranja claro para icono
+            backgroundColor = FutronoCafeClaro,
+            titleColor = FutronoFondo,   // Café principal para fondo
+            onClick = onProductsClick
+        )
+    )
+
+    // Funciones adicionales con colores Futrono y complementarios
+    val additionalFunctions = listOf(
+        WorkerFunction(
+            title = "Estadísticas",
+            icon = Icons.Filled.Analytics,
+            iconColor = FutronoFondo,       // Naranja oscuro para icono
+            backgroundColor = FutronoVerde,
+            titleColor = FutronoFondo,   // Naranja claro para fondo
+            onClick = onReportsClick
+        ),
+        WorkerFunction(
+            title = "Horarios",
+            icon = Icons.Filled.Schedule,
+            iconColor = FutronoFondo,           // Café oscuro para icono
+            backgroundColor = FutronoCafe,// Crema para fondo
+            titleColor = FutronoFondo,
+            onClick = onScheduleClick
+        ),
+        WorkerFunction(
+            title = "Equipo",
+            icon = Icons.Filled.GroupWork,
+            iconColor = FutronoFondo,           // Naranja claro para icono,
+            backgroundColor = FutronoMorado,
+            titleColor = FutronoFondo,
+            onClick = onTeamClick
+        ),
+        WorkerFunction(
+            title = "Ayuda",
+            icon = Icons.Filled.HelpOutline,
+            iconColor = FutronoFondo,            // Café claro para icono
+            backgroundColor = FutronoCeleste,          // Fondo crema suave
+            titleColor = FutronoFondo,
+            onClick = onHelpClick
+        ),
+        WorkerFunction(
+            title = "Cerrar Sesión",
+            icon = Icons.Filled.Logout,
+            iconColor = FutronoFondo,                 // Rojo error corporativo para icono
+            backgroundColor = FutronoError,           // Fondo crema
+            titleColor = FutronoFondo,
+            onClick = onLogout
+        )
+    )
+
+    //Parámetros de tarjetas de estadísticas
+    val dailyStats = listOf(
+        Stat("Pedidos Hoy", "12", Icons.Filled.ShoppingCart, FutronoNaranja),
+        Stat("Completados", "8", Icons.Filled.CheckCircle, FutronoVerde),
+        Stat("Pendientes", "4", Icons.Filled.Schedule, FutronoAmarillo),
+        Stat("Ventas", "$89.990", Icons.Filled.AttachMoney, FutronoMorado)
+    )
+
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp)
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Header con logo y botones de configuración
+        // Encabezado
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-                // Logo de Futrono
-                Column {
-                    Text(
-                        text = "FUTRONO",
-                        style = MaterialTheme.typography.headlineLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = FutronoCafe
-                        )
-                    )
-                    Text(
-                        text = "Panel Trabajador",
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            color = FutronoNaranja
-                        )
-                    )
-                }
-                
-                // Botones de configuración
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    IconButton(
-                        onClick = onAccessibilityClick,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .background(
-                                color = FutronoCafe,
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Configuración de Accesibilidad",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    
-                    IconButton(
-                        onClick = onUserProfileClick,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .background(
-                                color = FutronoCafe,
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = "Mi cuenta",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-            }
-        
-        // Saludo y información del trabajador
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFF4CAF50) // Verde
-                ),
-                shape = RoundedCornerShape(12.dp)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
+                Image(
+                    painter = painterResource(id = R.drawable.ic_logo),
+                    contentDescription = "Logo de Futrono Supermercado",
+                    modifier = Modifier
+                        .fillMaxWidth(0.2f)
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                IconButton(
+                    onClick = onNotificationsClick,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(FutronoCafe, shape = RoundedCornerShape(12.dp))
                 ) {
-                    Text(
-                        text = "¡Hola, ${currentUser?.nombre ?: "Trabajador"}!",
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
+                    Icon(
+                        Icons.Filled.Notifications,
+                        contentDescription = "Notificaciones",
+                        tint = Color.White
                     )
-                    Text(
-                        text = "Bienvenido al panel de trabajo",
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            color = Color.White.copy(alpha = 0.9f)
-                        )
+                }
+                IconButton(
+                    onClick = onAccessibilityClick,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(FutronoCafe, shape = RoundedCornerShape(12.dp))
+                ) {
+                    Icon(
+                        Icons.Filled.Settings,
+                        contentDescription = "Configuración",
+                        tint = Color.White
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_time),
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "$currentTime - $currentDate",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                color = Color.White.copy(alpha = 0.8f)
-                            )
-                        )
-                    }
+                }
+                IconButton(
+                    onClick = onUserProfileClick,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(FutronoCafe, shape = RoundedCornerShape(12.dp))
+                ) {
+                    Icon(Icons.Filled.Person, contentDescription = "Perfil", tint = Color.White)
                 }
             }
-        
-        // Estadísticas rápidas
-        Text(
-            text = "Resumen del Día",
-            style = MaterialTheme.typography.headlineMedium.copy(
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-        )
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        }
+
+        // Bienvenida
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF4CAF50)),
+            shape = RoundedCornerShape(12.dp)
         ) {
-            item {
-                StatCard(
-                    title = "Pedidos Hoy",
-                    value = "12",
-                    icon = Icons.Default.ShoppingCart,
-                    color = Color(0xFF2196F3)
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "¡Hola, ${currentUser?.nombre ?: "Trabajador"}!",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
                 )
-            }
-            item {
-                StatCard(
-                    title = "Completados",
-                    value = "8",
-                    icon = Icons.Default.CheckCircle,
-                    color = Color(0xFF4CAF50)
+                Text(
+                    text = "Bienvenido al panel de trabajo",
+                    style = MaterialTheme.typography.bodyLarge.copy(color = Color.White.copy(alpha = 0.9f))
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Filled.AccessTime,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "$currentTime - $currentDate",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = Color.White.copy(
+                                alpha = 0.8f
+                            )
+                        )
+                    )
+                }
             }
-            item {
+        }
+        //Componente de título y tarjeta
+        Text(
+            "Resumen del Día",
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            items(dailyStats) { stat ->
                 StatCard(
-                    title = "Pendientes",
-                    value = "4",
-                    icon = painterResource(id = R.drawable.ic_time),
-                    color = Color(0xFFFF9800)
-                )
-            }
-            item {
-                StatCard(
-                    title = "Ventas",
-                    value = "$89.990",
-                    icon = painterResource(id = R.drawable.ic_money),
-                    color = Color(0xFF9C27B0)
+                    title = stat.titleStat,
+                    value = stat.valueStat,
+                    icon = stat.iconStat,
+                    color = stat.colorStat
                 )
             }
         }
-        
-        // Funciones principales
-        Text(
-            text = "Funciones Principales",
-            style = MaterialTheme.typography.headlineMedium.copy(
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-        )
-        WorkerFunctionCard(
-            icon = Icons.Default.ShoppingCart,
-            title = "Gestión de Pedidos",
-            description = "Ver y gestionar pedidos de clientes",
-            color = Color(0xFF2196F3),
-            onClick = onOrdersClick
-        )
-        
-        WorkerFunctionCard(
-            icon = painterResource(id = R.drawable.ic_inventory),
-            title = "Inventario",
-            description = "Gestionar stock de productos",
-            color = Color(0xFF9C27B0),
-            onClick = onInventoryClick
-        )
-        
-        WorkerFunctionCard(
-            icon = painterResource(id = R.drawable.ic_customers),
-            title = "Clientes",
-            description = "Gestionar información de clientes",
-            color = Color(0xFF00BCD4),
-            onClick = onCustomersClick
-        )
-        
-        WorkerFunctionCard(
-            icon = painterResource(id = R.drawable.ic_products),
-            title = "Productos",
-            description = "Gestionar catálogo de productos",
-            color = Color(0xFF795548),
-            onClick = onProductsClick
-        )
-        
-        // Funciones secundarias
-        Text(
-            text = "Herramientas Adicionales",
-            style = MaterialTheme.typography.headlineMedium.copy(
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-        )
-        WorkerFunctionCard(
-            icon = painterResource(id = R.drawable.ic_analytics),
-            title = "Estadísticas",
-            description = "Ver estadísticas de ventas y rendimiento",
-            color = Color(0xFFFF9800),
-            onClick = onReportsClick
-        )
-        
-        WorkerFunctionCard(
-            icon = painterResource(id = R.drawable.ic_notifications),
-            title = "Notificaciones",
-            description = "Ver notificaciones y alertas",
-            color = Color(0xFFE91E63),
-            onClick = onNotificationsClick
-        )
-        
-        WorkerFunctionCard(
-            icon = painterResource(id = R.drawable.ic_schedule),
-            title = "Horarios",
-            description = "Gestionar turnos y horarios",
-            color = Color(0xFF607D8B),
-            onClick = onScheduleClick
-        )
-        
-        WorkerFunctionCard(
-            icon = painterResource(id = R.drawable.ic_team),
-            title = "Equipo",
-            description = "Gestionar equipo de trabajo",
-            color = Color(0xFF3F51B5),
-            onClick = onTeamClick
-        )
-        
-        // Configuración y ayuda
-        Text(
-            text = "Configuración",
-            style = MaterialTheme.typography.headlineMedium.copy(
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-        )
-        WorkerFunctionCard(
-            icon = painterResource(id = R.drawable.ic_settings),
-            title = "Configuración",
-            description = "Ajustes del sistema y preferencias",
-            color = Color(0xFF757575),
-            onClick = onSettingsClick
-        )
-        
-        WorkerFunctionCard(
-            icon = painterResource(id = R.drawable.ic_help),
-            title = "Ayuda",
-            description = "Centro de ayuda y soporte",
-            color = Color(0xFF009688),
-            onClick = onHelpClick
-        )
-        
-        WorkerFunctionCard(
-            icon = painterResource(id = R.drawable.ic_logout),
-            title = "Cerrar Sesión",
-            description = "Salir del sistema",
-            color = Color(0xFFF44336),
-            onClick = onLogout
-        )
+
+        // Estructura de las Funciones principales
+        Text("Funciones Principales", style = MaterialTheme.typography.headlineMedium)
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier
+                .heightIn(max = 400.dp) // tamaño máximo controlado para evitar conflicto
+        ) {
+            items(mainFunctions) { WorkerFunctionCardGridStyle(it) }
+        }
+
+        // Estructura de las Funciones adicionales
+        Text("Herramientas Adicionales", style = MaterialTheme.typography.headlineMedium)
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            additionalFunctions.chunked(2).forEach { rowItems ->
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    rowItems.forEachIndexed { index, function ->
+                        Box(modifier = Modifier.weight(1f)) {
+                            WorkerFunctionCardGridStyle(function)
+                        }
+                        if (index == 0 && rowItems.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
+
 @Composable
-private fun StatCard(
+fun WorkerFunctionCardGridStyle(function: WorkerFunction) {
+    Card(
+        modifier = Modifier
+            .clickable { function.onClick() }
+            .padding(4.dp),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(containerColor = function.backgroundColor)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = function.icon,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = function.iconColor
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = function.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                color = function.titleColor
+            )
+        }
+    }
+}
+
+
+@Composable
+fun StatCard(
     title: String,
     value: String,
-    icon: Any, // Puede ser ImageVector o Painter
+    icon: ImageVector,
     color: Color,
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier.width(120.dp),
+        modifier = modifier
+            .width(140.dp)
+            .padding(4.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            when (icon) {
-                is androidx.compose.ui.graphics.vector.ImageVector -> {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(32.dp)
-                            .background(
-                                color = color.copy(alpha = 0.1f),
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            .padding(8.dp),
-                        tint = color
-                    )
-                }
-                is androidx.compose.ui.graphics.painter.Painter -> {
-                    Icon(
-                        painter = icon,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(32.dp)
-                            .background(
-                                color = color.copy(alpha = 0.1f),
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            .padding(8.dp),
-                        tint = color
-                    )
-                }
-            }
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(36.dp), // Mantén el tamaño o ajústalo si es necesario
+                tint = color
+            )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = value,
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    fontWeight = FontWeight.Bold
-                ),
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
@@ -390,94 +396,6 @@ private fun StatCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
-            )
-        }
-    }
-}
-
-@Composable
-private fun WorkerFunctionCard(
-    icon: Any, // Puede ser ImageVector o Painter
-    title: String,
-    description: String,
-    color: Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Ícono
-            when (icon) {
-                is androidx.compose.ui.graphics.vector.ImageVector -> {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .background(
-                                color = color.copy(alpha = 0.1f),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                            .padding(12.dp),
-                        tint = color
-                    )
-                }
-                is androidx.compose.ui.graphics.painter.Painter -> {
-                    Icon(
-                        painter = icon,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .background(
-                                color = color.copy(alpha = 0.1f),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                            .padding(12.dp),
-                        tint = color
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.width(16.dp))
-            
-            // Texto
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            
-            // Flecha
-            Icon(
-                imageVector = Icons.Default.ArrowForward,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

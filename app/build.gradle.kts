@@ -89,6 +89,9 @@ dependencies {
     implementation("com.google.firebase:firebase-storage-ktx")
     implementation("com.google.firebase:firebase-messaging")
     implementation(libs.androidx.room.ktx)
+    implementation(libs.ui)
+    implementation(libs.androidx.ui.text)
+    implementation(libs.androidx.runtime)
 
     // Testing
     testImplementation(libs.junit)

@@ -1,28 +1,32 @@
 package com.example.intento1app.data.repository
 
+
 import com.example.intento1app.data.models.Product
-import com.example.intento1app.data.models.ProductCategory
-import com.example.intento1app.data.services.ProductFirebaseService
-import kotlinx.coroutines.delay
+
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.firestore
+
+
+import kotlinx.coroutines.tasks.await
 
 class ProductRepository {
-    
-    private val firebaseService = ProductFirebaseService()
-    
-    suspend fun getProducts(): List<Product> {
+    private val firestore = Firebase.firestore
+    private val productsCollection = firestore.collection("products")
+
+    suspend fun addProductToFirestore(product: Product): Boolean {
         return try {
-            firebaseService.getAllProducts()
+            productsCollection.add(product).await()
+            true // Éxito
         } catch (e: Exception) {
-            // En caso de error, devolver lista vacía
-            emptyList()
+            // Log del error
+            false // Fracaso
         }
     }
-    
-    suspend fun getProductsByCategory(category: ProductCategory): List<Product> {
+
+    suspend fun getProductsFromFirestore(): List<Product> {
         return try {
-            firebaseService.getProductsByCategory(category)
+            productsCollection.get().await().toObjects(Product::class.java)
         } catch (e: Exception) {
-            // En caso de error, devolver lista vacía
             emptyList()
         }
     }

@@ -2,6 +2,7 @@ package com.example.intento1app.ui.screens
 
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -12,165 +13,240 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.intento1app.R
 import com.example.intento1app.ui.theme.FutronoNaranja
 import com.example.intento1app.data.models.Product
 import com.example.intento1app.data.models.ProductCategory
+import com.example.intento1app.ui.theme.FutronoCafe
+import com.example.intento1app.ui.theme.FutronoCafeClaro
+import com.example.intento1app.ui.theme.FutronoFondo
 import com.example.intento1app.viewmodel.AddProductViewModel
+import kotlinx.coroutines.launch
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddProductScreen(
     onBackClick: () -> Unit,
-    onProductAdded: () -> Unit, // <-- Cambiado para notificar que se agregó.
+    onProductAdded: () -> Unit,
     modifier: Modifier = Modifier,
-    addProductViewModel: AddProductViewModel = viewModel() // <-- Inyecta el ViewModel
+    addProductViewModel: AddProductViewModel = viewModel()
 ) {
-    // Estados para los campos del formulario
     var name by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
     var stock by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    var unit by remember { mutableStateOf("") }
+
     var expandedCategory by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) } // Estado para mostrar carga
+    var expandedUnit by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val categories = ProductCategory.values().map { it.name }
+    val units = listOf("L", "ml", "g", "Kg", "un", "pack", "m", "cm")
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        TopAppBar(
-            title = { Text("Agregar Producto") },
-            navigationIcon = {
-                IconButton(onClick = onBackClick) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
-                }
-            }
-        )
-
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("Nombre del Producto") },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !isLoading
-        )
-
-        ExposedDropdownMenuBox(
-            expanded = expandedCategory,
-            onExpandedChange = {
-                Log.d("AddProductScreen", "onExpandedChange triggered! New value: $it")
-                expandedCategory = it
-            }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        "Agregar Producto",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = FutronoFondo
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = FutronoFondo
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = FutronoCafe,
+                    titleContentColor = FutronoFondo
+                )
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .padding(16.dp)
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedTextField(
-                value = category,
-                onValueChange = { },
-                label = { Text("Categoría") },
-                readOnly = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(), // <-- Importante para el Dropdown
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Nombre del Producto") },
+                modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading
             )
-            ExposedDropdownMenu(
+
+            // Categoría
+            ExposedDropdownMenuBox(
                 expanded = expandedCategory,
-                onDismissRequest = { expandedCategory = false }
+                onExpandedChange = { expandedCategory = it }
             ) {
-                categories.forEach { cat ->
-                    DropdownMenuItem(
-                        text = { Text(cat) },
-                        onClick = {
-                            category = cat
-                            expandedCategory = false
-                        }
-                    )
+                OutlinedTextField(
+                    value = category,
+                    onValueChange = {},
+                    label = { Text("Categoría") },
+                    readOnly = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(),
+                    enabled = !isLoading
+                )
+                ExposedDropdownMenu(
+                    expanded = expandedCategory,
+                    onDismissRequest = { expandedCategory = false }
+                ) {
+                    categories.forEach { cat ->
+                        DropdownMenuItem(
+                            text = { Text(cat) },
+                            onClick = {
+                                category = cat
+                                expandedCategory = false
+                            }
+                        )
+                    }
                 }
             }
-        }
 
-        OutlinedTextField(
-            value = price,
-            onValueChange = { price = it },
-            label = { Text("Precio") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !isLoading
-        )
+            // Precio + Unidad (mejor organizados)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                OutlinedTextField(
+                    value = price,
+                    onValueChange = { price = it },
+                    label = { Text("Precio") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f),
+                    enabled = !isLoading
+                )
 
-        OutlinedTextField(
-            value = stock,
-            onValueChange = { stock = it },
-            label = { Text("Stock") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !isLoading
-        )
-
-        OutlinedTextField(
-            value = description,
-            onValueChange = { description = it },
-            label = { Text("Descripción") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(100.dp),
-            enabled = !isLoading
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = {
-                val productCategory = ProductCategory.values().find { it.name.equals(category, ignoreCase = true) }
-                val priceDouble = price.toDoubleOrNull()
-                val stockInt = stock.toIntOrNull()
-
-                if (name.isNotBlank() && productCategory != null && priceDouble != null && stockInt != null) {
-                    isLoading = true // Inicia la carga
-                    val newProduct = Product(
-                        id = UUID.randomUUID().toString(),
-                        name = name,
-                        description = description,
-                        price = priceDouble,
-                        category = productCategory,
-                        stock = stockInt
+                ExposedDropdownMenuBox(
+                    expanded = expandedUnit,
+                    onExpandedChange = { expandedUnit = it }
+                ) {
+                    OutlinedTextField(
+                        value = unit,
+                        onValueChange = {},
+                        label = { Text("Unidad") },
+                        readOnly = true,
+                        modifier = Modifier
+                            .width(100.dp) // Unidad más pequeña y fija
+                            .menuAnchor(),
+                        enabled = !isLoading
                     )
-
-                    addProductViewModel.addProduct(
-                        product = newProduct,
-                        onSuccess = {
-                            isLoading = false // Finaliza la carga
-                            Toast.makeText(context, "Producto agregado con éxito", Toast.LENGTH_SHORT).show()
-                            onProductAdded() // Llama al callback para, por ejemplo, navegar hacia atrás
-                        },
-                        onError = { exception ->
-                            isLoading = false // Finaliza la carga
-                            Toast.makeText(context, "Error: ${exception.message}", Toast.LENGTH_LONG).show()
+                    ExposedDropdownMenu(
+                        expanded = expandedUnit,
+                        onDismissRequest = { expandedUnit = false }
+                    ) {
+                        units.forEach { unitOption ->
+                            DropdownMenuItem(
+                                text = { Text(unitOption) },
+                                onClick = {
+                                    unit = unitOption
+                                    expandedUnit = false
+                                }
+                            )
                         }
+                    }
+                }
+            }
+
+            OutlinedTextField(
+                value = stock,
+                onValueChange = { stock = it },
+                label = { Text("Stock") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isLoading
+            )
+
+            OutlinedTextField(
+                value = description,
+                onValueChange = { description = it },
+                label = { Text("Descripción") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp),
+                enabled = !isLoading
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    val productCategory = ProductCategory.values().find {
+                        it.name.equals(category, ignoreCase = true)
+                    }
+                    val priceDouble = price.toDoubleOrNull()
+                    val stockInt = stock.toIntOrNull()
+
+                    if (name.isNotBlank() && productCategory != null &&
+                        priceDouble != null && stockInt != null && unit.isNotBlank()
+                    ) {
+                        isLoading = true
+                        addProductViewModel.viewModelScope.launch {
+                            val nextId = addProductViewModel.getNextProductIdSafely()
+                            Log.d("AddProductScreen", "Nuevo ID generado: $nextId")
+                            val newProduct = Product(
+                                id = nextId.toString(),
+                                name = name,
+                                description = description,
+                                price = priceDouble,
+                                category = productCategory,
+                                stock = stockInt,
+                                unit = unit
+                            )
+                            addProductViewModel.addProduct(
+                                product = newProduct,
+                                onSuccess = {
+                                    isLoading = false
+                                    Toast.makeText(context, "Producto agregado con éxito", Toast.LENGTH_SHORT).show()
+                                    onProductAdded()
+                                },
+                                onError = { exception ->
+                                    isLoading = false
+                                    Toast.makeText(context, "Error: ${exception.message}", Toast.LENGTH_LONG).show()
+                                }
+                            )
+                        }
+                    } else {
+                        Toast.makeText(context, "Por favor, completa todos los campos correctamente", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = FutronoNaranja),
+                enabled = !isLoading
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {
-                    Toast.makeText(context, "Por favor, completa todos los campos correctamente", Toast.LENGTH_SHORT).show()
+                    Text("Agregar Producto", color = MaterialTheme.colorScheme.onPrimary)
                 }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = FutronoNaranja),
-            enabled = !isLoading // Deshabilita el botón mientras se carga
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-            } else {
-                Text("Agregar Producto", color = MaterialTheme.colorScheme.onPrimary)
             }
         }
     }

@@ -36,7 +36,7 @@ data class ProductFirestore(
     val name: String = "",
     val description: String = "",
     val price: Double = 0.0,
-    val category: String = "",    // 🔹 String, no enum
+    val category: String = "",
     val imageUrl: String = "",
     val unit: String = "unidad",
     val stock: Int = 100,
@@ -51,7 +51,7 @@ data class Product(
     val category: ProductCategory,
     val imageUrl: String = "",
     val icon: ImageVector? = null,
-    val unit: String = "unidad",
+    val unit: String,
     val stock: Int = 100,
     val isAvailable: Boolean = true
 )

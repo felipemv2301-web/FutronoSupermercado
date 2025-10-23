@@ -1,8 +1,10 @@
 package com.example.intento1app.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.intento1app.data.models.Product
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.launch
@@ -33,6 +35,24 @@ class AddProductViewModel : ViewModel() {
                 // Manejar el error, por ejemplo, logueándolo o mostrando un mensaje.
                 onError(e)
             }
+        }
+    }
+    //Consulta el producto con el ID más alto y desde ahí suma un dígito más
+    suspend fun getNextProductIdSafely(): Int {
+        val counterRef = db.collection("counters").document("products")
+
+        return try {
+            db.runTransaction { transaction ->
+                val snapshot = transaction.get(counterRef)
+                val currentId = snapshot.getLong("lastId") ?: 0L
+                Log.d("AddProductViewModel", "Current lastId from Firestore: $currentId")
+                val nextId = currentId + 1
+                transaction.set(counterRef, mapOf("lastId" to nextId), SetOptions.merge())
+                nextId.toInt()
+            }.await()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            1
         }
     }
 }

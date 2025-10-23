@@ -30,7 +30,8 @@ fun PaymentIntegrationExample() {
                         description = "Descripción del producto",
                         price = 25000.0,
                         category = ProductCategory.DESPENSA,
-                        imageUrl = ""
+                        imageUrl = "",
+                        unit = "kg"
                     ),
                     quantity = 2
                 )

@@ -379,7 +379,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                 }
             )
         }
-
+        //Añadir producto
         showAddProduct -> {
             AddProductScreen(
                 onBackClick = {

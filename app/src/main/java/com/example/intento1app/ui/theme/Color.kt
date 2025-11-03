@@ -30,3 +30,6 @@ val FutronoAmarillo = Color(0xFF96730A)
 
 val FutronoCeleste = Color(0xFF418FA6)
 val FutronoVerde = Color(0xFF4B9137)
+val StockHigh = Color(0xFF2E7D32)
+val StockMedium = Color(0xFFF57C00)
+val StockLow = Color(0xFFD32F2F)

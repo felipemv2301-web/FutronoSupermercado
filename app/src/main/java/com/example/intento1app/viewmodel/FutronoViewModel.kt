@@ -90,9 +90,6 @@ class FutronoViewModel @Inject constructor(
             }
         }
     }
-
-    // --- El resto de funciones (manejo del carrito, etc.) se quedan igual ---
-
     fun addToCart(product: Product) {
         val currentCart = _uiState.value.cart.toMutableList()
         val existingItem = currentCart.find { it.product.id == product.id }

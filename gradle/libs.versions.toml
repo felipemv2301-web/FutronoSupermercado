@@ -12,6 +12,8 @@ roomKtx = "2.8.2"
 ui = "1.9.3"
 uiText = "1.9.3"
 runtime = "1.9.3"
+volley = "1.2.1"
+foundationLayout = "1.9.4"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -32,6 +34,8 @@ androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = 
 ui = { group = "androidx.compose.ui", name = "ui", version.ref = "ui" }
 androidx-ui-text = { group = "androidx.compose.ui", name = "ui-text", version.ref = "uiText" }
 androidx-runtime = { group = "androidx.compose.runtime", name = "runtime", version.ref = "runtime" }
+volley = { group = "com.android.volley", name = "volley", version.ref = "volley" }
+androidx-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "foundationLayout" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

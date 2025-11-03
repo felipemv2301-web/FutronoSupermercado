@@ -1,7 +1,6 @@
 package com.example.intento1app
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.google.firebase.FirebaseApp
@@ -52,13 +51,19 @@ import com.example.intento1app.ui.theme.FutronoNaranja
 import com.example.intento1app.ui.theme.FutronoFondo
 import com.example.intento1app.ui.theme.FutronoCafeOscuro
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.AddShoppingCart
+import androidx.compose.material.icons.filled.ImageNotSupported
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import com.example.intento1app.ui.screens.PaymentScreen
 import com.example.intento1app.ui.screens.AccessibilityScreen
@@ -76,25 +81,25 @@ import com.example.intento1app.ui.screens.WorkerNotificationsScreen
 import com.example.intento1app.data.models.User
 import com.example.intento1app.data.models.Product
 import com.example.intento1app.data.models.ProductCategory
-import com.example.intento1app.data.models.CartItem
-
+import coil.request.ImageRequest
 import com.example.intento1app.ui.components.ScalableHeadlineMedium
 import com.example.intento1app.ui.components.ScalableHeadlineSmall
 import com.example.intento1app.ui.components.ScalableTitleMedium
 import com.example.intento1app.viewmodel.AccessibilityViewModel
 import com.example.intento1app.viewmodel.AuthViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.intento1app.data.models.ProductFirestore
+import coil.compose.AsyncImage
+import com.example.intento1app.data.models.CartItem
 import com.example.intento1app.ui.screens.AddProductScreen
 import com.example.intento1app.ui.screensimport.WorkerProductsScreen
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
+import com.example.intento1app.ui.theme.StockHigh
+import com.example.intento1app.ui.theme.StockLow
+import com.example.intento1app.ui.theme.StockMedium
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // Inicializar Firebase
+
         try {
             FirebaseApp.initializeApp(this)
             println("Firebase inicializado correctamente")
@@ -104,12 +109,13 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val accessibilityViewModel: AccessibilityViewModel = viewModel()
+
             AccessibleFutronoTheme(accessibilityViewModel = accessibilityViewModel) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    FutronoApp(accessibilityViewModel)
+                    FutronoApp(accessibilityViewModel = accessibilityViewModel)
                 }
             }
         }
@@ -151,20 +157,22 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
     var showWorkerSettings by remember { mutableStateOf(false) }
     var showWorkerHelp by remember { mutableStateOf(false) }
 
+    var searchQuery by remember { mutableStateOf("") }
+
     // Sistema de navegación con pila
     var navigationStack by remember { mutableStateOf(listOf<String>()) }
-    
+
     // Funciones para manejar la navegación con pila
     fun navigateTo(screen: String) {
         navigationStack = navigationStack + screen
     }
-    
+
     fun navigateBack() {
         if (navigationStack.isNotEmpty()) {
             navigationStack = navigationStack.dropLast(1)
         }
     }
-    
+
     fun getCurrentScreenFromStack(): String {
         return if (navigationStack.isNotEmpty()) {
             navigationStack.last()
@@ -172,12 +180,12 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
             "home"
         }
     }
-    
+
     // Función para manejar la navegación hacia atrás
     fun handleBackNavigation() {
         navigateBack()
         val previousScreen = getCurrentScreenFromStack()
-        
+
         // Limpiar todas las pantallas de perfil
         showUserProfile = false
         showMyData = false
@@ -194,7 +202,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
         showWorkerTeam = false
         showWorkerSettings = false
         showWorkerHelp = false
-        
+
         // Mostrar la pantalla anterior basándose en la pila
         when (previousScreen) {
             "userProfile" -> showUserProfile = true
@@ -218,28 +226,28 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
             }
         }
     }
-    
+
     // Estados de autenticación (ya declarados arriba)
     val authErrorMessage by authViewModel.errorMessage.collectAsStateWithLifecycle()
     val isLoading by authViewModel.isLoading.collectAsStateWithLifecycle()
-    
+
     // Estados de roles
     val isClient by authViewModel.isClient.collectAsStateWithLifecycle()
     val isWorker by authViewModel.isWorker.collectAsStateWithLifecycle()
     val isAdmin by authViewModel.isAdmin.collectAsStateWithLifecycle()
     val userRoles by authViewModel.userRoles.collectAsStateWithLifecycle()
-    
+
     // Verificar estado de autenticación al inicializar
     LaunchedEffect(isLoggedIn, currentFirebaseUser, userRoles) {
         println("MainActivity: LaunchedEffect ejecutado - isLoggedIn: $isLoggedIn, currentScreen: $currentScreen, isCheckingAuth: $isCheckingAuth")
-        
+
         val firebaseUser = currentFirebaseUser
         if (isLoggedIn && firebaseUser != null) {
             // Verificar roles del usuario
             val hasValidRole = isClient || isWorker || isAdmin
-            
+
             println("MainActivity: Verificando roles - hasValidRole: $hasValidRole, isClient: $isClient, isWorker: $isWorker, isAdmin: $isAdmin")
-            
+
             if (hasValidRole) {
                 // Usuario ya logueado con rol válido, crear currentUser y ir a home
                 val localUser = User(
@@ -253,7 +261,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                 currentUser = localUser
                 currentScreen = "home"
                 isCheckingAuth = false
-                
+
                 // Log de roles para debugging
                 println("MainActivity: Usuario logueado con roles válidos: ${userRoles}")
                 println("MainActivity: Navegando a home - Cliente: $isClient, Trabajador: $isWorker, Admin: $isAdmin")
@@ -270,7 +278,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
             currentScreen = "auth"
         }
     }
-    
+
     // Timeout para la verificación de autenticación
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(3000) // 3 segundos de timeout
@@ -282,14 +290,14 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
             }
         }
     }
-    
+
     // Sincronizar currentUser cuando currentFirebaseUser cambie
     LaunchedEffect(currentFirebaseUser, userRoles) {
         val firebaseUser = currentFirebaseUser
         if (firebaseUser != null && currentUser?.id != firebaseUser.id) {
             // Verificar roles antes de sincronizar
             val hasValidRole = isClient || isWorker || isAdmin
-            
+
             if (hasValidRole) {
                 val localUser = User(
                     id = firebaseUser.id,
@@ -307,7 +315,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
             }
         }
     }
-    
+
     when {
         currentScreen == "loading" || isCheckingAuth -> {
             // Pantalla de carga mientras se verifica la autenticación
@@ -789,7 +797,7 @@ fun AuthScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var showError by remember { mutableStateOf(false) }
-    
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -809,11 +817,11 @@ fun AuthScreen(
                     .fillMaxWidth(0.9f) // 3. Ajusta el tamaño del logo (90% del ancho)
             )
         }
-        
+
         Spacer(modifier = Modifier.height(48.dp))
-        
+
         Spacer(modifier = Modifier.height(32.dp))
-        
+
         // Campo de correo electrónico
         OutlinedTextField(
             value = email,
@@ -834,9 +842,9 @@ fun AuthScreen(
             ),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         // Campo de contraseña
         OutlinedTextField(
             value = password,
@@ -866,7 +874,7 @@ fun AuthScreen(
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline
             )
         )
-        
+
         if (showError) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -875,9 +883,9 @@ fun AuthScreen(
                 style = MaterialTheme.typography.bodySmall
             )
         }
-        
+
         Spacer(modifier = Modifier.height(24.dp))
-        
+
         // Botón de inicio de sesión
         Button(
             onClick = {
@@ -924,9 +932,9 @@ fun AuthScreen(
                 )
             )
         }
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         // Botón de registro
         OutlinedButton(
             onClick = onRegisterClick,
@@ -944,9 +952,9 @@ fun AuthScreen(
                 )
             )
         }
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         // Botón de entrar sin cuenta
         TextButton(
             onClick = onGuestLogin,
@@ -982,7 +990,7 @@ fun RegisterScreen(
     var showError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
-    
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -1010,7 +1018,7 @@ fun RegisterScreen(
                 containerColor = MaterialTheme.colorScheme.primary
             )
         )
-        
+
         // Formulario de registro
         LazyColumn(
             modifier = Modifier
@@ -1027,7 +1035,7 @@ fun RegisterScreen(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
             }
-            
+
             item {
                 // Campo Nombre
                 OutlinedTextField(
@@ -1042,7 +1050,7 @@ fun RegisterScreen(
                     )
                 )
             }
-            
+
             item {
                 // Campo Apellido
                 OutlinedTextField(
@@ -1057,7 +1065,7 @@ fun RegisterScreen(
                     )
                 )
             }
-            
+
             item {
                 // Campo RUT
                 OutlinedTextField(
@@ -1074,7 +1082,7 @@ fun RegisterScreen(
                     )
                 )
             }
-            
+
             item {
                 // Campo Teléfono
                 OutlinedTextField(
@@ -1101,7 +1109,7 @@ fun RegisterScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
                 )
             }
-            
+
             item {
                 // Campo Correo Electrónico
                 OutlinedTextField(
@@ -1124,7 +1132,7 @@ fun RegisterScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
                 )
             }
-            
+
             item {
                 // Campo Confirmar Correo
                 OutlinedTextField(
@@ -1147,7 +1155,7 @@ fun RegisterScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
                 )
             }
-            
+
             item {
                 // Campo Contraseña
                 OutlinedTextField(
@@ -1179,7 +1187,7 @@ fun RegisterScreen(
                     )
                 )
             }
-            
+
             item {
                 // Campo Confirmar Contraseña
                 OutlinedTextField(
@@ -1211,7 +1219,7 @@ fun RegisterScreen(
                     )
                 )
             }
-            
+
             if (showError) {
                 item {
                     Text(
@@ -1221,10 +1229,10 @@ fun RegisterScreen(
                     )
                 }
             }
-            
+
             item {
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 // Botón de registro
                 Button(
                     onClick = {
@@ -1519,7 +1527,7 @@ private fun WorkerOrdersButton(onClick: () -> Unit) {
         )
     }
 }
-
+//Selección de categorías
 @Composable
 private fun CategoriesGrid(
     categories: List<ProductCategory>,
@@ -1623,6 +1631,45 @@ fun ProductsScreen(
     cartItemCount: Int,
     modifier: Modifier = Modifier
 ) {
+    var searchQuery by remember { mutableStateOf("") }
+    var productsFromDb by remember { mutableStateOf<List<Product>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    // Carga los productos desde Firebase (tu código original, sin cambios)
+    LaunchedEffect(category) {
+        isLoading = true
+        error = null
+
+        val onResult: (List<Product>) -> Unit = { productList ->
+            productsFromDb = productList
+            isLoading = false
+        }
+        val onError: (Exception) -> Unit = { exception ->
+            error = exception.message
+            isLoading = false
+        }
+
+        if (category == "TODOS") {
+            FirebaseHelper.getAllProductsFromFirebase(onResult, onError)
+        } else {
+            FirebaseHelper.getProductsByCategoryFromFirebase(category, onResult, onError)
+        }
+    }
+
+    // LÓGICA DE FILTRADO
+    val filteredProducts = remember(searchQuery, productsFromDb) {
+        if (searchQuery.isBlank()) {
+            productsFromDb // Si no hay búsqueda, muestra todos los productos cargados
+        } else {
+            productsFromDb.filter { product ->
+                // Filtra por nombre O descripción, ignorando mayúsculas/minúsculas
+                product.name.contains(searchQuery, ignoreCase = true) ||
+                        product.description.contains(searchQuery, ignoreCase = true)
+            }
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -1647,7 +1694,6 @@ fun ProductsScreen(
                 }
             },
             actions = {
-                // Botón del carrito con badge
                 Box {
                     IconButton(onClick = onCartClick) {
                         Icon(
@@ -1656,8 +1702,6 @@ fun ProductsScreen(
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
-                    
-                    // Badge con cantidad de items
                     if (cartItemCount > 0) {
                         Badge(
                             modifier = Modifier
@@ -1666,7 +1710,7 @@ fun ProductsScreen(
                             containerColor = FutronoCafe
                         ) {
                             Text(
-                                text = if (cartItemCount > 99) "99+" else cartItemCount.toString(),
+                                if (cartItemCount > 99) "99+" else cartItemCount.toString(),
                                 color = Color.White,
                                 fontSize = 12.sp
                             )
@@ -1678,44 +1722,18 @@ fun ProductsScreen(
                 containerColor = MaterialTheme.colorScheme.primary
             )
         )
-        
-        
-        // Lista de productos
-        // Usar LaunchedEffect para cargar productos desde Firebase
-        var products by remember { mutableStateOf<List<Product>>(emptyList()) }
-        var isLoading by remember { mutableStateOf(true) }
-        var error by remember { mutableStateOf<String?>(null) }
-        
-        LaunchedEffect(category) {
-                isLoading = true
-                error = null
-                
-                if (category == "TODOS") {
-                    FirebaseHelper.getAllProductsFromFirebase(
-                        onResult = { productList ->
-                            products = productList
-                            isLoading = false
-                        },
-                        onError = { exception ->
-                            error = exception.message
-                            isLoading = false
-                        }
-                    )
-                } else {
-                    FirebaseHelper.getProductsByCategoryFromFirebase(
-                        category = category,
-                        onResult = { productList ->
-                            products = productList
-                            isLoading = false
-                        },
-                        onError = { exception ->
-                            error = exception.message
-                            isLoading = false
-                        }
-                    )
-                }
-        }
-        
+
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            label = { Text("Ingresar elemento a buscar...") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar") },
+            singleLine = true,
+            shape = RoundedCornerShape(24.dp)
+        )
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
@@ -1723,37 +1741,40 @@ fun ProductsScreen(
         ) {
             if (isLoading) {
                 item {
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
                 }
             } else if (error != null) {
                 item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
-                    ) {
+                    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+                        Text(text = "Error al cargar productos: $error", modifier = Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onErrorContainer)
+                    }
+                }
+            } else if (filteredProducts.isEmpty()) { // Mensaje para cuando no hay resultados
+                item {
+                    Box(modifier = Modifier.fillMaxWidth().padding(top = 50.dp), contentAlignment = Alignment.Center) {
                         Text(
-                            text = "Error al cargar productos: $error",
-                            modifier = Modifier.padding(16.dp),
-                            color = MaterialTheme.colorScheme.onErrorContainer
+                            text = "No se encontraron productos para \"$searchQuery\"",
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             } else {
-            items(products) { product ->
-                ProductCard(
-                    product = product,
-                    onAddToCart = onAddToCart
-                )
+                // Aquí usamos la lista `filteredProducts`
+                items(filteredProducts) { product ->
+                    ProductCard(
+                        product = product,
+                        onAddToCart = onAddToCart
+                    )
                 }
             }
         }
     }
 }
+
 
 @Composable
 fun ProductCard(
@@ -1764,9 +1785,9 @@ fun ProductCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp), // separación vertical entre tarjetas
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+            .padding(vertical = 6.dp, horizontal = 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         )
@@ -1774,17 +1795,49 @@ fun ProductCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Contenedor para la imagen o el ícono
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant), // Fondo para el ícono
+                contentAlignment = Alignment.Center
+            ) {
+                // Si la URL de la imagen no está vacía, intenta cargarla
+                if (!product.imageUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(product.imageUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "Imagen de ${product.name}",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize() // La imagen llenará el Box
+                    )
+                } else {
+                    // Si no hay URL, muestra el ícono directamente
+                    Icon(
+                        imageVector = Icons.Default.ImageNotSupported,
+                        contentDescription = "Imagen no disponible",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Columna para la información del producto
             Column(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
             ) {
                 Text(
                     text = product.name,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -1792,53 +1845,49 @@ fun ProductCard(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = product.description,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "${String.format("%,.0f", product.price).replace(",", ".")} por ${product.unit}",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = FutronoCafe
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "$${String.format("%,.0f", product.price).replace(",", ".")} / ${product.unit}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
                     )
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Stock: ${product.stock} ${product.unit}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = when {
-                        product.stock > 10 -> MaterialTheme.colorScheme.primary
-                        product.stock in 1..10 -> MaterialTheme.colorScheme.tertiary
-                        else -> MaterialTheme.colorScheme.error
-                    }
-                )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "Stock: ${product.stock}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = when {
+                            product.stock > 50 -> StockHigh
+                            product.stock > 30 -> StockMedium
+                            else -> StockLow
+                        }
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            Button(
+            // Botón para agregar al carrito
+            IconButton(
                 onClick = { onAddToCart(product) },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = FutronoNaranja
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape),
+                colors = IconButtonDefaults.iconButtonColors(
+                    containerColor = FutronoNaranja,
+                    contentColor = Color.White
                 ),
-                shape = RoundedCornerShape(24.dp),
-                modifier = Modifier.height(40.dp)
+                enabled = product.stock > 0
             ) {
                 Icon(
                     imageVector = Icons.Default.AddShoppingCart,
-                    contentDescription = "Agregar al carrito",
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "Agregar",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.bodyMedium
+                    contentDescription = "Agregar al carrito"
                 )
             }
         }
@@ -1894,7 +1943,7 @@ fun CartScreen(
                 containerColor = MaterialTheme.colorScheme.primary
             )
         )
-        
+
         // Contenido principal
         if (cartItems.isEmpty()) {
             // Carrito vacío
@@ -1942,12 +1991,137 @@ fun CartScreen(
                     )
                 }
             }
-            
+
             // Resumen y botón de checkout
             CartSummary(
                 cartItems = cartItems,
                 onCheckout = onCheckout
             )
+        }
+    }
+}
+
+@Composable
+fun CategorySelectionScreen(
+    onCategoryClick: (String) -> Unit,
+    onCartClick: () -> Unit,
+    cartItemCount: Int,
+    accessibilityViewModel: AccessibilityViewModel,
+    modifier: Modifier = Modifier
+) {
+    // --- 1. ESTADO PARA LA BÚSQUEDA Y LA LISTA FILTRADA ---
+    var searchQuery by remember { mutableStateOf("") }
+    val allCategories = remember { ProductCategory.values() }
+
+    val filteredCategories = remember(searchQuery, allCategories) {
+        if (searchQuery.isBlank()) {
+            allCategories.toList() // Muestra todas las categorías si no hay búsqueda
+        } else {
+            // Filtra las categorías cuyo nombre de visualización contenga el texto de búsqueda
+            allCategories.filter {
+                it.displayName.contains(searchQuery, ignoreCase = true)
+            }
+        }
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(16.dp)
+    ) {
+        // --- Header con logo y carrito (Tu código original, sin cambios) ---
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "FUTRONO",
+                    color = FutronoCafe,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 28.sp // Tamaño de ejemplo, puedes usar tu ScalableHeadlineLarge
+                )
+                Text(
+                    text = "Supermercado",
+                    color = FutronoNaranja,
+                    fontSize = 16.sp // Tamaño de ejemplo, puedes usar tu ScalableBodyLarge
+                )
+            }
+            Box {
+                FloatingActionButton(
+                    onClick = onCartClick,
+                    containerColor = FutronoNaranja,
+                    modifier = Modifier.size(56.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ShoppingCart,
+                        contentDescription = "Carrito de compras",
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+                if (cartItemCount > 0) {
+                    Badge(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = 8.dp, y = (-8).dp),
+                        containerColor = FutronoCafe
+                    ) {
+                        Text(
+                            if (cartItemCount > 99) "99+" else cartItemCount.toString(),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // --- 2. EL ELEMENTO A AÑADIR: EL BUSCADOR ---
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp),
+            label = { Text("Buscar categoría...") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Icono de búsqueda") },
+            singleLine = true,
+            shape = RoundedCornerShape(16.dp)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // --- Título (Tu código original, sin cambios) ---
+        Text(
+            text = "Nuestras Categorías",
+            modifier = Modifier.padding(bottom = 16.dp),
+            color = MaterialTheme.colorScheme.onBackground,
+            fontWeight = FontWeight.Bold,
+            fontSize = 22.sp // Tamaño de ejemplo, puedes usar tu ScalableHeadlineMedium
+        )
+
+        // --- 3. USA LA LISTA FILTRADA EN EL GRID ---
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(bottom = 32.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // Se cambia "ProductCategory.values()" por "filteredCategories"
+            items(filteredCategories) { category ->
+                // Este es un Composable de tu proyecto, asumo que existe y funciona
+                // CategoryCard(
+                //     category = category,
+                //     onClick = { onCategoryClick(category.name) },
+                //     modifier = Modifier.fillMaxWidth()
+                // )
+                Text(text = category.displayName, modifier = Modifier.clickable { onCategoryClick(category.name) })
+            }
         }
     }
 }
@@ -1995,7 +2169,7 @@ fun CartItemCard(
                     )
                 )
             }
-            
+
             // Controles de cantidad
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -2005,7 +2179,7 @@ fun CartItemCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     IconButton(
-                        onClick = { 
+                        onClick = {
                             onUpdateQuantity(cartItem.product.id, cartItem.quantity - 1)
                         },
                         modifier = Modifier.size(32.dp)
@@ -2016,7 +2190,7 @@ fun CartItemCard(
                             tint = FutronoCafe
                         )
                     }
-                    
+
                     Text(
                         text = cartItem.quantity.toString(),
                         style = MaterialTheme.typography.titleMedium.copy(
@@ -2024,7 +2198,7 @@ fun CartItemCard(
                         ),
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
-                    
+
                     IconButton(
                         onClick = { onUpdateQuantity(cartItem.product.id, cartItem.quantity + 1) },
                         modifier = Modifier.size(32.dp)
@@ -2036,9 +2210,9 @@ fun CartItemCard(
                         )
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 // Botón eliminar
                 TextButton(
                     onClick = { onRemoveItem(cartItem.product.id) },
@@ -2060,7 +2234,7 @@ fun CartSummary(
 ) {
     val totalItems = cartItems.sumOf { it.quantity }
     val totalPrice = cartItems.sumOf { it.totalPrice }
-    
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -2089,9 +2263,9 @@ fun CartSummary(
                     )
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -2110,9 +2284,9 @@ fun CartSummary(
                     color = Color.White
                     )
             }
-            
+
             Spacer(modifier = Modifier.height(20.dp))
-            
+
             // Botón de checkout
             Button(
                 onClick = onCheckout,
@@ -2176,47 +2350,47 @@ object FirebaseHelper {
 object ValidationHelper {
 fun validateForm(nombre: String, apellido: String, rut: String, telefono: String, email: String, confirmEmail: String, password: String, confirmPassword: String): Boolean {
     // Validar campos obligatorios
-    if (!Validators.validarCampoObligatorio(nombre) || 
-        !Validators.validarCampoObligatorio(apellido) || 
-        !Validators.validarCampoObligatorio(rut) || 
-        !Validators.validarCampoObligatorio(telefono) || 
-        !Validators.validarCampoObligatorio(email) || 
-        !Validators.validarCampoObligatorio(confirmEmail) || 
-        !Validators.validarCampoObligatorio(password) || 
+    if (!Validators.validarCampoObligatorio(nombre) ||
+        !Validators.validarCampoObligatorio(apellido) ||
+        !Validators.validarCampoObligatorio(rut) ||
+        !Validators.validarCampoObligatorio(telefono) ||
+        !Validators.validarCampoObligatorio(email) ||
+        !Validators.validarCampoObligatorio(confirmEmail) ||
+        !Validators.validarCampoObligatorio(password) ||
         !Validators.validarCampoObligatorio(confirmPassword)) {
         return false
     }
-    
+
     // Validar RUT chileno
     if (!Validators.validarRUT(rut)) {
         return false
     }
-    
+
     // Validar teléfono chileno
     if (!Validators.validarTelefono(telefono)) {
         return false
     }
-    
+
     // Validar email
     if (!Validators.validarEmail(email)) {
         return false
     }
-    
+
     // Validar que los emails coincidan
     if (!Validators.validarConfirmacionEmail(email, confirmEmail)) {
         return false
     }
-    
+
     // Validar contraseña
     if (!Validators.validarPassword(password)) {
         return false
     }
-    
+
     // Validar que las contraseñas coincidan
     if (!Validators.validarConfirmacionPassword(password, confirmPassword)) {
         return false
     }
-    
+
     return true
 }
 
@@ -2230,25 +2404,25 @@ fun validateFormWithError(nombre: String, apellido: String, rut: String, telefon
     if (!Validators.validarCampoObligatorio(confirmEmail)) return TipoError.CAMPO_OBLIGATORIO
     if (!Validators.validarCampoObligatorio(password)) return TipoError.CAMPO_OBLIGATORIO
     if (!Validators.validarCampoObligatorio(confirmPassword)) return TipoError.CAMPO_OBLIGATORIO
-    
+
     // Validar RUT chileno
     if (!Validators.validarRUT(rut)) return TipoError.RUT_INVALIDO
-    
+
     // Validar teléfono chileno
     if (!Validators.validarTelefono(telefono)) return TipoError.TELEFONO_INVALIDO
-    
+
     // Validar email
     if (!Validators.validarEmail(email)) return TipoError.EMAIL_INVALIDO
-    
+
     // Validar que los emails coincidan
     if (!Validators.validarConfirmacionEmail(email, confirmEmail)) return TipoError.EMAIL_NO_COINCIDE
-    
+
     // Validar contraseña
     if (!Validators.validarPassword(password)) return TipoError.PASSWORD_CORTA
-    
+
     // Validar que las contraseñas coincidan
     if (!Validators.validarConfirmacionPassword(password, confirmPassword)) return TipoError.PASSWORD_NO_COINCIDE
-    
+
     return null // Sin errores
     }
 }

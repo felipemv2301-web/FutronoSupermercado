@@ -92,6 +92,8 @@ dependencies {
     implementation(libs.ui)
     implementation(libs.androidx.ui.text)
     implementation(libs.androidx.runtime)
+    implementation(libs.volley)
+    implementation(libs.androidx.foundation.layout)
 
     // Testing
     testImplementation(libs.junit)

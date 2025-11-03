@@ -41,24 +41,22 @@ fun CategoryCard(
             },
         shape = RoundedCornerShape(1.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-
-        // 2. Usamos 'backgroundColor' del enum para el fondo de la tarjeta.
         colors = CardDefaults.cardColors(
             containerColor = category.containerColor
         )
     ) {
-        // 3. El contenido se alinea directamente en la Card, no necesitamos un 'Box' extra.
+
         Column(
             modifier = Modifier
-                .fillMaxSize() // Ocupa todo el espacio de la Card
-                .padding(12.dp), // Un padding ligero para que el texto no toque los bordes
+                .fillMaxSize()
+                .padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // 4. El texto ahora usa 'textColor' del enum para asegurar el contraste.
+
             ScalableTitleMedium(
                 text = category.displayName,
-                color = category.textColor, // La corrección clave
+                color = category.textColor,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
                 fontWeight = FontWeight.Bold

@@ -53,7 +53,6 @@ class FutronoViewModel @Inject constructor(
         }
     }
 
-    // --- 2. FUNCIÓN addProduct CORREGIDA Y SIMPLIFICADA ---
     // La hacemos 'suspend' para poder esperar su resultado desde la UI
     suspend fun addProduct(newProduct: Product) {
         try {

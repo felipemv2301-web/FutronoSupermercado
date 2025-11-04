@@ -32,7 +32,7 @@ fun WorkerCustomersScreen(
             title = {
                 Text(
                     text = "Gestión de Clientes",
-                    style = MaterialTheme.typography.headlineSmall.copy(
+                    style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold
                     ),
                     color = FutronoFondo

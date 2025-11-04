@@ -1,4 +1,5 @@
-package com.example.intento1app.ui.screensimport
+package com.example.intento1app.ui.screens
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -6,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.res.painterResource
 import com.example.intento1app.R
@@ -16,20 +18,37 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.intento1app.ui.theme.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import com.example.intento1app.ui.theme.*
+import com.example.intento1app.data.models.Product
+import com.example.intento1app.viewmodel.WorkerProductsViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkerProductsScreen(
     onNavigateBack: () -> Unit,
     onAddProductClick: () -> Unit,
-    modifier: Modifier = Modifier
+    onEditProductClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    workerProductsViewModel: WorkerProductsViewModel = viewModel()
 ) {
+    val products by workerProductsViewModel.products.collectAsStateWithLifecycle()
+    var searchQuery by remember { mutableStateOf("") }
+
+    val filteredProducts = if (searchQuery.isBlank()) {
+        products
+    } else {
+        products.filter {
+            it.name.contains(searchQuery, ignoreCase = true)
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -40,7 +59,7 @@ fun WorkerProductsScreen(
             title = {
                 Text(
                     text = "Gestión de Productos",
-                    style = MaterialTheme.typography.headlineSmall.copy(
+                    style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold
                     ),
                     color = FutronoFondo
@@ -49,7 +68,7 @@ fun WorkerProductsScreen(
             navigationIcon = {
                 IconButton(onClick = onNavigateBack) {
                     Icon(
-                        imageVector = Icons.Default.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Volver",
                         tint = FutronoFondo
 
@@ -57,20 +76,6 @@ fun WorkerProductsScreen(
                 }
             },
             actions = {
-                IconButton(onClick = { /* TODO: Implementar búsqueda */ }) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Buscar",
-                        tint = FutronoFondo
-                    )
-                }
-                IconButton(onClick = { /* TODO: Implementar filtros */ }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_filter),
-                        contentDescription = "Filtrar",
-                        tint = FutronoFondo
-                    )
-                }
                 IconButton(onClick = onAddProductClick) { // <-- Llama a la nueva función aquí
                     Icon(
                         imageVector = Icons.Default.Add,
@@ -91,93 +96,23 @@ fun WorkerProductsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Botón para subir nuevos productos
+            // Buscador
             item {
-                var isUploading by remember { mutableStateOf(false) }
-                var uploadResult by remember { mutableStateOf<String?>(null) }
-
-                Card(
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = FutronoNaranja.copy(alpha = 0.1f)
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "Gestión de Inventario",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface
+                    label = { Text("Buscar productos...") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Buscar"
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Sube nuevos productos al inventario de Firebase",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Button(
-                            onClick = {
-                                isUploading = true
-                                uploadResult = null
-                                CoroutineScope(Dispatchers.IO).launch {
-                                    val success = com.example.intento1app.utils.FirebaseDataSeeder.seedProducts()
-
-                                    // Como estamos en un hilo IO, actualizamos la UI en el hilo principal
-                                    withContext(Dispatchers.Main) {
-                                        if (success) {
-                                            uploadResult = "18 nuevos productos agregados exitosamente"
-                                        } else {
-                                            uploadResult = "Error al agregar productos"
-                                        }
-                                        isUploading = false
-                                    }
-                                }
-                            },
-                            enabled = !isUploading,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = FutronoNaranja
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            if (isUploading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    strokeWidth = 2.dp,
-                                    color = Color.White
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Subiendo...")
-                            } else {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Subir 18 Productos Nuevos")
-                            }
-                        }
-
-                        uploadResult?.let { result ->
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = result,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (result.startsWith("✅"))
-                                    MaterialTheme.colorScheme.primary
-                                else
-                                    MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
-                }
+                    },
+                    singleLine = true
+                )
             }
+
             // Estadísticas de productos
             item {
                 Card(
@@ -204,17 +139,17 @@ fun WorkerProductsScreen(
                         ) {
                             ProductStatItem(
                                 title = "Total Productos",
-                                value = "156",
+                                value = products.size.toString(),
                                 color = Color.White
                             )
                             ProductStatItem(
                                 title = "Bajo Stock",
-                                value = "12",
+                                value = products.count { it.stock <= 10 }.toString(),
                                 color = Color.White
                             )
                             ProductStatItem(
                                 title = "Agotados",
-                                value = "3",
+                                value = products.count { it.stock <= 0 }.toString(),
                                 color = Color.White
                             )
                         }
@@ -248,18 +183,39 @@ fun WorkerProductsScreen(
 
             // Lista de productos
             item {
-                Text(
-                    text = "Productos",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Productos",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
                     )
-                )
+                    if (searchQuery.isNotEmpty()) {
+                        Text(
+                            text = "${filteredProducts.size} resultados",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
 
+            items(filteredProducts) { product ->
+                ProductCard(
+                    product = product,
+                    onEditProduct = { onEditProductClick(product.id) },
+                    onUpdateStock = {},
+                    onViewDetails = {}
+                )
             }
         }
     }
+}
 
 @Composable
 private fun ProductStatItem(
@@ -306,7 +262,7 @@ private fun CategoryChip(
 
 @Composable
 private fun ProductCard(
-    product: SampleProduct,
+    product: Product,
     onEditProduct: () -> Unit,
     onUpdateStock: () -> Unit,
     onViewDetails: () -> Unit,
@@ -359,7 +315,7 @@ private fun ProductCard(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = product.category,
+                        text = product.category.name,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -390,10 +346,11 @@ private fun ProductCard(
                     Icon(
                         imageVector = Icons.Default.Info,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(12.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Ver")
+                    Text("Ver",
+                        style = MaterialTheme.typography.bodySmall)
                 }
 
                 OutlinedButton(
@@ -403,10 +360,12 @@ private fun ProductCard(
                     Icon(
                         imageVector = Icons.Default.Edit,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(12.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Editar")
+                    Text("Editar",
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
 
                 OutlinedButton(
@@ -416,10 +375,11 @@ private fun ProductCard(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_inventory),
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(12.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Stock")
+                    Text("Stock",
+                        style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
@@ -433,7 +393,7 @@ private fun StockStatusChip(
 ) {
     val (color, text) = when {
         stock <= 0 -> Color(0xFFF44336) to "Agotado"
-        stock <= 10 -> Color(0xFFFF9800) to "Bajo Stock"
+        stock <= 50 -> Color(0xFFFF9800) to "Bajo Stock"
         else -> Color(0xFF4CAF50) to "En Stock"
     }
 
@@ -453,19 +413,7 @@ private fun StockStatusChip(
     }
 }
 
-// Data classes para productos de ejemplo
-data class SampleProduct(
-    val id: String,
-    val name: String,
-    val category: String,
-    val price: Double,
-    val stock: Int,
-    val description: String
-)
-
 // Funciones para obtener datos de ejemplo
 private fun getProductCategories(): List<String> {
     return listOf("Todos", "Despensa", "Panadería", "Lácteos", "Frutas", "Verduras", "Carnes")
 }
-
-

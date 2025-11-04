@@ -184,8 +184,8 @@ class AuthViewModel : ViewModel() {
                     _currentUser.value = user
                     _isLoggedIn.value = true
                     updateUserRoles(user)
-                    println("AuthViewModel: ✅ Sesión persistente encontrada - Usuario: ${user.email}")
-                    println("AuthViewModel: ✅ Roles del usuario: ${user.roles}")
+                    println("AuthViewModel: Sesión persistente encontrada - Usuario: ${user.email}")
+                    println("AuthViewModel: Roles del usuario: ${user.roles}")
                 } else {
                     _currentUser.value = null
                     _isLoggedIn.value = false
@@ -196,10 +196,10 @@ class AuthViewModel : ViewModel() {
                 _currentUser.value = null
                 _isLoggedIn.value = false
                 clearRoles()
-                println("AuthViewModel: ❌ Error al obtener usuario: ${result.exceptionOrNull()?.message}")
+                println("AuthViewModel: Error al obtener usuario: ${result.exceptionOrNull()?.message}")
             }
         } catch (e: Exception) {
-            println("AuthViewModel: ❌ Error al verificar usuario actual: ${e.message}")
+            println("AuthViewModel: Error al verificar usuario actual: ${e.message}")
             _currentUser.value = null
             _isLoggedIn.value = false
             clearRoles()
@@ -283,7 +283,7 @@ class AuthViewModel : ViewModel() {
                 println("AuthViewModel: Refrescando sesión manualmente...")
                 checkCurrentUser()
             } catch (e: Exception) {
-                println("AuthViewModel: ❌ Error al refrescar sesión: ${e.message}")
+                println("AuthViewModel: Error al refrescar sesión: ${e.message}")
             }
         }
     }

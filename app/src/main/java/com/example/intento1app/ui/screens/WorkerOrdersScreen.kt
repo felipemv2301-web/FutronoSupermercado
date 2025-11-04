@@ -52,7 +52,7 @@ fun WorkerOrdersScreen(
                 title = { 
                     Text(
                         "Gestión de Pedidos",
-                        style = MaterialTheme.typography.titleLarge.copy(
+                        style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
                         color = FutronoFondo

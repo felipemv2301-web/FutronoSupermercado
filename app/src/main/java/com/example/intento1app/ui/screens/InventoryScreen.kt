@@ -32,7 +32,7 @@ fun InventoryScreen(
                 title = { 
                     Text(
                         "Inventario",
-                        style = MaterialTheme.typography.titleLarge.copy(
+                        style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
                         color = FutronoFondo

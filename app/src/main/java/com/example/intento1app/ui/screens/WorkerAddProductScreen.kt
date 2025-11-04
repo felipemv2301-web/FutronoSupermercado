@@ -2,7 +2,6 @@ package com.example.intento1app.ui.screens
 
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -13,22 +12,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.intento1app.R
 import com.example.intento1app.ui.theme.FutronoNaranja
 import com.example.intento1app.data.models.Product
 import com.example.intento1app.data.models.ProductCategory
 import com.example.intento1app.ui.theme.FutronoCafe
-import com.example.intento1app.ui.theme.FutronoCafeClaro
 import com.example.intento1app.ui.theme.FutronoFondo
 import com.example.intento1app.viewmodel.AddProductViewModel
 import kotlinx.coroutines.launch
-import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,7 +56,7 @@ fun AddProductScreen(
                 title = {
                     Text(
                         "Agregar Producto",
-                        style = MaterialTheme.typography.titleLarge.copy(
+                        style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
                         color = FutronoFondo
@@ -89,10 +86,11 @@ fun AddProductScreen(
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(
+                val labelStyle = TextStyle(fontSize = 18.sp)
+                OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Nombre del Producto") },
+                label = { Text("Nombre del Producto", style = labelStyle) },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading
             )
@@ -105,7 +103,7 @@ fun AddProductScreen(
                 OutlinedTextField(
                     value = category,
                     onValueChange = {},
-                    label = { Text("Categoría") },
+                    label = { Text("Categoría", style = labelStyle) },
                     readOnly = true,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -136,7 +134,7 @@ fun AddProductScreen(
                 OutlinedTextField(
                     value = price,
                     onValueChange = { price = it },
-                    label = { Text("Precio") },
+                    label = { Text("Precio", style = labelStyle) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f),
                     enabled = !isLoading
@@ -149,7 +147,7 @@ fun AddProductScreen(
                     OutlinedTextField(
                         value = unit,
                         onValueChange = {},
-                        label = { Text("Unidad") },
+                        label = { Text("Unidad", style = labelStyle) },
                         readOnly = true,
                         modifier = Modifier
                             .width(100.dp) // Unidad más pequeña y fija
@@ -176,7 +174,7 @@ fun AddProductScreen(
             OutlinedTextField(
                 value = stock,
                 onValueChange = { stock = it },
-                label = { Text("Stock") },
+                label = { Text("Stock", style = labelStyle) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading
@@ -185,7 +183,7 @@ fun AddProductScreen(
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("Descripción") },
+                label = { Text("Descripción", style = labelStyle) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(100.dp),
@@ -245,7 +243,7 @@ fun AddProductScreen(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {
-                    Text("Agregar Producto", color = MaterialTheme.colorScheme.onPrimary)
+                    Text("Agregar Producto", color = MaterialTheme.colorScheme.onPrimary, style = labelStyle)
                 }
             }
         }

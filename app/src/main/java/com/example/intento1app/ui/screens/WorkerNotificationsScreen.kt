@@ -34,7 +34,7 @@ fun WorkerNotificationsScreen(
             title = {
                 Text(
                     text = "Notificaciones",
-                    style = MaterialTheme.typography.headlineSmall.copy(
+                    style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold
                     ),
                     color = FutronoFondo

@@ -90,41 +90,42 @@ fun WorkerHomeScreen(
             onClick = onOrdersClick
         ),
         WorkerFunction(
-            title = "Inventario",
+            title = "Gestión de Inventario",
             icon = Icons.Filled.Inventory,
             iconColor = FutronoFondo,           // Café claro para icono
             backgroundColor = FutronoAmarillo,
             titleColor = FutronoFondo,   // Naranja oscuro para fondo
-            onClick = onInventoryClick
+            onClick = onProductsClick
         ),
         WorkerFunction(
-            title = "Clientes",
+            title = "Gestión de Clientes",
             icon = Icons.Filled.Groups,
             iconColor = FutronoFondo,          // Café oscuro para icono
             backgroundColor = FutronoAzul,
             titleColor = FutronoFondo,   // Superficie crema para fondo
             onClick = onCustomersClick
         ),
+//        WorkerFunction(
+  //          title = "Productos",
+  //          icon = Icons.Filled.Category,
+  //          iconColor = FutronoFondo,        // Naranja claro para icono
+  //          backgroundColor = FutronoCafeClaro,
+  //          titleColor = FutronoFondo,   // Café principal para fondo
+  //          onClick = onProductsClick
+//        )
         WorkerFunction(
-            title = "Productos",
-            icon = Icons.Filled.Category,
-            iconColor = FutronoFondo,        // Naranja claro para icono
-            backgroundColor = FutronoCafeClaro,
-            titleColor = FutronoFondo,   // Café principal para fondo
-            onClick = onProductsClick
-        )
-    )
-
-    // Funciones adicionales con colores Futrono y complementarios
-    val additionalFunctions = listOf(
-        WorkerFunction(
-            title = "Estadísticas",
+            title = "Consultar Estadísticas",
             icon = Icons.Filled.Analytics,
             iconColor = FutronoFondo,       // Naranja oscuro para icono
             backgroundColor = FutronoVerde,
             titleColor = FutronoFondo,   // Naranja claro para fondo
             onClick = onReportsClick
-        ),
+        )
+
+    )
+
+    // Funciones adicionales con colores Futrono y complementarios
+    val additionalFunctions = listOf(
         WorkerFunction(
             title = "Horarios",
             icon = Icons.Filled.Schedule,
@@ -161,10 +162,10 @@ fun WorkerHomeScreen(
 
     //Parámetros de tarjetas de estadísticas
     val dailyStats = listOf(
-        Stat("Pedidos Hoy", "12", Icons.Filled.ShoppingCart, FutronoNaranja),
+        Stat("Pedidos", "12", Icons.Filled.ShoppingCart, FutronoNaranja),
         Stat("Completados", "8", Icons.Filled.CheckCircle, FutronoVerde),
         Stat("Pendientes", "4", Icons.Filled.Schedule, FutronoAmarillo),
-        Stat("Ventas", "$89.990", Icons.Filled.AttachMoney, FutronoMorado)
+        Stat("Total", "$89.990", Icons.Filled.AttachMoney, FutronoMorado)
     )
 
     Column(
@@ -235,7 +236,7 @@ fun WorkerHomeScreen(
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     text = "¡Hola, ${currentUser?.nombre ?: "Trabajador"}!",
-                    style = MaterialTheme.typography.headlineSmall.copy(
+                    style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
@@ -267,7 +268,7 @@ fun WorkerHomeScreen(
         //Componente de título y tarjeta
         Text(
             "Resumen del Día",
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(bottom = 8.dp)
         )
@@ -287,7 +288,7 @@ fun WorkerHomeScreen(
         }
 
         // Estructura de las Funciones principales
-        Text("Funciones Principales", style = MaterialTheme.typography.headlineMedium)
+        Text("Funciones Principales", style = MaterialTheme.typography.titleMedium)
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -299,7 +300,7 @@ fun WorkerHomeScreen(
         }
 
         // Estructura de las Funciones adicionales
-        Text("Herramientas Adicionales", style = MaterialTheme.typography.headlineMedium)
+        Text("Herramientas Adicionales", style = MaterialTheme.typography.titleMedium)
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             additionalFunctions.chunked(2).forEach { rowItems ->
                 Row(
@@ -346,7 +347,7 @@ fun WorkerFunctionCardGridStyle(function: WorkerFunction) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = function.title,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
                 color = function.titleColor
@@ -355,7 +356,7 @@ fun WorkerFunctionCardGridStyle(function: WorkerFunction) {
     }
 }
 
-
+//Tarjetas de estadísticas
 @Composable
 fun StatCard(
     title: String,
@@ -366,7 +367,7 @@ fun StatCard(
 ) {
     Card(
         modifier = modifier
-            .width(140.dp)
+            .width(150.dp)
             .padding(4.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -388,7 +389,7 @@ fun StatCard(
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = value,
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(

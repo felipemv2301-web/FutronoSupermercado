@@ -91,7 +91,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.intento1app.data.models.CartItem
 import com.example.intento1app.ui.screens.AddProductScreen
-import com.example.intento1app.ui.screensimport.WorkerProductsScreen
+import com.example.intento1app.ui.screens.WorkerProductsScreen
 import com.example.intento1app.ui.theme.StockHigh
 import com.example.intento1app.ui.theme.StockLow
 import com.example.intento1app.ui.theme.StockMedium
@@ -150,6 +150,8 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
     var showWorkerCustomers by remember { mutableStateOf(false) }
     var showWorkerProducts by remember { mutableStateOf(false) }
     var showAddProduct by remember { mutableStateOf(false) }
+    var showEditProduct by remember { mutableStateOf(false) }
+    var productToEditId by remember { mutableStateOf<String?>(null) }
     var showWorkerNotifications by remember { mutableStateOf(false) }
     var showWorkerReports by remember { mutableStateOf(false) }
     var showWorkerSchedule by remember { mutableStateOf(false) }
@@ -384,6 +386,12 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     navigateTo("addProduct") // Usando tu función de navegación
                     showWorkerProducts = false
                     showAddProduct = true
+                },
+                onEditProductClick = { productId ->
+                    navigateTo("editProduct")
+                    productToEditId = productId // Guarda el ID del producto a editar
+                    showWorkerProducts = false
+                    showEditProduct = true
                 }
             )
         }
@@ -1520,7 +1528,7 @@ private fun WorkerOrdersButton(onClick: () -> Unit) {
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = "Gestión de Pedidos",
-            style = MaterialTheme.typography.titleMedium.copy(
+            style = MaterialTheme.typography.bodyLarge.copy(
                 fontWeight = FontWeight.Bold
             ),
             color = Color.White
@@ -2393,7 +2401,7 @@ fun validateForm(nombre: String, apellido: String, rut: String, telefono: String
 
     return true
 }
-
+//validaciones del formulario de registro
 fun validateFormWithError(nombre: String, apellido: String, rut: String, telefono: String, email: String, confirmEmail: String, password: String, confirmPassword: String): TipoError? {
     // Validar campos obligatorios
     if (!Validators.validarCampoObligatorio(nombre)) return TipoError.CAMPO_OBLIGATORIO

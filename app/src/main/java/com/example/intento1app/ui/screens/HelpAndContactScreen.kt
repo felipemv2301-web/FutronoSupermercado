@@ -35,7 +35,7 @@ fun HelpAndContactScreen(
                 title = {
                     Text(
                         text = "Ayuda y contacto",
-                        style = MaterialTheme.typography.titleLarge.copy(
+                        style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
                         color = FutronoFondo

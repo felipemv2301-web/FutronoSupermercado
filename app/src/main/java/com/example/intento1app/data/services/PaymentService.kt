@@ -12,8 +12,10 @@ class PaymentService {
     
     companion object {
         // Credenciales de Mercado Pago Chile - CREDENCIALES REALES DE PRUEBA
-        private const val MERCADOPAGO_ACCESS_TOKEN = "TEST-4475320570080614-100917-971534aed0d731aa024ff5ce5cff5bc3-249609398" // Token de prueba real
-        private const val MERCADOPAGO_PUBLIC_KEY = "TEST-b5913914-0d55-4bd9-b802-4524602295d8" // Public key de prueba real
+
+        //TOKENS y ENDPOINTS DE MERCADO PAGO
+        private const val MERCADOPAGO_ACCESS_TOKEN = "TEST-1501487162021330-111012-1c358e1853e146b685f6a30bc81638d6-710849598" // Token de prueba real
+        private const val MERCADOPAGO_PUBLIC_KEY = "TEST-f869b5f4-19b3-45b7-a12a-1ce34648ca9a" // Public key de prueba real
         private const val MERCADOPAGO_ENVIRONMENT = "sandbox" // sandbox, production
         private const val MERCADOPAGO_BASE_URL = "https://api.mercadopago.com" //ENDPOINT
         

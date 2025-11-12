@@ -37,6 +37,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.6.0"
@@ -71,15 +72,17 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.6.4")
 
-    // Mercado Pago - Solo API REST (compatible con Chile)
-    // Nota: El SDK nativo puede no estar disponible para Chile
-
     // HTTP Client para API calls
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
-
-    // WebView para checkout de Mercado Pago (usando WebView nativo de Android)
+    
+    // Gson para JSON
+    implementation("com.google.code.gson:gson:2.10.1")
+    
+    // Custom Tabs para abrir el checkout
+    implementation("androidx.browser:browser:1.8.0")
 
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))

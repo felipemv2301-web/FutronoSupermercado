@@ -1,12 +1,13 @@
 package com.example.intento1app
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.google.firebase.FirebaseApp
 import com.example.intento1app.utils.Validators
 import com.example.intento1app.utils.TipoError
-import com.example.intento1app.viewmodel.PaymentViewModel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -67,7 +68,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import com.example.intento1app.ui.screens.PaymentScreen
 import com.example.intento1app.ui.screens.AccessibilityScreen
-import com.example.intento1app.ui.screens.MercadoPagoCheckoutScreen
 import com.example.intento1app.ui.screens.UserProfileScreen
 import com.example.intento1app.ui.screens.MyOrdersScreen
 import com.example.intento1app.ui.screens.MyDataScreen
@@ -120,12 +120,12 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+    
 }
 
 @Composable
 fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
     val authViewModel: AuthViewModel = remember { AuthViewModel() }
-    val paymentViewModel: PaymentViewModel = remember { PaymentViewModel() }
 
     var currentScreen by remember { mutableStateOf("loading") } // Cambiar a loading inicialmente
     var isCheckingAuth by remember { mutableStateOf(true) } // Estado para verificar autenticación
@@ -136,8 +136,6 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     var cartItems by remember { mutableStateOf(listOf<CartItem>()) }
     var currentUser by remember { mutableStateOf<User?>(null) }
-    var showCheckout by remember { mutableStateOf(false) }
-    var checkoutUrl by remember { mutableStateOf("") }
 
     // Variables de estado para las pantallas del perfil
     var showUserProfile by remember { mutableStateOf(false) }
@@ -353,12 +351,9 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
         }
         showWorkerOrders -> {
             // Pantalla de gestión de pedidos para trabajadores
-            WorkerOrdersScreen(
-                paymentViewModel = paymentViewModel,
-                onBackClick = {
-                    handleBackNavigation()
-                }
-            )
+            // TODO: WorkerOrdersScreen requiere PaymentViewModel que fue eliminado
+            // Implementar alternativa para obtener órdenes
+            Text("Pantalla de órdenes no disponible temporalmente")
         }
         showInventory -> {
             // Pantalla de inventario para trabajadores
@@ -505,13 +500,9 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
         showMyOrders && currentUser != null -> {
             // Pantalla de mis pedidos
             val user = currentUser!!
-            MyOrdersScreen(
-                currentUser = user,
-                paymentViewModel = paymentViewModel,
-                onBackClick = {
-                    handleBackNavigation()
-                }
-            )
+            // TODO: MyOrdersScreen requiere PaymentViewModel que fue eliminado
+            // Implementar alternativa para obtener órdenes
+            Text("Pantalla de mis órdenes no disponible temporalmente")
         }
         showUserProfile && currentUser != null -> {
             // Pantalla de perfil de usuario (funciona para usuarios autenticados e invitados)
@@ -519,7 +510,6 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
             UserProfileScreen(
                 currentUser = user,
                 accessibilityViewModel = accessibilityViewModel,
-                paymentViewModel = paymentViewModel,
                 onBackClick = {
                     handleBackNavigation()
                 },
@@ -560,43 +550,6 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     navigateTo("helpAndContact")
                     showUserProfile = false
                     showHelpAndContact = true
-                }
-            )
-        }
-        showCheckout -> {
-            // Pantalla de checkout de Mercado Pago
-            MercadoPagoCheckoutScreen(
-                checkoutUrl = checkoutUrl,
-                onBack = {
-                    showCheckout = false
-                    currentScreen = "payment"
-                },
-                onPaymentSuccess = {
-                    showCheckout = false
-                    // Guardar compra en historial antes de limpiar carrito
-                    currentUser?.let { user ->
-                        val paymentId = "mp_${System.currentTimeMillis()}"
-                        val orderNumber = "ORD-${System.currentTimeMillis().toString().takeLast(6)}"
-                        paymentViewModel.savePurchaseToHistory(
-                            userId = user.id,
-                            userEmail = user.email,
-                            userName = "${user.nombre} ${user.apellido}",
-                            userPhone = user.telefono,
-                            cartItems = cartItems,
-                            paymentId = paymentId,
-                            orderNumber = orderNumber
-                        )
-                    }
-                    cartItems = emptyList() // Limpiar carrito
-                    currentScreen = "home"
-                },
-                onPaymentFailure = {
-                    showCheckout = false
-                    currentScreen = "payment"
-                },
-                onPaymentPending = {
-                    showCheckout = false
-                    currentScreen = "payment"
                 }
             )
         }
@@ -780,10 +733,6 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                 // Volver al carrito
                 currentScreen = "cart"
             },
-            onNavigateToCheckout = { url ->
-                checkoutUrl = url
-                showCheckout = true
-            }
         )
         currentScreen == "accessibility" -> AccessibilityScreen(
             accessibilityViewModel = accessibilityViewModel,

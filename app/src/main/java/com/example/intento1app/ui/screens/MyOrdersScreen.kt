@@ -22,7 +22,6 @@ import androidx.compose.ui.unit.dp
 import com.example.intento1app.R
 import com.example.intento1app.data.models.FirebasePurchase
 import com.example.intento1app.ui.theme.*
-import com.example.intento1app.viewmodel.PaymentViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -30,36 +29,13 @@ import java.util.*
 @Composable
 fun MyOrdersScreen(
     currentUser: com.example.intento1app.data.models.User,
-    paymentViewModel: PaymentViewModel,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isLoadingPurchases by remember { mutableStateOf(true) }
+    var isLoadingPurchases by remember { mutableStateOf(false) }
     
-    // Escuchar cambios en tiempo real en los pedidos del usuario
-    LaunchedEffect(currentUser.id) {
-        if (currentUser.id == "guest") {
-            // Para usuarios invitados, no podemos usar el listener de Firebase
-            // porque no tienen un ID fijo. Mostrar mensaje informativo.
-            println("MyOrdersScreen: Usuario invitado - no se pueden mostrar pedidos históricos")
-            isLoadingPurchases = false
-        } else {
-            // Para usuarios autenticados, usar el listener normal
-            paymentViewModel.startUserOrdersListener(currentUser.id)
-            isLoadingPurchases = false
-        }
-    }
-    
-    // Observar cambios en el historial de pedidos desde Firebase (sin cache local)
-    val purchases by paymentViewModel.userOrders.collectAsState()
-    
-    // Debug: Mostrar información de los pedidos recibidos
-    LaunchedEffect(purchases) {
-        println("MyOrdersScreen: Pedidos recibidos: ${purchases.size}")
-        purchases.forEachIndexed { index, purchase ->
-            println("MyOrdersScreen: Pedido $index - ID: ${purchase.id}, UserID: '${purchase.userId}', OrderNumber: ${purchase.orderNumber}")
-        }
-    }
+    // TODO: Implementar alternativa para obtener pedidos sin PaymentViewModel
+    val purchases = emptyList<FirebasePurchase>()
     
     Scaffold(
         topBar = {
@@ -72,21 +48,6 @@ fun MyOrdersScreen(
                         ),
                         color = FutronoFondo
                     ) 
-                },
-                actions = {
-                    // Botón temporal de debug
-                    IconButton(
-                        onClick = {
-                            paymentViewModel.debugAllOrders()
-                        }
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_refresh),
-                            contentDescription = "Debug",
-                            tint = FutronoFondo,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {

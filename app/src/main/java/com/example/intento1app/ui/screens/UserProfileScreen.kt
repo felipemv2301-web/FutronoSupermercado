@@ -25,7 +25,6 @@ import com.example.intento1app.data.models.User
 import com.example.intento1app.data.models.FirebasePurchase
 import com.example.intento1app.ui.theme.*
 import com.example.intento1app.viewmodel.AccessibilityViewModel
-import com.example.intento1app.viewmodel.PaymentViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -34,7 +33,6 @@ import java.util.*
 fun UserProfileScreen(
     currentUser: User,
     accessibilityViewModel: AccessibilityViewModel,
-    paymentViewModel: PaymentViewModel,
     onBackClick: () -> Unit,
     onLogout: () -> Unit,
     onAccessibilityClick: () -> Unit,

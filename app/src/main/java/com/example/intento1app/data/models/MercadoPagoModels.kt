@@ -61,12 +61,12 @@ data class PaymentPreferenceResponse(
 )
 
 data class PaymentResult(
-    val status: PaymentStatus,
+    val status: PaymentResultStatus,
     val paymentId: String? = null,
     val message: String? = null
 )
 
-enum class PaymentStatus {
+enum class PaymentResultStatus {
     SUCCESS,
     PENDING,
     FAILURE,

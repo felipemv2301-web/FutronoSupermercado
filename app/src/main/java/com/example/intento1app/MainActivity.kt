@@ -21,6 +21,11 @@ import androidx.compose.runtime.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -57,6 +62,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.ImageNotSupported
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
@@ -66,6 +72,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.runtime.rememberCoroutineScope
 import com.example.intento1app.ui.screens.PaymentScreen
 import com.example.intento1app.ui.screens.AccessibilityScreen
 import com.example.intento1app.ui.screens.MercadoPagoCheckoutScreen
@@ -128,8 +139,78 @@ class MainActivity : ComponentActivity() {
 fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
     val authViewModel: AuthViewModel = remember { AuthViewModel() }
     val paymentViewModel: PaymentViewModel = remember { PaymentViewModel() }
-
+    
+    // Aquí se mejora lo visual del simón y las funcionalidades
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    // Scope independiente para el Job de cierre que no se cancela
+    val dismissScope = remember { CoroutineScope(SupervisorJob() + Dispatchers.Main) }
+    var currentSnackbarDismissJob by remember { mutableStateOf<Job?>(null) }
+    
     var currentScreen by remember { mutableStateOf("loading") } // Cambiar a loading inicialmente
+    
+    // Cerrar snackbar inmediatamente cuando se cambia de pantalla (ningún mensaje se mantiene)
+    LaunchedEffect(currentScreen) {
+        // Cancelar cualquier Job de cierre pendiente
+        currentSnackbarDismissJob?.cancel()
+        currentSnackbarDismissJob = null
+        // Cerrar cualquier snackbar activo inmediatamente al cambiar de pantalla
+        snackbarHostState.currentSnackbarData?.dismiss()
+        // Pequeño delay y verificar nuevamente para asegurar que se cierre
+        delay(50)
+        snackbarHostState.currentSnackbarData?.dismiss()
+    }
+    
+    // Función helper para mostrar snackbar con duración personalizada (2 segundos exactos)
+    fun showShortSnackbar(message: String, durationMs: Long = 2000) {
+        // Cancelar cualquier Job de cierre anterior
+        currentSnackbarDismissJob?.cancel()
+        currentSnackbarDismissJob = null
+        
+        // Cerrar cualquier snackbar anterior inmediatamente
+        snackbarHostState.currentSnackbarData?.dismiss()
+        
+        // Mostrar el snackbar en una corrutina separada (no bloqueante)
+        scope.launch(Dispatchers.Main) {
+            try {
+                delay(100) // Delay para asegurar que se cierre completamente el anterior
+                
+                // Mostrar el snackbar con duración indefinida para controlarlo manualmente
+                snackbarHostState.showSnackbar(
+                    message = message,
+                    duration = SnackbarDuration.Indefinite
+                )
+            } catch (e: Exception) {
+                // Ignorar errores al mostrar
+            }
+        }
+        
+        // Crear un Job separado que SIEMPRE cierre el snackbar después del tiempo especificado
+        // Usar un scope independiente que no se cancela para asegurar que siempre se ejecute
+        val dismissJob = dismissScope.launch {
+            try {
+                // Esperar el tiempo necesario para que se muestre el snackbar + el tiempo de duración
+                delay(100 + durationMs)
+                
+                // Cerrar el snackbar después del tiempo especificado
+                snackbarHostState.currentSnackbarData?.dismiss()
+                
+                // Doble verificación para asegurar el cierre
+                delay(50)
+                snackbarHostState.currentSnackbarData?.dismiss()
+                
+                // Limpiar la referencia al Job
+                currentSnackbarDismissJob = null
+            } catch (e: Exception) {
+                // En caso de error, asegurar que se cierre el snackbar
+                snackbarHostState.currentSnackbarData?.dismiss()
+                currentSnackbarDismissJob = null
+            }
+        }
+        
+        // Guardar la referencia al Job para poder cancelarlo si es necesario
+        currentSnackbarDismissJob = dismissJob
+    }
     var isCheckingAuth by remember { mutableStateOf(true) } // Estado para verificar autenticación
 
     // Observar el estado de autenticación
@@ -746,11 +827,14 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                 } else {
                     cartItems = cartItems + CartItem(product, 1)
                 }
+                // Aquí se mejora lo visual del simón y las funcionalidades
+                showShortSnackbar("${product.name} se añadio al carrito Correctamente", 2000)
             },
             onCartClick = {
                 currentScreen = "cart"
             },
-            cartItemCount = cartItems.sumOf { it.quantity }
+            cartItemCount = cartItems.sumOf { it.quantity },
+            snackbarHostState = snackbarHostState
         )
         currentScreen == "cart" -> CartScreen(
             cartItems = cartItems,
@@ -758,8 +842,15 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                 currentScreen = "home"
             },
             onUpdateQuantity = { productId, quantity ->
+                // Aquí se mejora lo visual del simón y las funcionalidades
+                val existingItem = cartItems.find { it.product.id == productId }
+                val productName = existingItem?.product?.name ?: ""
+                val oldQuantity = existingItem?.quantity ?: 0
+                
                 if (quantity <= 0) {
                     cartItems = cartItems.filter { it.product.id != productId }
+                    // Aquí se mejora lo visual del simón y las funcionalidades
+                    showShortSnackbar("Se ha eliminado el producto $productName del carrito", 2000)
                 } else {
                     cartItems = cartItems.map { item ->
                         if (item.product.id == productId) {
@@ -768,10 +859,22 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                             item
                         }
                     }
+                    // Mostrar mensaje según si aumentó o disminuyó
+                    // Aquí se mejora lo visual del simón y las funcionalidades
+                    val message = if (quantity > oldQuantity) {
+                        "Se aumentó la cantidad de $productName"
+                    } else {
+                        "Se disminuyó la cantidad de $productName"
+                    }
+                    showShortSnackbar(message, 2000)
                 }
             },
             onRemoveItem = { productId ->
+                // Aquí se mejora lo visual del simón y las funcionalidades
+                val existingItem = cartItems.find { it.product.id == productId }
+                val productName = existingItem?.product?.name ?: ""
                 cartItems = cartItems.filter { it.product.id != productId }
+                showShortSnackbar("Se ha eliminado el producto $productName del carrito", 1500)
             },
             onClearCart = {
                 cartItems = emptyList()
@@ -779,7 +882,8 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
             onCheckout = {
                 // Navegar a la pantalla de pago
                 currentScreen = "payment"
-            }
+            },
+            snackbarHostState = snackbarHostState
         )
         currentScreen == "payment" -> PaymentScreen(
             cartItems = cartItems,
@@ -1286,7 +1390,7 @@ fun RegisterScreen(
                             )
                         } else {
                             showError = true
-                            errorMessage = Validators.obtenerMensajeError(errorType)
+                            errorMessage = Validators.obtenerMensajeError(errorType ?: TipoError.CAMPO_OBLIGATORIO)
                         }
                     },
                     enabled = !isLoading,
@@ -1652,6 +1756,7 @@ fun ProductsScreen(
     onAddToCart: (Product) -> Unit,
     onCartClick: () -> Unit,
     cartItemCount: Int,
+    snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier
 ) {
     var searchQuery by remember { mutableStateOf("") }
@@ -1685,71 +1790,79 @@ fun ProductsScreen(
     val filteredProducts = remember(searchQuery, productsFromDb, selectedCategories) {
         productsFromDb.filter { product ->
             // Filtro por búsqueda
-            val matchesSearch = searchQuery.isBlank() || 
+            val matchesSearch = searchQuery.isBlank() ||
                 product.name.contains(searchQuery, ignoreCase = true) ||
                 product.description.contains(searchQuery, ignoreCase = true)
-            
+
             // Filtro por categorías
-            val matchesCategory = selectedCategories.isEmpty() || 
+            val matchesCategory = selectedCategories.isEmpty() ||
                 selectedCategories.contains("Todos") ||
                 selectedCategories.contains(product.category.displayName)
-            
+
             matchesSearch && matchesCategory
         }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        // Top App Bar
-        TopAppBar(
-            title = {
-                ScalableHeadlineSmall(
-                    text = if (category == "TODOS") "Todos los Productos" else category,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            navigationIcon = {
-                IconButton(onClick = onBackClick) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Volver",
-                        tint = MaterialTheme.colorScheme.onPrimary
+    // Aquí se mejora lo visual del simón y las funcionalidades
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    ScalableHeadlineSmall(
+                        text = if (category == "TODOS") "Todos los Productos" else category,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontWeight = FontWeight.Bold
                     )
-                }
-            },
-            actions = {
-                Box {
-                    IconButton(onClick = onCartClick) {
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = Icons.Default.ShoppingCart,
-                            contentDescription = "Carrito de compras",
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
-                    if (cartItemCount > 0) {
-                        Badge(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .offset(x = 8.dp, y = (-8).dp),
-                            containerColor = FutronoCafe
-                        ) {
-                            Text(
-                                if (cartItemCount > 99) "99+" else cartItemCount.toString(),
-                                color = Color.White,
-                                fontSize = 12.sp
+                },
+                actions = {
+                    Box {
+                        IconButton(onClick = onCartClick) {
+                            Icon(
+                                imageVector = Icons.Default.ShoppingCart,
+                                contentDescription = "Carrito de compras",
+                                tint = MaterialTheme.colorScheme.onPrimary
                             )
                         }
+                        if (cartItemCount > 0) {
+                            Badge(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 8.dp, y = (-8).dp),
+                                containerColor = FutronoCafe
+                            ) {
+                                Text(
+                                    if (cartItemCount > 99) "99+" else cartItemCount.toString(),
+                                    color = Color.White,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
                     }
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primary
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
             )
-        )
+        },
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(paddingValues)
+        ) {
 
         // Botones de categoría arriba del buscador (solo cuando se ven todos los productos)
         if (category == "TODOS") {
@@ -1765,7 +1878,7 @@ fun ProductsScreen(
                         CategoryChipClient(
                             category = categoryName,
                             isSelected = selectedCategories.contains(categoryName),
-                            onClick = { 
+                            onClick = {
                                 selectedCategories = if (categoryName == "Todos") {
                                     if (selectedCategories.contains("Todos")) {
                                         emptySet()
@@ -1838,11 +1951,12 @@ fun ProductsScreen(
                 }
             }
         }
+        }
     }
 }
 
 @Composable
-private fun CategoryChipClient(
+fun CategoryChipClient(
     category: String,
     isSelected: Boolean,
     onClick: () -> Unit,
@@ -1859,7 +1973,7 @@ private fun CategoryChipClient(
 }
 
 // Funciones para obtener categorías de productos para el cliente
-private fun getProductCategoriesForClient(): List<String> {
+fun getProductCategoriesForClient(): List<String> {
     return listOf("Todos") + ProductCategory.values().map { it.displayName }
 }
 
@@ -1990,15 +2104,16 @@ fun CartScreen(
     onRemoveItem: (String) -> Unit,
     onClearCart: () -> Unit,
     onCheckout: () -> Unit,
+    snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        // Top App Bar
-        TopAppBar(
+    // Estado para mostrar el diálogo de confirmación
+    var showClearCartDialog by remember { mutableStateOf(false) }
+    
+    // Aquí se mejora lo visual del simón y las funcionalidades
+    Scaffold(
+        topBar = {
+            TopAppBar(
             title = {
                 ScalableHeadlineSmall(
                     text = "Carrito de Compras",
@@ -2017,9 +2132,9 @@ fun CartScreen(
             },
             actions = {
                 if (cartItems.isNotEmpty()) {
-                    IconButton(onClick = onClearCart) {
+                    IconButton(onClick = { showClearCartDialog = true }) {
                         Icon(
-                            imageVector = Icons.Default.ShoppingCart,
+                            imageVector = Icons.Default.Delete,
                             contentDescription = "Vaciar carrito",
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
@@ -2029,8 +2144,62 @@ fun CartScreen(
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = MaterialTheme.colorScheme.primary
             )
-        )
-
+            )
+        },
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        }
+    ) { paddingValues ->
+        // Diálogo de confirmación para vaciar el carrito
+        if (showClearCartDialog) {
+            AlertDialog(
+                onDismissRequest = { showClearCartDialog = false },
+                title = {
+                    Text(
+                        text = "Confirmar eliminación",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    Text(
+                        text = "¿Desea eliminar los productos que están en su carrito?",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            onClearCart()
+                            showClearCartDialog = false
+                        }
+                    ) {
+                        Text(
+                            text = "Sí",
+                            color = MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { showClearCartDialog = false }
+                    ) {
+                        Text(
+                            text = "No",
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            )
+        }
+        
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(paddingValues)
+        ) {
         // Contenido principal
         if (cartItems.isEmpty()) {
             // Carrito vacío
@@ -2084,6 +2253,7 @@ fun CartScreen(
                 cartItems = cartItems,
                 onCheckout = onCheckout
             )
+        }
         }
     }
 }
@@ -2510,5 +2680,6 @@ fun validateFormWithError(nombre: String, apellido: String, rut: String, telefon
     // Validar que las contraseñas coincidan
     if (!Validators.validarConfirmacionPassword(password, confirmPassword)) return TipoError.PASSWORD_NO_COINCIDE
     return null // Sin errores
-    }
 }
+}
+

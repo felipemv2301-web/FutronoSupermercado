@@ -19,8 +19,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
+import android.graphics.BitmapFactory
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import com.example.intento1app.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -31,7 +38,6 @@ import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.runtime.Composable
 import androidx.core.text.color
-import com.example.intento1app.R
 
 
 data class WorkerFunction(
@@ -184,11 +190,15 @@ fun WorkerHomeScreen(
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                val context = LocalContext.current
+                val bitmap = remember {
+                    BitmapFactory.decodeResource(context.resources, R.drawable.ic_logo2)
+                }
                 Image(
-                    painter = painterResource(id = R.drawable.ic_logo),
+                    painter = BitmapPainter(bitmap.asImageBitmap()),
                     contentDescription = "Logo de Futrono Supermercado",
                     modifier = Modifier
-                        .fillMaxWidth(0.2f)
+                        .fillMaxWidth(0.1f)
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

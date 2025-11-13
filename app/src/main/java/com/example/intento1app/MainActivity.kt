@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.remember
@@ -38,8 +39,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.Image
+import android.graphics.BitmapFactory
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -783,10 +788,10 @@ fun AuthScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
-                painter = painterResource(id = R.drawable.ic_logo), // 1. Carga tu imagen
-                contentDescription = "Logo de Futrono Supermercado",      // 2. Texto para accesibilidad
+                painter = painterResource(id = R.drawable.ic_logo),
+                contentDescription = "Logo de Futrono Supermercado",
                 modifier = Modifier
-                    .fillMaxWidth(0.9f) // 3. Ajusta el tamaño del logo (90% del ancho)
+                    .fillMaxWidth(0.8f)
             )
         }
 
@@ -1310,7 +1315,8 @@ fun FutronoHomeScreen(
 
         CategoriesGrid(
             categories = categories,
-            onCategoryClick = onCategoryClick
+            onCategoryClick = onCategoryClick,
+            accessibilityViewModel = accessibilityViewModel
         )
 
         ViewAllProductsButton(onClick = { onCategoryClick("TODOS") })
@@ -1352,12 +1358,16 @@ private fun FutronoHeader(
 @Composable
 private fun FutronoLogo(modifier: Modifier = Modifier) {
     Image(
-        painter = painterResource(id = R.drawable.ic_logo),
+        // Carga el drawable directamente. Es más eficiente.
+        painter = painterResource(id = R.drawable.ic_logo2),
         contentDescription = "Logo Futrono",
+
+        // Escala la imagen para que llene la altura del contenedor.
         contentScale = ContentScale.FillHeight,
+
         modifier = modifier
-            .height(80.dp)
-            .aspectRatio(2.2f)
+            //   Fija la altura. El ancho se ajustará automáticamente
+            .height(70.dp)
             .padding(start = 1.dp)
     )
 }
@@ -1386,7 +1396,7 @@ private fun HeaderActions(
 
         IconActionButton(
             onClick = onUserProfileClick,
-            painter = painterResource(id = R.drawable.ic_person),
+            icon = Icons.Default.Person,
             description = "Mi cuenta",
             backgroundColor = FutronoCafe
         )
@@ -1504,6 +1514,7 @@ private fun WorkerOrdersButton(onClick: () -> Unit) {
 private fun CategoriesGrid(
     categories: List<ProductCategory>,
     onCategoryClick: (String) -> Unit,
+    accessibilityViewModel: AccessibilityViewModel,
     modifier: Modifier = Modifier
 ) {
     LazyVerticalGrid(
@@ -1516,7 +1527,8 @@ private fun CategoriesGrid(
         items(categories) { category ->
             CategoryCard(
                 category = category,
-                onClick = { onCategoryClick(category.name) }
+                onClick = { onCategoryClick(category.name) },
+                accessibilityViewModel = accessibilityViewModel
             )
         }
     }
@@ -1548,8 +1560,18 @@ private fun ViewAllProductsButton(onClick: () -> Unit) {
 fun CategoryCard(
     category: ProductCategory,
     onClick: () -> Unit,
+    accessibilityViewModel: AccessibilityViewModel,
     modifier: Modifier = Modifier
 ) {
+    // Obtener el factor de escala de accesibilidad de forma reactiva
+    // Como textScaleFactor es un mutableStateOf, Compose observará los cambios automáticamente
+    // al leer el valor dentro del Composable
+    val scaleFactor = accessibilityViewModel.textScaleFactor
+    
+    // Tamaño base de la imagen que se escalará según accesibilidad
+    val baseImageSize = 48.dp
+    val scaledImageSize = remember(scaleFactor) { baseImageSize * scaleFactor }
+    
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -1572,14 +1594,14 @@ fun CategoryCard(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Icon(
-                    imageVector = category.icon,
-                    contentDescription = null,
-                    tint = category.contentColor,
-                    modifier = Modifier.size(40.dp)
+                // Imagen de la categoría que se escala según accesibilidad
+                Image(
+                    painter = painterResource(id = category.imageResId),
+                    contentDescription = "Icono de ${category.displayName}",
+                    modifier = Modifier
+                        .size(scaledImageSize)
+                        .padding(bottom = 8.dp),
                 )
-
-                Spacer(modifier = Modifier.height(8.dp))
 
                 ScalableTitleMedium(
                     text = category.displayName,
@@ -1592,7 +1614,8 @@ fun CategoryCard(
         }
     }
 }
-//Este es un comentarioXD
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductsScreen(

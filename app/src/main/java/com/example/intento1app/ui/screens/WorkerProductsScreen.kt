@@ -9,8 +9,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
-import androidx.compose.ui.res.painterResource
-import com.example.intento1app.R
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -324,7 +322,7 @@ private fun ProductCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        painter = painterResource(id = R.drawable.ic_photo),
+                        imageVector = Icons.Default.Photo,
                         contentDescription = null,
                         tint = FutronoCafe,
                         modifier = Modifier.size(24.dp)
@@ -403,7 +401,7 @@ private fun ProductCard(
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(
-                        painter = painterResource(id = R.drawable.ic_inventory),
+                        imageVector = Icons.Default.Inventory,
                         contentDescription = null,
                         modifier = Modifier.size(12.dp)
                     )

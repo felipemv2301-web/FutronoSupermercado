@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -181,6 +182,7 @@ fun ProductListScreen(
 ) {
     var productsFromDb by remember { mutableStateOf<List<Product>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var selectedCategories by remember { mutableStateOf(setOf<String>()) }
 
     // LaunchedEffect ahora puede traer TODOS los productos o solo los de una categoría
     LaunchedEffect(category) {
@@ -205,17 +207,20 @@ fun ProductListScreen(
             }
     }
 
-    // Se re-ejecuta cada vez que searchQuery o productsFromDb cambian
-    val filteredProducts = remember(searchQuery, productsFromDb) {
-        if (searchQuery.isBlank()) {
-            productsFromDb // Si no hay búsqueda, muestra todos los productos cargados
-        } else {
-            productsFromDb.filter { product ->
-                // Comprueba si el nombre O la descripción contienen el texto de búsqueda
-                // `ignoreCase = true` hace que la búsqueda no distinga mayúsculas/minúsculas
+    // Se re-ejecuta cada vez que searchQuery, productsFromDb o selectedCategories cambian
+    val filteredProducts = remember(searchQuery, productsFromDb, selectedCategories) {
+        productsFromDb.filter { product ->
+            // Filtro por búsqueda
+            val matchesSearch = searchQuery.isBlank() || 
                 product.name.contains(searchQuery, ignoreCase = true) ||
-                        product.description.contains(searchQuery, ignoreCase = true)
-            }
+                product.description.contains(searchQuery, ignoreCase = true)
+            
+            // Filtro por categorías
+            val matchesCategory = selectedCategories.isEmpty() || 
+                selectedCategories.contains("Todos") ||
+                selectedCategories.contains(product.category.displayName)
+            
+            matchesSearch && matchesCategory
         }
     }
 
@@ -235,19 +240,52 @@ fun ProductListScreen(
     ) { paddingValues ->
         // Usar una Columna para poner el buscador arriba y la lista debajo
         Column(modifier = modifier.fillMaxSize().padding(paddingValues)) {
-
-            // Mostrar un buscador interno si esta dentro de una categoría
-            if (category != null) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = onSearchQueryChange,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                    label = { Text("Buscar en ${category.displayName}...") },
-                    leadingIcon = { Icon(Icons.Default.Search, "Buscar") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(24.dp)
-                )
+            // Botones de categoría arriba del buscador
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(getProductCategoriesForClient()) { categoryName ->
+                        CategoryChipClient(
+                            category = categoryName,
+                            isSelected = selectedCategories.contains(categoryName),
+                            onClick = { 
+                                selectedCategories = if (categoryName == "Todos") {
+                                    if (selectedCategories.contains("Todos")) {
+                                        emptySet()
+                                    } else {
+                                        setOf("Todos")
+                                    }
+                                } else {
+                                    val newSet = selectedCategories.toMutableSet()
+                                    if (newSet.contains(categoryName)) {
+                                        newSet.remove(categoryName)
+                                    } else {
+                                        newSet.remove("Todos") // Si selecciona una categoría específica, quitar "Todos"
+                                        newSet.add(categoryName)
+                                    }
+                                    newSet
+                                }
+                            }
+                        )
+                    }
+                }
             }
+
+            // Mostrar un buscador interno
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = onSearchQueryChange,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                label = { Text(if (category != null) "Buscar en ${category.displayName}..." else "Buscar productos...") },
+                leadingIcon = { Icon(Icons.Default.Search, "Buscar") },
+                singleLine = true,
+                shape = RoundedCornerShape(24.dp)
+            )
 
             Box(modifier = Modifier.weight(1f)) {
                 if (isLoading) {
@@ -277,6 +315,27 @@ fun ProductListScreen(
     }
 }
 
+@Composable
+private fun CategoryChipClient(
+    category: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    FilterChip(
+        onClick = onClick,
+        label = {
+            Text(text = category)
+        },
+        selected = isSelected,
+        modifier = modifier
+    )
+}
+
+// Funciones para obtener categorías de productos para el cliente
+private fun getProductCategoriesForClient(): List<String> {
+    return listOf("Todos") + ProductCategory.values().map { it.displayName }
+}
 
 @Composable
 fun ProductCard(

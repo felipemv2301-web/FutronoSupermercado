@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:311434428659:android:263d6e7e204a4c642cb786",
         "android_client_info": {
-          "package_name": "com.example.intento1app"
+          "package_name": "com.futrono.simplificado"
         }
       },
       "oauth_client": [],
@@ -27,3 +27,4 @@
   ],
   "configuration_version": "1"
 }
+

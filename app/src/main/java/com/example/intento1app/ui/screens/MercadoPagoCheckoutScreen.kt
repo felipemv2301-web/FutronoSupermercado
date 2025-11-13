@@ -21,6 +21,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.util.Log
+import android.webkit.WebResourceRequest
+import android.os.Build
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,18 +39,107 @@ fun MercadoPagoCheckoutScreen(
     // Estados para manejar la navegación
     var isLoading by remember { mutableStateOf(true) }
     var currentUrl by remember { mutableStateOf(checkoutUrl) }
+    var paymentProcessed by remember { mutableStateOf(false) } // Bandera para evitar procesamiento múltiple
+    var webViewRef by remember { mutableStateOf<WebView?>(null) } // Referencia al WebView
     
     // Función para manejar URLs de retorno
     fun handleReturnUrl(url: String) {
+        // Evitar procesamiento múltiple
+        if (paymentProcessed) {
+            Log.d("MercadoPagoCheckout", "Pago ya procesado, ignorando URL: $url")
+            return
+        }
+        
+        Log.d("MercadoPagoCheckout", "Verificando URL: $url")
+        
+        // Extraer parámetros de la URL
+        val uri = try {
+            Uri.parse(url)
+        } catch (e: Exception) {
+            null
+        }
+        
+        // Verificar parámetros de query
+        val status = uri?.getQueryParameter("status")
+        val collectionStatus = uri?.getQueryParameter("collection_status")
+        val paymentId = uri?.getQueryParameter("payment_id")
+        val preferenceId = uri?.getQueryParameter("preference_id")
+        
+        Log.d("MercadoPagoCheckout", "Parámetros - status: $status, collection_status: $collectionStatus, payment_id: $paymentId")
+        
+        // Solo procesar URLs de retorno específicas de Mercado Pago (no URLs normales del checkout)
         when {
-            url.contains("payment-success") || url.contains("approved") -> {
+            // URLs de retorno personalizadas (deep links)
+            url.startsWith("intento1app://payment-success") || 
+            url.contains("intento1app://payment-success") -> {
+                Log.d("MercadoPagoCheckout", "✅ Pago exitoso detectado (deep link)")
+                paymentProcessed = true
                 onPaymentSuccess()
             }
-            url.contains("payment-failure") || url.contains("rejected") -> {
+            url.startsWith("intento1app://payment-failure") || 
+            url.contains("intento1app://payment-failure") -> {
+                Log.d("MercadoPagoCheckout", "❌ Pago rechazado detectado (deep link)")
+                paymentProcessed = true
                 onPaymentFailure()
             }
-            url.contains("payment-pending") || url.contains("pending") -> {
+            url.startsWith("intento1app://payment-pending") || 
+            url.contains("intento1app://payment-pending") -> {
+                Log.d("MercadoPagoCheckout", "⏳ Pago pendiente detectado (deep link)")
+                paymentProcessed = true
                 onPaymentPending()
+            }
+            // URLs de retorno de Mercado Pago con parámetros de estado
+            status == "approved" || collectionStatus == "approved" -> {
+                Log.d("MercadoPagoCheckout", "✅ Pago exitoso detectado (parámetros: status=$status, collection_status=$collectionStatus)")
+                paymentProcessed = true
+                onPaymentSuccess()
+            }
+            status == "rejected" || collectionStatus == "rejected" -> {
+                Log.d("MercadoPagoCheckout", "❌ Pago rechazado detectado (parámetros: status=$status, collection_status=$collectionStatus)")
+                paymentProcessed = true
+                onPaymentFailure()
+            }
+            status == "pending" || collectionStatus == "pending" -> {
+                Log.d("MercadoPagoCheckout", "⏳ Pago pendiente detectado (parámetros: status=$status, collection_status=$collectionStatus)")
+                paymentProcessed = true
+                onPaymentPending()
+            }
+            // Detección alternativa por contenido en la URL
+            url.contains("status=approved") || url.contains("collection_status=approved") -> {
+                Log.d("MercadoPagoCheckout", "✅ Pago exitoso detectado (contenido en URL)")
+                paymentProcessed = true
+                onPaymentSuccess()
+            }
+            url.contains("status=rejected") || url.contains("collection_status=rejected") -> {
+                Log.d("MercadoPagoCheckout", "❌ Pago rechazado detectado (contenido en URL)")
+                paymentProcessed = true
+                onPaymentFailure()
+            }
+            url.contains("status=pending") || url.contains("collection_status=pending") -> {
+                Log.d("MercadoPagoCheckout", "⏳ Pago pendiente detectado (contenido en URL)")
+                paymentProcessed = true
+                onPaymentPending()
+            }
+        }
+    }
+    
+    // LaunchedEffect para verificar periódicamente la URL del WebView
+    LaunchedEffect(webViewRef) {
+        if (webViewRef != null && !paymentProcessed) {
+            while (!paymentProcessed) {
+                kotlinx.coroutines.delay(1000) // Verificar cada segundo
+                webViewRef?.let { webView ->
+                    try {
+                        val url = webView.url
+                        if (url != null && url != currentUrl) {
+                            Log.d("MercadoPagoCheckout", "URL detectada en polling: $url")
+                            currentUrl = url
+                            handleReturnUrl(url)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("MercadoPagoCheckout", "Error al obtener URL del WebView: ${e.message}")
+                    }
+                }
             }
         }
     }
@@ -133,6 +225,9 @@ fun MercadoPagoCheckoutScreen(
                 AndroidView(
                     factory = { context ->
                         WebView(context).apply {
+                            // Guardar referencia al WebView
+                            webViewRef = this
+                            
                             settings.apply {
                                 javaScriptEnabled = true
                                 domStorageEnabled = true
@@ -141,27 +236,77 @@ fun MercadoPagoCheckoutScreen(
                                 setSupportZoom(true)
                                 builtInZoomControls = true
                                 displayZoomControls = false
+                                // Configuraciones adicionales para mejor compatibilidad
+                                mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                                allowFileAccess = true
+                                allowContentAccess = true
                             }
                             
                             webViewClient = object : WebViewClient() {
                                 override fun onPageFinished(view: WebView?, url: String?) {
                                     super.onPageFinished(view, url)
                                     isLoading = false
-                                    currentUrl = url ?: checkoutUrl
+                                    url?.let { 
+                                        currentUrl = it
+                                        Log.d("MercadoPagoCheckout", "Página cargada: $it")
+                                        // Verificar siempre si es una URL de retorno
+                                        handleReturnUrl(it)
+                                        
+                                        // También verificar después de un pequeño delay por si Mercado Pago hace redirección con JavaScript
+                                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                            view?.url?.let { delayedUrl ->
+                                                if (delayedUrl != it) {
+                                                    Log.d("MercadoPagoCheckout", "URL cambió después de onPageFinished: $delayedUrl")
+                                                    currentUrl = delayedUrl
+                                                    handleReturnUrl(delayedUrl)
+                                                }
+                                            }
+                                        }, 500)
+                                    }
                                 }
                                 
-                                override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                                    url?.let { currentUrl ->
-                                        // Manejar URLs de retorno
-                                        if (currentUrl.contains("intento1app://") || 
-                                            currentUrl.contains("payment-") ||
-                                            currentUrl.contains("approved") ||
-                                            currentUrl.contains("rejected") ||
-                                            currentUrl.contains("pending")) {
-                                            handleReturnUrl(currentUrl)
+                                override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                                    super.onPageStarted(view, url, favicon)
+                                    url?.let { 
+                                        Log.d("MercadoPagoCheckout", "Iniciando carga de página: $it")
+                                        currentUrl = it
+                                        // Verificar siempre si es una URL de retorno
+                                        handleReturnUrl(it)
+                                    }
+                                }
+                                
+                                // Método moderno para Android 24+
+                                override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                                    val url = request?.url?.toString()
+                                    
+                                    url?.let { urlString ->
+                                        currentUrl = urlString
+                                        // Solo interceptar URLs de retorno específicas (deep links o URLs con parámetros de estado)
+                                        if (urlString.startsWith("intento1app://") || 
+                                            (urlString.contains("status=") && urlString.contains("collection_status="))) {
+                                            Log.d("MercadoPagoCheckout", "Interceptando URL de retorno: $urlString")
+                                            handleReturnUrl(urlString)
                                             return true
                                         }
                                     }
+                                    // Permitir que el WebView cargue URLs normales de Mercado Pago
+                                    return false
+                                }
+                                
+                                // Método legacy para compatibilidad con versiones anteriores
+                                @Deprecated("Deprecated in Java")
+                                override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
+                                    url?.let { urlString ->
+                                        currentUrl = urlString
+                                        // Solo interceptar URLs de retorno específicas
+                                        if (urlString.startsWith("intento1app://") || 
+                                            (urlString.contains("status=") && urlString.contains("collection_status="))) {
+                                            Log.d("MercadoPagoCheckout", "Interceptando URL de retorno (legacy): $urlString")
+                                            handleReturnUrl(urlString)
+                                            return true
+                                        }
+                                    }
+                                    // Permitir que el WebView cargue URLs normales de Mercado Pago
                                     return false
                                 }
                             }

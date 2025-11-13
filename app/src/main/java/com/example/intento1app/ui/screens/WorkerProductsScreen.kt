@@ -25,6 +25,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.example.intento1app.data.models.Product
+import com.example.intento1app.data.models.ProductCategory
 import com.example.intento1app.viewmodel.WorkerProductsViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -40,12 +41,22 @@ fun WorkerProductsScreen(
 ) {
     val products by workerProductsViewModel.products.collectAsStateWithLifecycle()
     var searchQuery by remember { mutableStateOf("") }
+    var selectedCategories by remember { mutableStateOf(setOf<String>()) }
 
-    val filteredProducts = if (searchQuery.isBlank()) {
-        products
-    } else {
-        products.filter {
-            it.name.contains(searchQuery, ignoreCase = true)
+    // Filtrar productos por búsqueda y categorías
+    val filteredProducts = remember(products, searchQuery, selectedCategories) {
+        products.filter { product ->
+            // Filtro por búsqueda
+            val matchesSearch = searchQuery.isBlank() || 
+                product.name.contains(searchQuery, ignoreCase = true) ||
+                product.description.contains(searchQuery, ignoreCase = true)
+            
+            // Filtro por categorías
+            val matchesCategory = selectedCategories.isEmpty() || 
+                selectedCategories.contains("Todos") ||
+                selectedCategories.contains(product.category.displayName)
+            
+            matchesSearch && matchesCategory
         }
     }
 
@@ -175,7 +186,25 @@ fun WorkerProductsScreen(
                     items(getProductCategories()) { category ->
                         CategoryChip(
                             category = category,
-                            onClick = { /* TODO: Implementar filtro por categoría */ }
+                            isSelected = selectedCategories.contains(category),
+                            onClick = { 
+                                selectedCategories = if (category == "Todos") {
+                                    if (selectedCategories.contains("Todos")) {
+                                        emptySet()
+                                    } else {
+                                        setOf("Todos")
+                                    }
+                                } else {
+                                    val newSet = selectedCategories.toMutableSet()
+                                    if (newSet.contains(category)) {
+                                        newSet.remove(category)
+                                    } else {
+                                        newSet.remove("Todos") // Si selecciona una categoría específica, quitar "Todos"
+                                        newSet.add(category)
+                                    }
+                                    newSet
+                                }
+                            }
                         )
                     }
                 }
@@ -195,7 +224,7 @@ fun WorkerProductsScreen(
                             color = MaterialTheme.colorScheme.onBackground
                         )
                     )
-                    if (searchQuery.isNotEmpty()) {
+                    if (searchQuery.isNotEmpty() || selectedCategories.isNotEmpty()) {
                         Text(
                             text = "${filteredProducts.size} resultados",
                             style = MaterialTheme.typography.bodyMedium,
@@ -247,6 +276,7 @@ private fun ProductStatItem(
 @Composable
 private fun CategoryChip(
     category: String,
+    isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -255,7 +285,7 @@ private fun CategoryChip(
         label = {
             Text(text = category)
         },
-        selected = false,
+        selected = isSelected,
         modifier = modifier
     )
 }
@@ -413,7 +443,7 @@ private fun StockStatusChip(
     }
 }
 
-// Funciones para obtener datos de ejemplo
+// Funciones para obtener categorías de productos
 private fun getProductCategories(): List<String> {
-    return listOf("Todos", "Despensa", "Panadería", "Lácteos", "Frutas", "Verduras", "Carnes")
+    return listOf("Todos") + ProductCategory.values().map { it.displayName }
 }

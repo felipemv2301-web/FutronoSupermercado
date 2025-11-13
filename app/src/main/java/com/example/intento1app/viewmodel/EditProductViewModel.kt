@@ -1,32 +1,44 @@
 
 package com.example.intento1app.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.intento1app.data.models.Product
-import com.google.firebase.firestore.FirebaseFirestore
+import com.example.intento1app.data.services.ProductFirebaseService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 class EditProductViewModel : ViewModel() {
 
-    private val db = FirebaseFirestore.getInstance()
+    private val productFirebaseService = ProductFirebaseService()
     private val _product = MutableStateFlow<Product?>(null)
     val product: StateFlow<Product?> = _product
 
     fun getProductById(productId: String) {
         viewModelScope.launch {
-            val document = db.collection("products").document(productId).get().await()
-            val product = document.toObject(Product::class.java)
-            _product.value = product?.copy(id = document.id)
+            try {
+                val product = productFirebaseService.getProductById(productId)
+                _product.value = product
+            } catch (e: Exception) {
+                Log.e("EditProductViewModel", "Error al obtener producto: ${e.message}")
+            }
         }
     }
 
     fun updateProduct(product: Product) {
         viewModelScope.launch {
-            db.collection("products").document(product.id).set(product).await()
+            try {
+                val result = productFirebaseService.updateProduct(product)
+                if (result.isSuccess) {
+                    Log.d("EditProductViewModel", "Producto actualizado exitosamente")
+                } else {
+                    Log.e("EditProductViewModel", "Error al actualizar producto: ${result.exceptionOrNull()?.message}")
+                }
+            } catch (e: Exception) {
+                Log.e("EditProductViewModel", "Error al actualizar producto: ${e.message}")
+            }
         }
     }
 }

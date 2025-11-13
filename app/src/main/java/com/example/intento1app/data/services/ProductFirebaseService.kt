@@ -131,7 +131,19 @@ class ProductFirebaseService {
      */
     suspend fun updateProduct(product: Product): Result<Unit> {
         return try {
-            db.collection(collectionName).document(product.id).set(product).await()
+            // Convertir Product a mapa para guardar en Firestore (categoría como string)
+            val productMap = hashMapOf(
+                "id" to product.id,
+                "name" to product.name,
+                "description" to product.description,
+                "price" to product.price,
+                "category" to product.category.name, // Convertir enum a string
+                "imageUrl" to product.imageUrl,
+                "unit" to product.unit,
+                "stock" to product.stock,
+                "isAvailable" to product.isAvailable
+            )
+            db.collection(collectionName).document(product.id).set(productMap).await()
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e("ProductFirebaseService", "Error al actualizar el producto: ${e.message}")

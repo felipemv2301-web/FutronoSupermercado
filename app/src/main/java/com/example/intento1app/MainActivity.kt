@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -92,6 +93,7 @@ import coil.compose.AsyncImage
 import com.example.intento1app.data.models.CartItem
 import com.example.intento1app.ui.screens.AddProductScreen
 import com.example.intento1app.ui.screens.WorkerProductsScreen
+import com.example.intento1app.ui.screens.EditProductScreen
 import com.example.intento1app.ui.theme.StockHigh
 import com.example.intento1app.ui.theme.StockLow
 import com.example.intento1app.ui.theme.StockMedium
@@ -407,6 +409,19 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                 onProductAdded = {
                     // Después de agregar, haces lo mismo: volver a la gestión
                     showAddProduct = false
+                    showWorkerProducts = true
+                }
+            )
+        }
+        //Editar producto
+        showEditProduct && productToEditId != null -> {
+            EditProductScreen(
+                productId = productToEditId!!,
+                onNavigateBack = {
+                    // Al volver, apagas la pantalla de editar producto
+                    showEditProduct = false
+                    productToEditId = null
+                    // y vuelves a encender la pantalla de gestión
                     showWorkerProducts = true
                 }
             )
@@ -1628,7 +1643,7 @@ fun CategoryCard(
         }
     }
 }
-
+//Este es un comentarioXD
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductsScreen(
@@ -1643,6 +1658,7 @@ fun ProductsScreen(
     var productsFromDb by remember { mutableStateOf<List<Product>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
+    var selectedCategories by remember { mutableStateOf(setOf<String>()) }
 
     // Carga los productos desde Firebase (tu código original, sin cambios)
     LaunchedEffect(category) {
@@ -1666,15 +1682,19 @@ fun ProductsScreen(
     }
 
     // LÓGICA DE FILTRADO
-    val filteredProducts = remember(searchQuery, productsFromDb) {
-        if (searchQuery.isBlank()) {
-            productsFromDb // Si no hay búsqueda, muestra todos los productos cargados
-        } else {
-            productsFromDb.filter { product ->
-                // Filtra por nombre O descripción, ignorando mayúsculas/minúsculas
+    val filteredProducts = remember(searchQuery, productsFromDb, selectedCategories) {
+        productsFromDb.filter { product ->
+            // Filtro por búsqueda
+            val matchesSearch = searchQuery.isBlank() || 
                 product.name.contains(searchQuery, ignoreCase = true) ||
-                        product.description.contains(searchQuery, ignoreCase = true)
-            }
+                product.description.contains(searchQuery, ignoreCase = true)
+            
+            // Filtro por categorías
+            val matchesCategory = selectedCategories.isEmpty() || 
+                selectedCategories.contains("Todos") ||
+                selectedCategories.contains(product.category.displayName)
+            
+            matchesSearch && matchesCategory
         }
     }
 
@@ -1731,6 +1751,44 @@ fun ProductsScreen(
             )
         )
 
+        // Botones de categoría arriba del buscador (solo cuando se ven todos los productos)
+        if (category == "TODOS") {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(getProductCategoriesForClient()) { categoryName ->
+                        CategoryChipClient(
+                            category = categoryName,
+                            isSelected = selectedCategories.contains(categoryName),
+                            onClick = { 
+                                selectedCategories = if (categoryName == "Todos") {
+                                    if (selectedCategories.contains("Todos")) {
+                                        emptySet()
+                                    } else {
+                                        setOf("Todos")
+                                    }
+                                } else {
+                                    val newSet = selectedCategories.toMutableSet()
+                                    if (newSet.contains(categoryName)) {
+                                        newSet.remove(categoryName)
+                                    } else {
+                                        newSet.remove("Todos") // Si selecciona una categoría específica, quitar "Todos"
+                                        newSet.add(categoryName)
+                                    }
+                                    newSet
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
@@ -1783,6 +1841,27 @@ fun ProductsScreen(
     }
 }
 
+@Composable
+private fun CategoryChipClient(
+    category: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    FilterChip(
+        onClick = onClick,
+        label = {
+            Text(text = category)
+        },
+        selected = isSelected,
+        modifier = modifier
+    )
+}
+
+// Funciones para obtener categorías de productos para el cliente
+private fun getProductCategoriesForClient(): List<String> {
+    return listOf("Todos") + ProductCategory.values().map { it.displayName }
+}
 
 @Composable
 fun ProductCard(
@@ -2430,7 +2509,6 @@ fun validateFormWithError(nombre: String, apellido: String, rut: String, telefon
 
     // Validar que las contraseñas coincidan
     if (!Validators.validarConfirmacionPassword(password, confirmPassword)) return TipoError.PASSWORD_NO_COINCIDE
-
     return null // Sin errores
     }
 }

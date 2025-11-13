@@ -198,7 +198,24 @@ fun ProductListScreen(
 
         query.get()
             .addOnSuccessListener { result ->
-                productsFromDb = result.toObjects(Product::class.java)
+                productsFromDb = result.documents.mapNotNull { doc ->
+                    try {
+                        Product(
+                            id = doc.getString("id") ?: doc.id,
+                            name = doc.getString("name") ?: "",
+                            description = doc.getString("description") ?: "",
+                            price = doc.getDouble("price") ?: 0.0,
+                            category = getProductCategoryFromString(doc.getString("category") ?: "DESPENSA"),
+                            imageUrl = doc.getString("imageUrl") ?: "",
+                            unit = doc.getString("unit") ?: "unidad",
+                            stock = doc.getLong("stock")?.toInt() ?: 100,
+                            isAvailable = doc.getBoolean("isAvailable") ?: true
+                        )
+                    } catch (e: Exception) {
+                        Log.e("HomeScreen", "Error al convertir documento a Product: ${e.message}")
+                        null
+                    }
+                }
                 isLoading = false
             }
             .addOnFailureListener { exception ->
@@ -405,5 +422,17 @@ fun ProductCard(
                 Icon(Icons.Default.AddShoppingCart, "Agregar al carrito")
             }
         }
+    }
+}
+
+/**
+ * Función helper para convertir un string de categoría a ProductCategory enum
+ */
+private fun getProductCategoryFromString(categoryString: String): ProductCategory {
+    return try {
+        ProductCategory.valueOf(categoryString.uppercase())
+    } catch (e: IllegalArgumentException) {
+        Log.w("HomeScreen", "Categoría no válida: $categoryString, usando DESPENSA por defecto")
+        ProductCategory.DESPENSA
     }
 }

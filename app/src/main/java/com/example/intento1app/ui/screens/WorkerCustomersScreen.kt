@@ -14,14 +14,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.intento1app.data.models.FirebaseUser
 import com.example.intento1app.ui.theme.*
+import com.example.intento1app.viewmodel.CustomersViewModel
+import java.text.NumberFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkerCustomersScreen(
     onNavigateBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    customersViewModel: CustomersViewModel = viewModel()
 ) {
+    // Obtener datos del ViewModel
+    val clients by customersViewModel.clients.collectAsStateWithLifecycle()
+    val stats by customersViewModel.stats.collectAsStateWithLifecycle()
+    val isLoading by customersViewModel.isLoading.collectAsStateWithLifecycle()
+    
+    // Formateador de números
+    val numberFormatter = remember {
+        NumberFormat.getNumberInstance(Locale("es", "CL"))
+    }
+    
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -53,74 +70,100 @@ fun WorkerCustomersScreen(
         )
         
         // Contenido
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Estadísticas de clientes
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFF4CAF50)
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
+        if (isLoading && clients.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Estadísticas de clientes
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFF4CAF50)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Resumen de Clientes",
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                CustomerStatItem(
+                                    title = "Total Clientes",
+                                    value = if (isLoading) "..." else numberFormatter.format(stats.totalClients),
+                                    color = Color.White
+                                )
+                                CustomerStatItem(
+                                    title = "Nuevos Hoy",
+                                    value = if (isLoading) "..." else numberFormatter.format(stats.newClientsToday),
+                                    color = Color.White
+                                )
+                                CustomerStatItem(
+                                    title = "Activos",
+                                    value = if (isLoading) "..." else numberFormatter.format(stats.activeClients),
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                // Lista de clientes
+                if (clients.isNotEmpty()) {
+                    item {
                         Text(
-                            text = "Resumen de Clientes",
-                            style = MaterialTheme.typography.titleLarge.copy(
+                            text = "Clientes Registrados",
+                            style = MaterialTheme.typography.headlineMedium.copy(
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.onBackground
                             )
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
+                    }
+                    
+                    items(clients) { client ->
+                        CustomerCard(
+                            client = client,
+                            customersViewModel = customersViewModel,
+                            onViewDetails = { /* TODO: Implementar vista de detalles */ },
+                            onEditCustomer = { /* TODO: Implementar edición */ }
+                        )
+                    }
+                } else if (!isLoading) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            CustomerStatItem(
-                                title = "Total Clientes",
-                                value = "1,247",
-                                color = Color.White
-                            )
-                            CustomerStatItem(
-                                title = "Nuevos Hoy",
-                                value = "23",
-                                color = Color.White
-                            )
-                            CustomerStatItem(
-                                title = "Activos",
-                                value = "1,156",
-                                color = Color.White
+                            Text(
+                                text = "No hay clientes registrados",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                 }
-            }
-            
-            // Lista de clientes recientes
-            item {
-                Text(
-                    text = "Clientes Recientes",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                )
-            }
-            
-            // Clientes de ejemplo
-            items(getSampleCustomers()) { customer ->
-                CustomerCard(
-                    customer = customer,
-                    onViewDetails = { /* TODO: Implementar vista de detalles */ },
-                    onEditCustomer = { /* TODO: Implementar edición */ }
-                )
             }
         }
     }
@@ -155,11 +198,24 @@ private fun CustomerStatItem(
 
 @Composable
 private fun CustomerCard(
-    customer: SampleCustomer,
+    client: FirebaseUser,
+    customersViewModel: CustomersViewModel,
     onViewDetails: () -> Unit,
     onEditCustomer: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Obtener información adicional del cliente
+    val lastPurchase = customersViewModel.formatLastPurchase(client.id)
+    val totalOrders = customersViewModel.getTotalOrders(client.id)
+    val totalSpent = customersViewModel.getTotalSpent(client.id)
+    
+    // Formateador de moneda
+    val currencyFormatter = remember {
+        NumberFormat.getCurrencyInstance(Locale("es", "CL")).apply {
+            currency = java.util.Currency.getInstance("CLP")
+        }
+    }
+    
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -185,7 +241,7 @@ private fun CustomerCard(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = customer.name.take(1).uppercase(),
+                    text = (client.displayName.ifEmpty { client.email }).take(1).uppercase(),
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
                         color = FutronoCafe
@@ -200,22 +256,37 @@ private fun CustomerCard(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = customer.name,
+                    text = client.displayName.ifEmpty { client.email },
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold
                     ),
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = customer.email,
+                    text = client.email,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Text(
-                    text = "Última compra: ${customer.lastPurchase}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (lastPurchase != "Sin compras") {
+                    Text(
+                        text = "Última compra: $lastPurchase",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    Text(
+                        text = "Sin compras registradas",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (totalOrders > 0) {
+                    Text(
+                        text = "$totalOrders pedido${if (totalOrders > 1) "s" else ""} • ${currencyFormatter.format(totalSpent)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
             
             // Botones de acción
@@ -256,28 +327,4 @@ private fun CustomerCard(
             }
         }
     }
-}
-
-// Data class para clientes de ejemplo
-data class SampleCustomer(
-    val id: String,
-    val name: String,
-    val email: String,
-    val lastPurchase: String,
-    val totalOrders: Int,
-    val totalSpent: Double
-)
-
-// Función para obtener clientes de ejemplo
-private fun getSampleCustomers(): List<SampleCustomer> {
-    return listOf(
-        SampleCustomer("1", "María González", "maria.gonzalez@email.com", "Hace 2 horas", 15, 125000.0),
-        SampleCustomer("2", "Carlos Rodríguez", "carlos.rodriguez@email.com", "Ayer", 8, 89000.0),
-        SampleCustomer("3", "Ana Martínez", "ana.martinez@email.com", "Hace 3 días", 22, 156000.0),
-        SampleCustomer("4", "Luis Pérez", "luis.perez@email.com", "Hace 1 semana", 5, 45000.0),
-        SampleCustomer("5", "Carmen López", "carmen.lopez@email.com", "Hace 2 días", 12, 98000.0),
-        SampleCustomer("6", "Roberto Silva", "roberto.silva@email.com", "Hace 4 horas", 18, 134000.0),
-        SampleCustomer("7", "Isabel Torres", "isabel.torres@email.com", "Ayer", 9, 67000.0),
-        SampleCustomer("8", "Fernando Ruiz", "fernando.ruiz@email.com", "Hace 5 días", 14, 112000.0)
-    )
 }

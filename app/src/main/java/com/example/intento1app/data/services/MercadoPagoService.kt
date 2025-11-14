@@ -260,17 +260,17 @@ class MercadoPagoService(private val context: Context) {
                             
                             return@withContext when (status?.lowercase()) {
                                 "approved" -> PaymentResult(
-                                    status = PaymentStatus.SUCCESS,
+                                    status = PaymentResultStatus.SUCCESS,
                                     paymentId = paymentId,
                                     message = "¡Pago aprobado exitosamente!"
                                 )
                                 "pending", "in_process", "in_mediation" -> PaymentResult(
-                                    status = PaymentStatus.PENDING,
+                                    status = PaymentResultStatus.PENDING,
                                     paymentId = paymentId,
                                     message = "Pago pendiente de confirmación"
                                 )
                                 "rejected", "cancelled", "refunded" -> PaymentResult(
-                                    status = PaymentStatus.FAILURE,
+                                    status = PaymentResultStatus.FAILURE,
                                     paymentId = paymentId,
                                     message = "Pago rechazado o cancelado"
                                 )
@@ -279,7 +279,7 @@ class MercadoPagoService(private val context: Context) {
                         } else {
                             android.util.Log.d("MercadoPago", "No se encontraron pagos para esta preferencia")
                             return@withContext PaymentResult(
-                                status = PaymentStatus.PENDING,
+                                status = PaymentResultStatus.PENDING,
                                 message = "Aún no se ha procesado ningún pago para esta preferencia"
                             )
                         }
@@ -325,22 +325,22 @@ class MercadoPagoService(private val context: Context) {
             status != null -> {
                 when (status.lowercase()) {
                     "approved", "aprobado" -> PaymentResult(
-                        status = PaymentStatus.SUCCESS,
+                        status = PaymentResultStatus.SUCCESS,
                         paymentId = paymentId,
                         message = "¡Pago aprobado exitosamente! Tu compra ha sido procesada correctamente."
                     )
                     "pending", "pendiente", "in_process", "in_mediation" -> PaymentResult(
-                        status = PaymentStatus.PENDING,
+                        status = PaymentResultStatus.PENDING,
                         paymentId = paymentId,
                         message = buildPendingMessage(paymentType, errorDescription)
                     )
                     "rejected", "rechazado", "cancelled", "cancelado", "refunded", "reembolsado" -> PaymentResult(
-                        status = PaymentStatus.FAILURE,
+                        status = PaymentResultStatus.FAILURE,
                         paymentId = paymentId,
                         message = buildFailureMessage(errorMessage, errorDescription, paymentType)
                     )
                     else -> PaymentResult(
-                        status = PaymentStatus.CANCELLED,
+                        status = PaymentResultStatus.CANCELLED,
                         paymentId = paymentId,
                         message = "El pago fue cancelado o no se completó."
                     )
@@ -348,23 +348,23 @@ class MercadoPagoService(private val context: Context) {
             }
             // Caso 2: Determinar por la ruta del deep link
             isSuccessPath -> PaymentResult(
-                status = PaymentStatus.SUCCESS,
+                status = PaymentResultStatus.SUCCESS,
                 paymentId = paymentId,
                 message = "¡Pago aprobado exitosamente! Tu compra ha sido procesada correctamente."
             )
             isPendingPath -> PaymentResult(
-                status = PaymentStatus.PENDING,
+                status = PaymentResultStatus.PENDING,
                 paymentId = paymentId,
                 message = buildPendingMessage(paymentType, errorDescription)
             )
             isFailurePath -> PaymentResult(
-                status = PaymentStatus.FAILURE,
+                status = PaymentResultStatus.FAILURE,
                 paymentId = paymentId,
                 message = buildFailureMessage(errorMessage, errorDescription, paymentType)
             )
             // Caso 3: Sin información clara
             else -> PaymentResult(
-                status = PaymentStatus.CANCELLED,
+                status = PaymentResultStatus.CANCELLED,
                 paymentId = paymentId,
                 message = "No se pudo determinar el estado del pago. Por favor, verifica en tu cuenta de MercadoPago."
             )

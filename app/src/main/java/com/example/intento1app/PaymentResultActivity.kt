@@ -22,7 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.intento1app.data.models.PaymentStatus
+import com.example.intento1app.data.models.PaymentResultStatus
 import com.example.intento1app.data.models.PaymentResult
 import com.example.intento1app.data.models.CartItem
 import com.example.intento1app.data.models.User
@@ -128,7 +128,7 @@ class PaymentResultActivity : ComponentActivity() {
                     ) {
                         PaymentResultScreen(
                             paymentResult = PaymentResult(
-                                status = PaymentStatus.FAILURE,
+                                status = PaymentResultStatus.FAILURE,
                                 message = "No se pudo procesar el resultado del pago"
                             ),
                             cartItems = emptyList(),
@@ -332,7 +332,7 @@ fun PaymentResultScreen(
     onBackToHome: () -> Unit
 ) {
     val (icon, iconColor, title, message) = when (paymentResult.status) {
-        PaymentStatus.SUCCESS -> {
+        PaymentResultStatus.SUCCESS -> {
             Quadruple(
                 Icons.Filled.CheckCircle,
                 Color(0xFF4CAF50),
@@ -340,7 +340,7 @@ fun PaymentResultScreen(
                 paymentResult.message ?: "Tu pago ha sido procesado correctamente."
             )
         }
-        PaymentStatus.PENDING -> {
+        PaymentResultStatus.PENDING -> {
             Quadruple(
                 Icons.Filled.Info,
                 Color(0xFFFF9800),
@@ -348,7 +348,7 @@ fun PaymentResultScreen(
                 paymentResult.message ?: "Tu pago está pendiente de confirmación. Te notificaremos cuando se complete."
             )
         }
-        PaymentStatus.FAILURE -> {
+        PaymentResultStatus.FAILURE -> {
             Quadruple(
                 Icons.Filled.Warning,
                 Color(0xFFF44336),
@@ -356,7 +356,7 @@ fun PaymentResultScreen(
                 paymentResult.message ?: "No se pudo procesar tu pago. Por favor, intenta nuevamente."
             )
         }
-        PaymentStatus.CANCELLED -> {
+        PaymentResultStatus.CANCELLED -> {
             Quadruple(
                 Icons.Filled.Close,
                 Color(0xFF757575),
@@ -456,7 +456,7 @@ fun PaymentResultScreen(
         }
         
         // Mensaje adicional para pagos pendientes
-        if (paymentResult.status == PaymentStatus.PENDING) {
+        if (paymentResult.status == PaymentResultStatus.PENDING) {
             Spacer(modifier = Modifier.height(16.dp))
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -484,7 +484,7 @@ fun PaymentResultScreen(
         }
         
         // Mensaje adicional para pagos fallidos
-        if (paymentResult.status == PaymentStatus.FAILURE) {
+        if (paymentResult.status == PaymentResultStatus.FAILURE) {
             Spacer(modifier = Modifier.height(16.dp))
             Card(
                 modifier = Modifier.fillMaxWidth(),

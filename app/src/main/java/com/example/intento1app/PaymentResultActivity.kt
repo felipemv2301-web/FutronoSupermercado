@@ -66,7 +66,7 @@ class PaymentResultActivity : ComponentActivity() {
             val cartItems = getCartItemsFromSharedPreferences()
             
             // Si el pago fue exitoso, guardar el registro en Firebase
-            if (paymentResult.status == PaymentStatus.SUCCESS && cartItems.isNotEmpty() && paymentResult.paymentId != null) {
+            if (paymentResult.status == PaymentResultStatus.SUCCESS && cartItems.isNotEmpty() && paymentResult.paymentId != null) {
                 android.util.Log.d("PaymentResult", "=== CONDICIONES PARA GUARDAR PAGO ===")
                 android.util.Log.d("PaymentResult", "Status: ${paymentResult.status}")
                 android.util.Log.d("PaymentResult", "CartItems count: ${cartItems.size}")
@@ -81,7 +81,7 @@ class PaymentResultActivity : ComponentActivity() {
             }
             
             // Si el pago falló, restaurar el stock y marcar que se debe limpiar el carrito
-            if (paymentResult.status == PaymentStatus.FAILURE || paymentResult.status == PaymentStatus.CANCELLED) {
+            if (paymentResult.status == PaymentResultStatus.FAILURE || paymentResult.status == PaymentResultStatus.CANCELLED) {
                 restoreStockFromSharedPreferences()
                 // Marcar que el carrito debe limpiarse cuando se vuelva a MainActivity
                 val prefs = getSharedPreferences("payment_prefs", MODE_PRIVATE)
@@ -450,7 +450,7 @@ fun PaymentResultScreen(
         }
         
         // Mostrar contenido del carrito solo si el pago fue exitoso
-        if (paymentResult.status == PaymentStatus.SUCCESS && cartItems.isNotEmpty()) {
+        if (paymentResult.status == PaymentResultStatus.SUCCESS && cartItems.isNotEmpty()) {
             Spacer(modifier = Modifier.height(24.dp))
             CartItemsTable(cartItems = cartItems)
         }

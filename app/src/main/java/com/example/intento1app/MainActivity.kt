@@ -155,6 +155,12 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
     val authViewModel: AuthViewModel = remember { AuthViewModel() }
     var currentScreen by remember { mutableStateOf("loading") } // Cambiar a loading inicialmente
     
+    // Declarar variables necesarias para el snackbar
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val dismissScope = remember { CoroutineScope(SupervisorJob() + Dispatchers.Main) }
+    var currentSnackbarDismissJob by remember { mutableStateOf<Job?>(null) }
+    
     // Cerrar snackbar inmediatamente cuando se cambia de pantalla (ningún mensaje se mantiene)
     LaunchedEffect(currentScreen) {
         // Cancelar cualquier Job de cierre pendiente
@@ -232,7 +238,6 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
     
     // Servicio para actualizar stock en Firebase
     val productService = remember { com.example.intento1app.data.services.ProductFirebaseService() }
-    val scope = rememberCoroutineScope()
 
     // Variables de estado para las pantallas del perfil
     var showUserProfile by remember { mutableStateOf(false) }

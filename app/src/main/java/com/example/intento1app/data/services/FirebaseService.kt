@@ -5,10 +5,12 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.toObject
 import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.Timestamp
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.channels.awaitClose
+import java.util.Calendar
 
 /**
  * Servicio principal para interactuar con Firebase
@@ -898,5 +900,115 @@ class FirebaseService {
             }
         
         awaitClose { listener.remove() }
+    }
+    
+    // ==================== GESTIÓN DE CLIENTES ====================
+    
+    /**
+     * Obtiene todos los clientes desde Firestore
+     * Filtra solo usuarios con rol "cliente"
+     */
+    suspend fun getAllClients(): Result<List<FirebaseUser>> {
+        return try {
+            val snapshot = firestore.collection("users")
+                .get()
+                .await()
+            
+            val allUsers = snapshot.documents.mapNotNull { doc ->
+                try {
+                    doc.toObject<FirebaseUser>()?.copy(id = doc.id)
+                } catch (e: Exception) {
+                    println("FirebaseService: Error al convertir usuario ${doc.id}: ${e.message}")
+                    null
+                }
+            }
+            
+            // Filtrar solo clientes (excluir admin y trabajador)
+            val clients = allUsers.filter { user ->
+                user.roles.contains("cliente") && !user.roles.contains("admin") && !user.roles.contains("trabajador")
+            }
+            
+            println("✅ FirebaseService: Clientes obtenidos: ${clients.size} de ${allUsers.size} usuarios totales")
+            Result.success(clients)
+        } catch (e: Exception) {
+            println("❌ FirebaseService: Error al obtener clientes: ${e.message}")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Listener en tiempo real para todos los clientes
+     * Filtra solo usuarios con rol "cliente"
+     */
+    fun listenToAllClients(): Flow<List<FirebaseUser>> = callbackFlow {
+        println("FirebaseService: Iniciando listener de clientes")
+        
+        val listener = firestore.collection("users")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    println("❌ FirebaseService: Error en listener de clientes: ${error.message}")
+                    close(error)
+                    return@addSnapshotListener
+                }
+                
+                if (snapshot != null) {
+                    val allUsers = snapshot.documents.mapNotNull { doc ->
+                        try {
+                            doc.toObject<FirebaseUser>()?.copy(id = doc.id)
+                        } catch (e: Exception) {
+                            println("FirebaseService: Error al convertir usuario ${doc.id}: ${e.message}")
+                            null
+                        }
+                    }
+                    
+                    // Filtrar solo clientes (excluir admin y trabajador)
+                    val clients = allUsers.filter { user ->
+                        user.roles.contains("cliente") && !user.roles.contains("admin") && !user.roles.contains("trabajador")
+                    }
+                    
+                    println("✅ FirebaseService: Listener de clientes actualizado: ${clients.size} clientes de ${allUsers.size} usuarios")
+                    trySend(clients)
+                } else {
+                    println("FirebaseService: Snapshot de clientes es null")
+                    trySend(emptyList())
+                }
+            }
+        
+        awaitClose {
+            println("FirebaseService: Cerrando listener de clientes")
+            listener.remove()
+        }
+    }
+    
+    /**
+     * Obtiene las órdenes de un cliente específico para calcular actividad
+     */
+    suspend fun getClientOrders(userId: String, daysBack: Int = 30): Result<List<FirebasePurchase>> {
+        return try {
+            val calendar = Calendar.getInstance()
+            calendar.add(Calendar.DAY_OF_MONTH, -daysBack)
+            val startDate = Timestamp(calendar.time)
+            
+            val snapshot = firestore.collection("orders")
+                .whereEqualTo("userId", userId)
+                .whereGreaterThanOrEqualTo("purchaseDate", startDate)
+                .get()
+                .await()
+            
+            val orders = snapshot.documents.mapNotNull { doc ->
+                try {
+                    doc.toObject<FirebasePurchase>()?.copy(id = doc.id)
+                } catch (e: Exception) {
+                    println("FirebaseService: Error al convertir orden ${doc.id}: ${e.message}")
+                    null
+                }
+            }
+            
+            println("✅ FirebaseService: Órdenes del cliente obtenidas: ${orders.size} órdenes en últimos $daysBack días")
+            Result.success(orders)
+        } catch (e: Exception) {
+            println("❌ FirebaseService: Error al obtener órdenes del cliente: ${e.message}")
+            Result.failure(e)
+        }
     }
 }

@@ -723,9 +723,10 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
         currentScreen == "home" -> {
             // Mostrar pantalla diferente según el rol del usuario
             if (isWorker || isAdmin) {
-                // Pantalla específica para trabajadores
+                // Pantalla específica para trabajadores y administradores
                 WorkerHomeScreen(
                     currentUser = currentUser,
+                    isAdmin = isAdmin, // Pasar el rol de administrador
                     onLogout = {
                         currentUser = null
                         cartItems = emptyList()

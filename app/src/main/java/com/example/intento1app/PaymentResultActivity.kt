@@ -6,6 +6,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
@@ -17,13 +19,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.intento1app.data.models.PaymentResultStatus
 import com.example.intento1app.data.models.PaymentResult
+import com.example.intento1app.data.models.CartItem
+import com.example.intento1app.data.models.User
 import com.example.intento1app.data.services.MercadoPagoService
+import com.example.intento1app.data.services.FirebaseService
 import com.example.intento1app.ui.theme.AccessibleFutronoTheme
 import com.example.intento1app.viewmodel.AccessibilityViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import android.content.SharedPreferences
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.launch
 
 /**
  * Activity que maneja el retorno de MercadoPago después del pago
@@ -51,6 +62,32 @@ class PaymentResultActivity : ComponentActivity() {
             val paymentResult = mercadoPagoService.processPaymentResult(uri)
             android.util.Log.d("PaymentResult", "Resultado procesado: ${paymentResult.status} - ${paymentResult.message}")
             
+            // Recuperar los items del carrito guardados
+            val cartItems = getCartItemsFromSharedPreferences()
+            
+            // Si el pago fue exitoso, guardar el registro en Firebase
+            if (paymentResult.status == PaymentStatus.SUCCESS && cartItems.isNotEmpty() && paymentResult.paymentId != null) {
+                android.util.Log.d("PaymentResult", "=== CONDICIONES PARA GUARDAR PAGO ===")
+                android.util.Log.d("PaymentResult", "Status: ${paymentResult.status}")
+                android.util.Log.d("PaymentResult", "CartItems count: ${cartItems.size}")
+                android.util.Log.d("PaymentResult", "PaymentId: ${paymentResult.paymentId}")
+                android.util.Log.d("PaymentResult", "Llamando a savePaymentToFirebase...")
+                savePaymentToFirebase(paymentResult.paymentId!!, cartItems)
+            } else {
+                android.util.Log.w("PaymentResult", "⚠️ No se guardará el pago:")
+                android.util.Log.w("PaymentResult", "Status: ${paymentResult.status}")
+                android.util.Log.w("PaymentResult", "CartItems vacío: ${cartItems.isEmpty()}")
+                android.util.Log.w("PaymentResult", "PaymentId null: ${paymentResult.paymentId == null}")
+            }
+            
+            // Si el pago falló, restaurar el stock y marcar que se debe limpiar el carrito
+            if (paymentResult.status == PaymentStatus.FAILURE || paymentResult.status == PaymentStatus.CANCELLED) {
+                restoreStockFromSharedPreferences()
+                // Marcar que el carrito debe limpiarse cuando se vuelva a MainActivity
+                val prefs = getSharedPreferences("payment_prefs", MODE_PRIVATE)
+                prefs.edit().putBoolean("should_clear_cart", true).apply()
+            }
+            
             setContent {
                 val accessibilityViewModel: AccessibilityViewModel = viewModel()
                 AccessibleFutronoTheme(accessibilityViewModel = accessibilityViewModel) {
@@ -58,9 +95,17 @@ class PaymentResultActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.background
                     ) {
+                        // Recuperar el tracking number si existe
+                        val prefs = getSharedPreferences("payment_prefs", MODE_PRIVATE)
+                        val trackingNumber = prefs.getString("tracking_number", null)
+                        
                         PaymentResultScreen(
                             paymentResult = paymentResult,
+                            cartItems = cartItems,
+                            trackingNumber = trackingNumber,
                             onBackToHome = {
+                                // Limpiar los items guardados
+                                clearCartItemsFromSharedPreferences()
                                 // Volver a MainActivity y limpiar el stack
                                 val intent = Intent(this, MainActivity::class.java).apply {
                                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -86,7 +131,10 @@ class PaymentResultActivity : ComponentActivity() {
                                 status = PaymentResultStatus.FAILURE,
                                 message = "No se pudo procesar el resultado del pago"
                             ),
+                            cartItems = emptyList(),
+                            trackingNumber = null,
                             onBackToHome = {
+                                clearCartItemsFromSharedPreferences()
                                 val intent = Intent(this, MainActivity::class.java).apply {
                                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                                 }
@@ -99,11 +147,188 @@ class PaymentResultActivity : ComponentActivity() {
             }
         }
     }
+    
+    /**
+     * Recupera los items del carrito desde SharedPreferences
+     */
+    private fun getCartItemsFromSharedPreferences(): List<CartItem> {
+        return try {
+            val prefs = getSharedPreferences("payment_prefs", MODE_PRIVATE)
+            val json = prefs.getString("cart_items", null)
+            if (json != null) {
+                val gson = Gson()
+                val type = object : TypeToken<List<CartItem>>() {}.type
+                gson.fromJson<List<CartItem>>(json, type) ?: emptyList()
+            } else {
+                emptyList()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("PaymentResult", "Error al recuperar cartItems: ${e.message}", e)
+            emptyList()
+        }
+    }
+    
+    /**
+     * Limpia los items del carrito guardados en SharedPreferences
+     */
+    private fun clearCartItemsFromSharedPreferences() {
+        val prefs = getSharedPreferences("payment_prefs", MODE_PRIVATE)
+        prefs.edit()
+            .remove("cart_items")
+            .remove("original_stock_map")
+            .remove("tracking_number")
+            .remove("user_info")
+            .remove("user_id")
+            .remove("user_name")
+            .remove("user_email")
+            .remove("user_phone")
+            .apply()
+    }
+    
+    /**
+     * Recupera el mapa de stock original desde SharedPreferences
+     */
+    private fun getOriginalStockMapFromSharedPreferences(): Map<String, Int> {
+        return try {
+            val prefs = getSharedPreferences("payment_prefs", MODE_PRIVATE)
+            val json = prefs.getString("original_stock_map", null)
+            if (json != null) {
+                val gson = Gson()
+                val type = object : TypeToken<Map<String, Int>>() {}.type
+                gson.fromJson<Map<String, Int>>(json, type) ?: emptyMap()
+            } else {
+                emptyMap()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("PaymentResult", "Error al recuperar originalStockMap: ${e.message}", e)
+            emptyMap()
+        }
+    }
+    
+    /**
+     * Data class para la información del usuario
+     */
+    private data class UserInfo(
+        val userId: String,
+        val userName: String,
+        val userEmail: String,
+        val userPhone: String
+    )
+    
+    /**
+     * Recupera la información del usuario desde SharedPreferences
+     */
+    private fun getUserInfoFromSharedPreferences(): UserInfo {
+        return try {
+            val prefs = getSharedPreferences("payment_prefs", MODE_PRIVATE)
+            val userJson = prefs.getString("user_info", null)
+            
+            if (userJson != null) {
+                // Usuario registrado
+                val gson = Gson()
+                val user = gson.fromJson<User>(userJson, User::class.java)
+                UserInfo(
+                    userId = user.id,
+                    userName = user.nombre + " " + user.apellido,
+                    userEmail = user.email ?: "",
+                    userPhone = user.telefono ?: ""
+                )
+            } else {
+                // Usuario invitado
+                val userId = prefs.getString("user_id", "guest") ?: "guest"
+                val userName = prefs.getString("user_name", "") ?: ""
+                val userEmail = prefs.getString("user_email", "") ?: ""
+                val userPhone = prefs.getString("user_phone", "") ?: ""
+                UserInfo(userId, userName, userEmail, userPhone)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("PaymentResult", "Error al recuperar información del usuario: ${e.message}", e)
+            UserInfo("guest", "", "", "")
+        }
+    }
+    
+    /**
+     * Guarda el pago exitoso en Firebase
+     */
+    private fun savePaymentToFirebase(paymentId: String, cartItems: List<CartItem>) {
+        android.util.Log.d("PaymentResult", "=== savePaymentToFirebase INICIADO ===")
+        android.util.Log.d("PaymentResult", "PaymentId recibido: $paymentId")
+        android.util.Log.d("PaymentResult", "CartItems recibidos: ${cartItems.size}")
+        
+        val userInfo = getUserInfoFromSharedPreferences()
+        android.util.Log.d("PaymentResult", "UserInfo recuperado:")
+        android.util.Log.d("PaymentResult", "  - userId: ${userInfo.userId}")
+        android.util.Log.d("PaymentResult", "  - userName: ${userInfo.userName}")
+        android.util.Log.d("PaymentResult", "  - userEmail: ${userInfo.userEmail}")
+        android.util.Log.d("PaymentResult", "  - userPhone: ${userInfo.userPhone}")
+        
+        val firebaseService = FirebaseService()
+        android.util.Log.d("PaymentResult", "FirebaseService creado, iniciando corrutina...")
+        
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            try {
+                android.util.Log.d("PaymentResult", "Dentro de la corrutina, llamando a savePaymentRecord...")
+                val result = firebaseService.savePaymentRecord(
+                    paymentId = paymentId,
+                    userId = userInfo.userId,
+                    userName = userInfo.userName,
+                    userEmail = userInfo.userEmail,
+                    userPhone = userInfo.userPhone,
+                    cartItems = cartItems
+                )
+                
+                result.onSuccess { pairResult ->
+                    val docId = pairResult.first
+                    val trackingNumber = pairResult.second
+                    android.util.Log.d("PaymentResult", "✅ Pago guardado exitosamente en Firebase")
+                    android.util.Log.d("PaymentResult", "Document ID: $docId")
+                    android.util.Log.d("PaymentResult", "Tracking Number: $trackingNumber")
+                    
+                    // Guardar el tracking number en SharedPreferences para mostrarlo en la pantalla
+                    val prefs = getSharedPreferences("payment_prefs", MODE_PRIVATE)
+                    prefs.edit().putString("tracking_number", trackingNumber).apply()
+                    android.util.Log.d("PaymentResult", "Tracking number guardado en SharedPreferences")
+                }.onFailure { error ->
+                    android.util.Log.e("PaymentResult", "❌ Error al guardar pago en Firebase")
+                    android.util.Log.e("PaymentResult", "Mensaje: ${error.message}")
+                    android.util.Log.e("PaymentResult", "Tipo: ${error.javaClass.simpleName}")
+                    error.printStackTrace()
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("PaymentResult", "❌ Excepción en savePaymentToFirebase")
+                android.util.Log.e("PaymentResult", "Mensaje: ${e.message}")
+                e.printStackTrace()
+            }
+        }
+    }
+    
+    /**
+     * Restaura el stock de todos los productos desde el mapa guardado
+     */
+    private fun restoreStockFromSharedPreferences() {
+        val originalStockMap = getOriginalStockMapFromSharedPreferences()
+        if (originalStockMap.isEmpty()) {
+            android.util.Log.w("PaymentResult", "No hay stock original guardado para restaurar")
+            return
+        }
+        
+        val productService = com.example.intento1app.data.services.ProductFirebaseService()
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            originalStockMap.forEach { (productId, originalStock) ->
+                productService.updateProductStock(productId, originalStock).onFailure { error ->
+                    android.util.Log.e("PaymentResult", "Error al restaurar stock de $productId: ${error.message}")
+                }
+            }
+            android.util.Log.d("PaymentResult", "Stock restaurado para ${originalStockMap.size} productos")
+        }
+    }
 }
 
 @Composable
 fun PaymentResultScreen(
     paymentResult: PaymentResult,
+    cartItems: List<CartItem> = emptyList(),
+    trackingNumber: String? = null,
     onBackToHome: () -> Unit
 ) {
     val (icon, iconColor, title, message) = when (paymentResult.status) {
@@ -141,13 +366,21 @@ fun PaymentResultScreen(
         }
     }
     
+    val scrollState = rememberScrollState()
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Contenido scrollable
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(scrollState),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
@@ -196,8 +429,30 @@ fun PaymentResultScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    trackingNumber?.let { tracking ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Número de seguimiento:",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = tracking,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
+        }
+        
+        // Mostrar contenido del carrito solo si el pago fue exitoso
+        if (paymentResult.status == PaymentStatus.SUCCESS && cartItems.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(24.dp))
+            CartItemsTable(cartItems = cartItems)
         }
         
         // Mensaje adicional para pagos pendientes
@@ -255,8 +510,10 @@ fun PaymentResultScreen(
                 }
             }
         }
+        }
         
-        Spacer(modifier = Modifier.height(32.dp))
+        // Botón de regreso siempre visible al final (fuera del scroll)
+        Spacer(modifier = Modifier.height(24.dp))
         
         Button(
             onClick = onBackToHome,
@@ -272,6 +529,144 @@ fun PaymentResultScreen(
                     fontWeight = FontWeight.Bold
                 )
             )
+        }
+    }
+}
+
+/**
+ * Componente que muestra una tabla con los items del carrito
+ */
+@Composable
+private fun CartItemsTable(cartItems: List<CartItem>) {
+    val total = cartItems.sumOf { it.totalPrice }
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = "Detalle de la Compra",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Encabezado de la tabla
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "ID",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(0.15f)
+                )
+                Text(
+                    text = "Producto",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(0.3f)
+                )
+                Text(
+                    text = "Cant.",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(0.15f),
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = "Precio",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(0.2f),
+                    textAlign = TextAlign.End
+                )
+                Text(
+                    text = "Total",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(0.2f),
+                    textAlign = TextAlign.End
+                )
+            }
+            
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            
+            // Items del carrito
+            cartItems.forEach { cartItem ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = cartItem.product.id.take(8), // Mostrar solo los primeros 8 caracteres del ID
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(0.15f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = cartItem.product.name,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(0.3f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "${cartItem.quantity}",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(0.15f),
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = "$${String.format("%,.0f", cartItem.product.price).replace(",", ".")}",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(0.2f),
+                        textAlign = TextAlign.End
+                    )
+                    Text(
+                        text = "$${String.format("%,.0f", cartItem.totalPrice).replace(",", ".")}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(0.2f),
+                        textAlign = TextAlign.End
+                    )
+                }
+            }
+            
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            
+            // Total
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "TOTAL",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(0.6f)
+                )
+                Text(
+                    text = "$${String.format("%,.0f", total).replace(",", ".")}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(0.4f),
+                    textAlign = TextAlign.End
+                )
+            }
         }
     }
 }

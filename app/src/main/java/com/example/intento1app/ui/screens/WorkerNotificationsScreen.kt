@@ -41,7 +41,7 @@ fun WorkerNotificationsScreen(
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = FutronoFondo
+                    color = FutronoBlanco
                 )
             },
             navigationIcon = {
@@ -49,7 +49,7 @@ fun WorkerNotificationsScreen(
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "Volver",
-                        tint = FutronoFondo
+                        tint = FutronoBlanco
                     )
                 }
             },

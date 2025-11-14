@@ -96,29 +96,28 @@ fun WorkerHomeScreen(
         WorkerFunction(
             title = "Gestión de Pedidos",
             icon = Icons.Filled.ShoppingCart,
-            iconColor = FutronoFondo,             // Naranja principal para icono
+            iconColor = FutronoBlanco,             // Naranja principal para icono
             backgroundColor = FutronoNaranja,
-            titleColor = FutronoFondo,
+            titleColor = FutronoBlanco,
             onClick = onOrdersClick
         ),
         WorkerFunction(
             title = "Gestión de Inventario",
             icon = Icons.Filled.Inventory,
-            iconColor = FutronoFondo,           // Café claro para icono
+            iconColor = FutronoBlanco,           // Café claro para icono
             backgroundColor = FutronoAmarillo,
-            titleColor = FutronoFondo,   // Naranja oscuro para fondo
+            titleColor = FutronoBlanco,   // Naranja oscuro para fondo
             onClick = onProductsClick
         ),
         WorkerFunction(
             title = "Gestión de Clientes",
             icon = Icons.Filled.Groups,
-            iconColor = FutronoFondo,          // Café oscuro para icono
+            iconColor = FutronoBlanco,          // Café oscuro para icono
             backgroundColor = FutronoAzul,
-            titleColor = FutronoFondo,   // Superficie crema para fondo
+            titleColor = FutronoBlanco,   // Superficie crema para fondo
             onClick = onCustomersClick
         )
     )
-    
     // Filtrar funciones según el rol: trabajador solo ve Gestión de Pedidos e Inventario
     val mainFunctions = if (isAdmin) {
         allMainFunctions // Admin ve todas las funciones

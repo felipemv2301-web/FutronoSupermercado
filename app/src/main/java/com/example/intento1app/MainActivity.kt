@@ -9,6 +9,7 @@ import com.google.firebase.FirebaseApp
 import com.example.intento1app.utils.Validators
 import com.example.intento1app.utils.TipoError
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -55,6 +56,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.intento1app.ui.theme.AccessibleFutronoTheme
@@ -62,6 +64,7 @@ import com.example.intento1app.ui.theme.FutronoCafe
 import com.example.intento1app.ui.theme.FutronoNaranja
 import com.example.intento1app.ui.theme.FutronoFondo
 import com.example.intento1app.ui.theme.FutronoCafeOscuro
+import com.example.intento1app.ui.theme.FutronoFondo2
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.shape.CircleShape
@@ -73,6 +76,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -107,12 +111,17 @@ import com.example.intento1app.viewmodel.AuthViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.intento1app.data.models.CartItem
+import com.example.intento1app.ui.components.ScalableHeadlineLarge
+import com.example.intento1app.ui.components.ScalableTitleSmall
 import com.example.intento1app.ui.screens.AddProductScreen
 import com.example.intento1app.ui.screens.WorkerProductsScreen
 import com.example.intento1app.ui.screens.EditProductScreen
+import com.example.intento1app.ui.theme.FutronoBlanco
+import com.example.intento1app.ui.theme.FutronoVerde
 import com.example.intento1app.ui.theme.StockHigh
 import com.example.intento1app.ui.theme.StockLow
 import com.example.intento1app.ui.theme.StockMedium
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -216,6 +225,14 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     var cartItems by remember { mutableStateOf(listOf<CartItem>()) }
     var currentUser by remember { mutableStateOf<User?>(null) }
+    
+    // Mapa para guardar el stock original de productos antes de añadirlos al carrito
+    // Key: productId, Value: stock original
+    var originalStockMap by remember { mutableStateOf(mapOf<String, Int>()) }
+    
+    // Servicio para actualizar stock en Firebase
+    val productService = remember { com.example.intento1app.data.services.ProductFirebaseService() }
+    val scope = rememberCoroutineScope()
 
     // Variables de estado para las pantallas del perfil
     var showUserProfile by remember { mutableStateOf(false) }
@@ -307,6 +324,71 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
         }
     }
 
+    // Funciones helper para gestionar el stock
+    /**
+     * Descuenta stock de un producto cuando se añade al carrito
+     */
+    fun decreaseProductStock(productId: String, quantity: Int, currentStock: Int) {
+        // Guardar stock original si es la primera vez que se añade este producto
+        if (!originalStockMap.containsKey(productId)) {
+            originalStockMap = originalStockMap + (productId to currentStock)
+        }
+        
+        val newStock = (currentStock - quantity).coerceAtLeast(0)
+        scope.launch {
+            productService.updateProductStock(productId, newStock).onFailure { error ->
+                android.util.Log.e("StockManagement", "Error al descontar stock: ${error.message}")
+            }
+        }
+    }
+    
+    /**
+     * Restaura stock de un producto cuando se quita del carrito
+     */
+    fun restoreProductStock(productId: String, quantity: Int) {
+        val originalStock = originalStockMap[productId] ?: return
+        
+        // Obtener stock actual y restaurar
+        scope.launch {
+            val product = productService.getProductById(productId)
+            if (product != null) {
+                val newStock = (product.stock + quantity).coerceAtMost(originalStock)
+                productService.updateProductStock(productId, newStock).onFailure { error ->
+                    android.util.Log.e("StockManagement", "Error al restaurar stock: ${error.message}")
+                }
+            }
+        }
+    }
+    
+    /**
+     * Restaura todo el stock de todos los productos en el carrito
+     */
+    fun restoreAllStock() {
+        scope.launch {
+            originalStockMap.forEach { (productId, originalStock) ->
+                productService.updateProductStock(productId, originalStock).onFailure { error ->
+                    android.util.Log.e("StockManagement", "Error al restaurar stock de $productId: ${error.message}")
+                }
+            }
+            originalStockMap = emptyMap()
+        }
+    }
+    
+    /**
+     * Ajusta el stock cuando cambia la cantidad de un producto en el carrito
+     */
+    fun adjustProductStock(productId: String, oldQuantity: Int, newQuantity: Int, currentStock: Int) {
+        val difference = newQuantity - oldQuantity
+        if (difference != 0) {
+            val newStock = (currentStock - difference).coerceAtLeast(0)
+            scope.launch {
+                productService.updateProductStock(productId, newStock).onFailure { error ->
+                    android.util.Log.e("StockManagement", "Error al ajustar stock: ${error.message}")
+                }
+            }
+        }
+    }
+
     // Estados de autenticación (ya declarados arriba)
     val authErrorMessage by authViewModel.errorMessage.collectAsStateWithLifecycle()
     val isLoading by authViewModel.isLoading.collectAsStateWithLifecycle()
@@ -316,6 +398,24 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
     val isWorker by authViewModel.isWorker.collectAsStateWithLifecycle()
     val isAdmin by authViewModel.isAdmin.collectAsStateWithLifecycle()
     val userRoles by authViewModel.userRoles.collectAsStateWithLifecycle()
+
+    // Obtener el contexto una vez (fuera del LaunchedEffect)
+    val context = LocalContext.current
+    
+    // Verificar si se debe limpiar el carrito (cuando el pago falla)
+    LaunchedEffect(currentScreen) {
+        if (currentScreen == "home") {
+            val prefs = context.getSharedPreferences("payment_prefs", android.content.Context.MODE_PRIVATE)
+            val shouldClearCart = prefs.getBoolean("should_clear_cart", false)
+            if (shouldClearCart) {
+                // Limpiar carrito y bandera
+                cartItems = emptyList()
+                originalStockMap = emptyMap()
+                prefs.edit().remove("should_clear_cart").apply()
+                android.util.Log.d("MainActivity", "Carrito limpiado después de pago fallido")
+            }
+        }
+    }
 
     // Verificar estado de autenticación al inicializar
     LaunchedEffect(isLoggedIn, currentFirebaseUser, userRoles) {
@@ -766,17 +866,38 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                 currentScreen = "home"
             },
             onAddToCart = { product ->
-                val existingItem = cartItems.find { it.product.id == product.id }
-                if (existingItem != null) {
-                    cartItems = cartItems.map { item ->
-                        if (item.product.id == product.id) {
-                            item.copy(quantity = item.quantity + 1)
+                // Obtener stock actualizado desde Firebase antes de añadir al carrito
+                // Capturar el contexto antes de entrar a la corrutina
+                val contextForToast = context
+                scope.launch {
+                    val currentProduct = productService.getProductById(product.id)
+                    if (currentProduct != null && currentProduct.stock > 0) {
+                        val existingItem = cartItems.find { it.product.id == product.id }
+                        val quantityToAdd = 1
+                        
+                        if (existingItem != null) {
+                            // Si ya existe, aumentar cantidad y descontar stock
+                            cartItems = cartItems.map { item ->
+                                if (item.product.id == product.id) {
+                                    item.copy(quantity = item.quantity + quantityToAdd)
+                                } else {
+                                    item
+                                }
+                            }
+                            decreaseProductStock(product.id, quantityToAdd, currentProduct.stock)
                         } else {
-                            item
+                            // Si es nuevo, añadir al carrito y descontar stock
+                            cartItems = cartItems + CartItem(currentProduct, quantityToAdd)
+                            decreaseProductStock(product.id, quantityToAdd, currentProduct.stock)
                         }
+                    } else {
+                        // Stock insuficiente o producto no encontrado
+                        android.widget.Toast.makeText(
+                            contextForToast,
+                            "Stock insuficiente para ${product.name}",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
                     }
-                } else {
-                    cartItems = cartItems + CartItem(product, 1)
                 }
                 // Aquí se mejora lo visual del simón y las funcionalidades
                 showShortSnackbar("${product.name} se añadio al carrito Correctamente", 2000)
@@ -799,15 +920,26 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                 val oldQuantity = existingItem?.quantity ?: 0
                 
                 if (quantity <= 0) {
+                    // Restaurar stock cuando se elimina (cantidad llega a 0)
+                    if (oldQuantity > 0) {
+                        restoreProductStock(productId, oldQuantity)
+                    }
                     cartItems = cartItems.filter { it.product.id != productId }
                     // Aquí se mejora lo visual del simón y las funcionalidades
                     showShortSnackbar("Se ha eliminado el producto $productName del carrito", 2000)
                 } else {
-                    cartItems = cartItems.map { item ->
-                        if (item.product.id == productId) {
-                            item.copy(quantity = quantity)
-                        } else {
-                            item
+                    // Ajustar stock cuando cambia la cantidad
+                    scope.launch {
+                        val currentProduct = productService.getProductById(productId)
+                        if (currentProduct != null) {
+                            adjustProductStock(productId, oldQuantity, quantity, currentProduct.stock)
+                            cartItems = cartItems.map { item ->
+                                if (item.product.id == productId) {
+                                    item.copy(quantity = quantity)
+                                } else {
+                                    item
+                                }
+                            }
                         }
                     }
                     // Mostrar mensaje según si aumentó o disminuyó
@@ -828,6 +960,8 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                 showShortSnackbar("Se ha eliminado el producto $productName del carrito", 1500)
             },
             onClearCart = {
+                // Restaurar todo el stock antes de limpiar el carrito
+                restoreAllStock()
                 cartItems = emptyList()
             },
             onCheckout = {
@@ -839,10 +973,12 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
         currentScreen == "payment" -> PaymentScreen(
             cartItems = cartItems,
             currentUser = currentUser, // Pasar usuario actual
+            originalStockMap = originalStockMap, // Pasar mapa de stock original
             onPaymentComplete = {
-                // Pago exitoso, limpiar carrito y volver a home
+                // Pago exitoso: mantener stock descontado, limpiar carrito y mapa de stock original
                 println("MainActivity: onPaymentComplete llamado - limpiando carrito y navegando a home")
                 cartItems = emptyList()
+                originalStockMap = emptyMap() // Limpiar el mapa ya que el stock queda descontado permanentemente
                 currentScreen = "home"
                 println("MainActivity: Navegación completada - currentScreen = $currentScreen")
             },
@@ -876,7 +1012,7 @@ fun AuthScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(24.dp),
+            .padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -888,7 +1024,7 @@ fun AuthScreen(
                 painter = painterResource(id = R.drawable.ic_logo),
                 contentDescription = "Logo de Futrono Supermercado",
                 modifier = Modifier
-                    .fillMaxWidth(0.8f)
+                    .fillMaxWidth(0.6f)
             )
         }
 
@@ -1365,6 +1501,36 @@ fun RegisterScreen(
     }
 }
 
+//Componente que engloba todo el header
+@Composable
+private fun FutronoHeader(
+    cartItemCount: Int,
+    onAccessibilityClick: () -> Unit,
+    onUserProfileClick: () -> Unit,
+    onCartClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(80.dp)
+            .background(FutronoBlanco)
+            .padding(horizontal = 16.dp) // Padding interno para el contenido
+        ,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        // Logo alineado a la izquierda con margen natural
+        FutronoLogo()
+
+        HeaderActions(
+            cartItemCount = cartItemCount,
+            onAccessibilityClick = onAccessibilityClick,
+            onUserProfileClick = onUserProfileClick,
+            onCartClick = onCartClick
+        )
+    }
+}
 
 //Pantalla de Home, que llama los componentes separados de header y body
 @Composable
@@ -1383,73 +1549,65 @@ fun FutronoHomeScreen(
     onWorkerOrdersClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
+    Box(
+        modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp)
     ) {
-        FutronoHeader(
-            cartItemCount = cartItemCount,
-            onAccessibilityClick = onAccessibilityClick,
-            onUserProfileClick = onUserProfileClick,
-            onCartClick = onCartClick
-        )
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+        ) {
+            FutronoHeader(
+                cartItemCount = cartItemCount,
+                onAccessibilityClick = onAccessibilityClick,
+                onUserProfileClick = onUserProfileClick,
+                onCartClick = onCartClick
+            )
+            
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (isWorker || isAdmin) {
-            WorkerOrdersButton(onClick = onWorkerOrdersClick)
             Spacer(modifier = Modifier.height(16.dp))
+
+            if (isWorker || isAdmin) {
+                WorkerOrdersButton(onClick = onWorkerOrdersClick)
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 3.dp, bottom = 30.dp)
+                    .padding(5.dp) // Ajusta el padding interno del recuadro
+            ) {
+                ScalableHeadlineLarge(
+                    text = "Categorías Disponibles",
+                    modifier = Modifier.fillMaxWidth(),
+                    color = FutronoCafe,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    fontSize = MaterialTheme.typography.headlineSmall.fontSize // Cambia entre: headlineSmall, headlineMedium, headlineLarge, titleLarge, titleMedium, titleSmall
+                )
+            }
+
+            CategoriesGrid(
+                categories = categories,
+                onCategoryClick = onCategoryClick,
+                accessibilityViewModel = accessibilityViewModel
+            )
+
+            ViewAllProductsButton(onClick = { onCategoryClick("TODOS") })
+            }
         }
-
-        ScalableHeadlineMedium(
-            text = "Categorías Disponibles",
-            modifier = Modifier.padding(bottom = 16.dp),
-            color = MaterialTheme.colorScheme.onBackground,
-            fontWeight = FontWeight.Bold
-        )
-
-        CategoriesGrid(
-            categories = categories,
-            onCategoryClick = onCategoryClick,
-            accessibilityViewModel = accessibilityViewModel
-        )
-
-        ViewAllProductsButton(onClick = { onCategoryClick("TODOS") })
     }
 }
 
-//Componente que engloba todo el header
-@Composable
-private fun FutronoHeader(
-    cartItemCount: Int,
-    onAccessibilityClick: () -> Unit,
-    onUserProfileClick: () -> Unit,
-    onCartClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(80.dp)
-            .background(FutronoFondo)
-        // No padding horizontal to let logo align naturally
-        ,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        // Logo alineado a la izquierda con margen natural
-        FutronoLogo()
 
-        HeaderActions(
-            cartItemCount = cartItemCount,
-            onAccessibilityClick = onAccessibilityClick,
-            onUserProfileClick = onUserProfileClick,
-            onCartClick = onCartClick
-        )
-    }
-}
+
 
 //Componente que se encarga específicamente del logo
 @Composable
@@ -1459,12 +1617,13 @@ private fun FutronoLogo(modifier: Modifier = Modifier) {
         painter = painterResource(id = R.drawable.ic_logo2),
         contentDescription = "Logo Futrono",
 
-        // Escala la imagen para que llene la altura del contenedor.
-        contentScale = ContentScale.FillHeight,
+        // Mantiene el aspect ratio de la imagen sin distorsionarla
+        // Opciones: Fit (ajusta dentro del espacio), Inside (sin recortar), Crop (llena recortando)
+        contentScale = ContentScale.Fit, // Cambia a ContentScale.Inside o ContentScale.Crop según necesites
 
         modifier = modifier
-            //   Fija la altura. El ancho se ajustará automáticamente
-            .height(70.dp)
+            .height(70.dp) // Altura fija
+            .widthIn(max = 190.dp) // Ancho máximo para evitar que sea demasiado grande
             .padding(start = 1.dp)
     )
 }
@@ -1552,7 +1711,7 @@ private fun CartButton(
             modifier = Modifier
                 .size(48.dp)
                 .background(
-                    color = FutronoNaranja,
+                    color = FutronoVerde,
                     shape = RoundedCornerShape(12.dp)
                 )
         ) {
@@ -1634,21 +1793,29 @@ private fun CategoriesGrid(
 //Ver todos los productos
 @Composable
 private fun ViewAllProductsButton(onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = FutronoCafe
-        )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 0.dp, vertical = 8.dp) // Padding externo
     ) {
-        Text(
-            text = "Ver todos los productos",
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = FontWeight.Bold
-            ),
-            color = FutronoFondo
-        )
+        Button(
+            onClick = onClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(3.dp, RoundedCornerShape(10.dp)), // Sombra aplicada al botón
+            shape = RoundedCornerShape(10.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = FutronoNaranja
+            )
+        ) {
+            Text(
+                text = "Ver todos los productos",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                color = FutronoBlanco
+            )
+        }
     }
 }
 
@@ -1666,7 +1833,8 @@ fun CategoryCard(
     val scaleFactor = accessibilityViewModel.textScaleFactor
     
     // Tamaño base de la imagen que se escalará según accesibilidad
-    val baseImageSize = 48.dp
+    // Ajusta este valor para cambiar el tamaño de la imagen (ej: 40.dp más pequeño, 56.dp más grande)
+    val baseImageSize = 44.dp
     val scaledImageSize = remember(scaleFactor) { baseImageSize * scaleFactor }
     
     Card(
@@ -1700,9 +1868,9 @@ fun CategoryCard(
                         .padding(bottom = 8.dp),
                 )
 
-                ScalableTitleMedium(
+                ScalableTitleSmall(
                     text = category.displayName,
-                    color = category.textColor,
+                    color = FutronoBlanco,
                     textAlign = TextAlign.Center,
                     maxLines = 2,
                     fontWeight = FontWeight.Bold
@@ -1942,6 +2110,13 @@ fun getProductCategoriesForClient(): List<String> {
     return listOf("Todos") + ProductCategory.values().map { it.displayName }
 }
 
+// Estado de carga de imagen
+private enum class ImageLoadingState {
+    Loading,
+    Success,
+    Error
+}
+
 @Composable
 fun ProductCard(
     product: Product,
@@ -1958,57 +2133,152 @@ fun ProductCard(
             containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(12.dp)
         ) {
-            // Contenedor para la imagen o el ícono
+            // Imagen en la parte superior
             Box(
                 modifier = Modifier
-                    .size(80.dp)
+                    .fillMaxWidth()
+                    .height(180.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant), // Fondo para el ícono
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
                 // Si la URL de la imagen no está vacía, intenta cargarla
                 if (!product.imageUrl.isNullOrBlank()) {
+                    var imageLoadingState by remember(product.imageUrl) { mutableStateOf<ImageLoadingState>(ImageLoadingState.Loading) }
+                    var errorMessage by remember { mutableStateOf<String?>(null) }
+                    
+                    // Convertir URL de Google Drive a formato directo si es necesario
+                    val imageUrl = remember(product.imageUrl) {
+                        val url = product.imageUrl.trim()
+                        when {
+                            // Google Drive: convertir de formato compartir a formato directo
+                            url.contains("drive.google.com/file/d/", ignoreCase = true) -> {
+                                val fileId = url.substringAfter("file/d/").substringBefore("/").substringBefore("?")
+                                "https://drive.google.com/uc?export=view&id=$fileId"
+                            }
+                            // Google Drive: formato de vista previa
+                            url.contains("drive.google.com/uc?id=", ignoreCase = true) -> {
+                                url // Ya está en formato correcto
+                            }
+                            // SharePoint: advertir pero intentar cargar
+                            url.contains("sharepoint.com", ignoreCase = true) -> {
+                                android.util.Log.w("ProductCard", "⚠️ URL de SharePoint detectada - puede requerir autenticación")
+                                url
+                            }
+                            else -> url
+                        }
+                    }
+                    
+                    // Cargar la imagen
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
-                            .data(product.imageUrl)
+                            .data(imageUrl)
                             .crossfade(true)
+                            .allowHardware(false)
+                            .memoryCachePolicy(coil.request.CachePolicy.ENABLED)
+                            .diskCachePolicy(coil.request.CachePolicy.ENABLED)
                             .build(),
                         contentDescription = "Imagen de ${product.name}",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize() // La imagen llenará el Box
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .alpha(if (imageLoadingState == ImageLoadingState.Success) 1f else 0f),
+                        onLoading = {
+                            imageLoadingState = ImageLoadingState.Loading
+                            errorMessage = null
+                        },
+                        onSuccess = {
+                            imageLoadingState = ImageLoadingState.Success
+                            errorMessage = null
+                            android.util.Log.d("ProductCard", "✅ Imagen cargada exitosamente: $imageUrl")
+                        },
+                        onError = { error ->
+                            imageLoadingState = ImageLoadingState.Error
+                            val throwable = error.result.throwable
+                            errorMessage = throwable?.message ?: "Error desconocido"
+                            android.util.Log.e("ProductCard", "❌ Error al cargar imagen")
+                            android.util.Log.e("ProductCard", "URL original: ${product.imageUrl}")
+                            android.util.Log.e("ProductCard", "URL procesada: $imageUrl")
+                            android.util.Log.e("ProductCard", "Mensaje: ${throwable?.message}")
+                            android.util.Log.e("ProductCard", "Tipo: ${throwable?.javaClass?.simpleName}")
+                            if (product.imageUrl.contains("sharepoint.com", ignoreCase = true)) {
+                                android.util.Log.e("ProductCard", "⚠️ Las URLs de SharePoint requieren autenticación y no son accesibles directamente")
+                            } else if (product.imageUrl.contains("drive.google.com", ignoreCase = true)) {
+                                android.util.Log.e("ProductCard", "⚠️ Asegúrate de que el archivo de Google Drive esté compartido como 'Cualquiera con el enlace'")
+                            }
+                            throwable?.printStackTrace()
+                        }
                     )
+                    
+                    // Mostrar placeholder o error solo cuando la imagen no está lista
+                    if (imageLoadingState != ImageLoadingState.Success) {
+                        when (imageLoadingState) {
+                            ImageLoadingState.Loading -> {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(32.dp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    strokeWidth = 3.dp
+                                )
+                            }
+                            ImageLoadingState.Error -> {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier.padding(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.ImageNotSupported,
+                                        contentDescription = "Error al cargar imagen",
+                                        modifier = Modifier.size(48.dp),
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                    if (errorMessage != null && errorMessage!!.length < 50) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = errorMessage!!,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.error,
+                                            textAlign = TextAlign.Center,
+                                            maxLines = 2
+                                        )
+                                    }
+                                }
+                            }
+                            ImageLoadingState.Success -> { /* No hacer nada */ }
+                        }
+                    }
                 } else {
                     // Si no hay URL, muestra el ícono directamente
                     Icon(
                         imageVector = Icons.Default.ImageNotSupported,
                         contentDescription = "Imagen no disponible",
+                        modifier = Modifier.size(48.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Columna para la información del producto
+            // Información del producto en la parte inferior
             Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.Center
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
                     text = product.name,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+                
                 Spacer(modifier = Modifier.height(4.dp))
+                
                 Text(
                     text = product.description,
                     style = MaterialTheme.typography.bodySmall,
@@ -2016,45 +2286,63 @@ fun ProductCard(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+                
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "$${String.format("%,.0f", product.price).replace(",", ".")} / ${product.unit}",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "$${String.format("%,.0f", product.price).replace(",", ".")} / ${product.unit}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Stock: ${product.stock}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = when {
+                                product.stock > 50 -> StockHigh
+                                product.stock > 30 -> StockMedium
+                                else -> StockLow
+                            }
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Botón para agregar al carrito
+                Button(
+                    onClick = { onAddToCart(product) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = FutronoNaranja,
+                        contentColor = Color.White,
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    enabled = product.stock > 0,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AddShoppingCart,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Stock: ${product.stock}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = when {
-                            product.stock > 50 -> StockHigh
-                            product.stock > 30 -> StockMedium
-                            else -> StockLow
-                        }
+                        text = "Agregar al carrito",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold
                     )
                 }
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Botón para agregar al carrito
-            IconButton(
-                onClick = { onAddToCart(product) },
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape),
-                colors = IconButtonDefaults.iconButtonColors(
-                    containerColor = FutronoNaranja,
-                    contentColor = Color.White
-                ),
-                enabled = product.stock > 0
-            ) {
-                Icon(
-                    imageVector = Icons.Default.AddShoppingCart,
-                    contentDescription = "Agregar al carrito"
-                )
             }
         }
     }
@@ -2082,7 +2370,7 @@ fun CartScreen(
             title = {
                 ScalableHeadlineSmall(
                     text = "Carrito de Compras",
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = FutronoBlanco,
                     fontWeight = FontWeight.Bold
                 )
             },
@@ -2091,7 +2379,7 @@ fun CartScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Volver",
-                        tint = MaterialTheme.colorScheme.onPrimary
+                        tint = FutronoBlanco
                     )
                 }
             },
@@ -2101,13 +2389,13 @@ fun CartScreen(
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Vaciar carrito",
-                            tint = MaterialTheme.colorScheme.onPrimary
+                            tint = FutronoBlanco
                         )
                     }
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = FutronoCafe
             )
             )
         },
@@ -2357,7 +2645,10 @@ fun CartItemCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = FutronoBlanco // Cambia este color para el fondo de la tarjeta (ej: FutronoFondo, FutronoBlanco, FutronoCafe)
+        )
     ) {
         Row(
             modifier = Modifier
@@ -2476,13 +2767,16 @@ fun CartSummary(
             ) {
                 Text(
                     text = "Total de productos:",
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = FutronoBlanco
                 )
+
                 Text(
                     text = "$totalItems",
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.Bold
-                    )
+                    ),
+                    color = FutronoBlanco
                 )
             }
 
@@ -2496,14 +2790,15 @@ fun CartSummary(
                     text = "Total a pagar:",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold
-                    )
+                    ),
+                    color = FutronoBlanco
                 )
                 Text(
                     text = "${String.format("%,.0f", totalPrice).replace(",", ".")}",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = Color.White
+                    color = FutronoBlanco
                     )
             }
 
@@ -2528,7 +2823,8 @@ fun CartSummary(
                     text = "Finalizar Compra",
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold
-                    )
+                    ),
+                    color = FutronoBlanco
                 )
             }
         }

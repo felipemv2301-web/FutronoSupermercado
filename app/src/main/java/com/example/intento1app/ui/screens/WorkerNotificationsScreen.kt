@@ -7,8 +7,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.ui.res.painterResource
-import com.example.intento1app.R
+import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.filled.Inventory
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -190,10 +194,10 @@ private fun NotificationCard(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    painter = painterResource(id = notification.type.iconRes),
-                    contentDescription = null,
-                    tint = notification.type.color,
+                    Icon(
+                        imageVector = notification.type.iconVector,
+                        contentDescription = null,
+                        tint = notification.type.color,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -322,14 +326,14 @@ data class SampleNotification(
 )
 
 enum class NotificationType(
-    val iconRes: Int,
+    val iconVector: ImageVector,
     val color: Color
 ) {
-    ORDER(R.drawable.ic_shopping_bag, Color(0xFF2196F3)),
-    STOCK(R.drawable.ic_inventory, Color(0xFFFF9800)),
-    SYSTEM(R.drawable.ic_settings, Color(0xFF9C27B0)),
-    CUSTOMER(R.drawable.ic_customers, Color(0xFF00BCD4)),
-    PAYMENT(R.drawable.ic_credit_card, Color(0xFF4CAF50))
+    ORDER(Icons.Default.ShoppingBag, Color(0xFF2196F3)),
+    STOCK(Icons.Default.Inventory, Color(0xFFFF9800)),
+    SYSTEM(Icons.Default.Settings, Color(0xFF9C27B0)),
+    CUSTOMER(Icons.Default.People, Color(0xFF00BCD4)),
+    PAYMENT(Icons.Default.CreditCard, Color(0xFF4CAF50))
 }
 
 // Función para obtener notificaciones de ejemplo

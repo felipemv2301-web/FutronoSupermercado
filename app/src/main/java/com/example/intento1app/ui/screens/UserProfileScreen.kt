@@ -10,6 +10,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.filled.HeadsetMic
+import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,7 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.intento1app.R
@@ -25,7 +32,6 @@ import com.example.intento1app.data.models.User
 import com.example.intento1app.data.models.FirebasePurchase
 import com.example.intento1app.ui.theme.*
 import com.example.intento1app.viewmodel.AccessibilityViewModel
-import com.example.intento1app.viewmodel.PaymentViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -34,7 +40,6 @@ import java.util.*
 fun UserProfileScreen(
     currentUser: User,
     accessibilityViewModel: AccessibilityViewModel,
-    paymentViewModel: PaymentViewModel,
     onBackClick: () -> Unit,
     onLogout: () -> Unit,
     onAccessibilityClick: () -> Unit,
@@ -64,7 +69,7 @@ fun UserProfileScreen(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            painter = painterResource(id = R.drawable.ic_arrow_back),
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
                             tint = FutronoFondo,
                             modifier = Modifier.size(24.dp)
@@ -106,28 +111,28 @@ fun UserProfileScreen(
             
             // Mis datos
             ProfileOptionCard(
-                icon = R.drawable.ic_person,
+                iconVector = Icons.Default.Person,
                 title = "Mis datos",
                 onClick = onMyDataClick
             )
             
             // Mis medios de pago
             ProfileOptionCard(
-                icon = R.drawable.ic_credit_card,
+                iconVector = Icons.Default.CreditCard,
                 title = "Mis medios de pago",
                 onClick = onPaymentMethodsClick
             )
             
             // Mis datos bancarios
             ProfileOptionCard(
-                icon = R.drawable.ic_bank,
+                iconVector = Icons.Default.AccountBalance,
                 title = "Mis datos bancarios",
                 onClick = onMyBankDetailsClick
             )
             
             // Eliminar cuenta
             ProfileOptionCard(
-                icon = R.drawable.ic_delete,
+                iconVector = Icons.Default.Delete,
                 title = "Eliminar cuenta",
                 onClick = onDeleteAccountClick
             )
@@ -144,7 +149,7 @@ fun UserProfileScreen(
             
             // Mis pedidos
             ProfileOptionCard(
-                icon = R.drawable.ic_shopping_bag,
+                iconVector = Icons.Default.ShoppingBag,
                 title = "Mis pedidos",
                 onClick = onMyOrdersClick
             )
@@ -161,14 +166,14 @@ fun UserProfileScreen(
             
             // Ayuda y contacto
             ProfileOptionCard(
-                icon = R.drawable.ic_headphones,
+                iconVector = Icons.Default.HeadsetMic,
                 title = "Ayuda y contacto",
                 onClick = onHelpContactClick
             )
             
             // Cerrar sesión
             ProfileOptionCard(
-                icon = R.drawable.ic_logout,
+                iconVector = Icons.Default.Logout,
                 title = "Cerrar sesión",
                 onClick = { showLogoutDialog = true },
                 isLogout = true
@@ -217,7 +222,7 @@ fun UserProfileScreen(
 
 @Composable
 private fun ProfileOptionCard(
-    icon: Int,
+    iconVector: ImageVector,
     title: String,
     onClick: () -> Unit,
     isLogout: Boolean = false,
@@ -240,7 +245,7 @@ private fun ProfileOptionCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                painter = painterResource(id = icon),
+                imageVector = iconVector,
                 contentDescription = null,
                 modifier = Modifier.size(24.dp),
                 tint = if (isLogout) FutronoError else FutronoCafe
@@ -256,7 +261,7 @@ private fun ProfileOptionCard(
             )
             if (!isLogout) {
                 Icon(
-                    painter = painterResource(id = R.drawable.ic_arrow_forward),
+                    imageVector = Icons.Default.ArrowForward,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp),
                     tint = Color(0xFFEEEEEE)

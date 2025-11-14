@@ -6,14 +6,19 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Store
+import androidx.compose.material.icons.filled.Message
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.intento1app.R
@@ -44,7 +49,7 @@ fun HelpAndContactScreen(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            painter = painterResource(id = R.drawable.ic_arrow_back),
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
                             tint = FutronoFondo,
                             modifier = Modifier.size(24.dp)
@@ -69,28 +74,28 @@ fun HelpAndContactScreen(
             ) {
                 // Local y horario
                 HelpOptionCard(
-                    icon = R.drawable.ic_store,
+                    iconVector = Icons.Default.Store,
                     title = "Local y horario",
                     onClick = onLocalAndScheduleClick
                 )
                 
                 // Contáctanos por WhatsApp
                 HelpOptionCard(
-                    icon = R.drawable.ic_whatsapp,
+                    iconVector = Icons.Default.Message,
                     title = "Contáctanos por WhatsApp",
                     onClick = onWhatsAppClick
                 )
                 
                 // Reporta un error en la app
                 HelpOptionCard(
-                    icon = R.drawable.ic_email,
+                    iconVector = Icons.Default.Email,
                     title = "Reporta un error en la app",
                     onClick = onReportErrorClick
                 )
                 
                 // Términos y condiciones
                 HelpOptionCard(
-                    icon = R.drawable.ic_document,
+                    iconVector = Icons.Default.Description,
                     title = "Términos y condiciones",
                     onClick = onTermsAndConditionsClick
                 )
@@ -101,7 +106,7 @@ fun HelpAndContactScreen(
 
 @Composable
 private fun HelpOptionCard(
-    icon: Int,
+    iconVector: ImageVector,
     title: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -126,7 +131,7 @@ private fun HelpOptionCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    painter = painterResource(id = icon),
+                    imageVector = iconVector,
                     contentDescription = title,
                     tint = FutronoCafe,
                     modifier = Modifier.size(24.dp)

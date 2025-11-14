@@ -102,7 +102,7 @@ data class FirebasePurchase(
     val shipping: Double = 0.0,
     val totalPrice: Double = 0.0,
     val totalItems: Int = 0,
-    val paymentMethod: String = "Mercado Pago",
+    val paymentMethod: String = "Directo",
     val paymentId: String = "",
     val paymentStatus: String = "en_preparacion", // Estado por defecto: en preparación
     val orderNumber: String = "",
@@ -211,11 +211,11 @@ data class FirebaseReview(
 data class FirebaseAppConfig(
     // @DocumentId // Comentado temporalmente
     val id: String = "app_config",
-    val appName: String = "Inova9 App",
+    val appName: String = "Futrono Supermercado",
     val version: String = "1.0.0",
     val isMaintenanceMode: Boolean = false,
     val maintenanceMessage: String = "",
-    val supportedPaymentMethods: List<String> = listOf("mercadopago"),
+    val supportedPaymentMethods: List<String> = listOf("directo"),
     val shippingCost: Double = 0.0,
     val freeShippingThreshold: Double = 0.0,
     // @ServerTimestamp // Comentado temporalmente

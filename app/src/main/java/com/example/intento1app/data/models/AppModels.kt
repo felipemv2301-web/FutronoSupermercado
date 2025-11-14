@@ -63,38 +63,38 @@ enum class ProductCategory(
 {
     CARNES_PESCADOS(
         displayName = "Carnes y Pescados",
-        containerColor = Color(0xFF7A5050),     // Fondo más serio         // Icono blanco
+        containerColor = Color(0xFF603D3D),     // Fondo más serio         // Icono blanco
         textColor = FutronoBlanco,              // Texto blanco
         imageResId = R.drawable.ic_carnes
     ),
     DESPENSA(
         displayName = "Despensa",
-        containerColor = Color(0xFF7A6E50),      // Café claro
-        textColor = FutronoFondo,
+        containerColor = Color(0xFF565453),      // Café claro
+        textColor = FutronoBlanco,
         imageResId = R.drawable.ic_despensa
     ),
     FRUTAS_VERDURAS(
         displayName = "Frutas y Verduras",
-        containerColor = Color(0xFF657A50),          // Verde institucional (para frescura)
-        textColor = FutronoFondo,
+        containerColor = Color(0xFF434D3B),          // Verde institucional (para frescura)
+        textColor = FutronoBlanco,
         imageResId = R.drawable.ic_fruta
     ),
     BEBIDAS_SNACKS(
         displayName = "Bebidas y Snacks",
-        containerColor = Color(0xFF505C7A),  // Naranja oscuro vibrante
-        textColor = FutronoFondo,
+        containerColor = Color(0xFF435755),  // Naranja oscuro vibrante
+        textColor = FutronoBlanco,
         imageResId = R.drawable.ic_bebidas
     ),
     FRESCOS_LACTEOS(
         displayName = "Frescos y Lácteos",
-        containerColor = Color(0xFF507A7A), // Fondo crema
-        textColor = FutronoFondo,
+        containerColor = Color(0xFF45495D), // Fondo crema
+        textColor = FutronoBlanco,
         imageResId = R.drawable.ic_lacteos
     ),
     PANADERIA_PASTELERIA(
         displayName = "Panadería y Pastelería",
-        containerColor = Color(0xFF7A6150),   // Naranja cálido y amable
-        textColor = FutronoFondo,
+        containerColor = Color(0xFF6B5A3F),   // Naranja cálido y amable
+        textColor = FutronoBlanco,
         imageResId = R.drawable.ic_panaderia
     ),
 }

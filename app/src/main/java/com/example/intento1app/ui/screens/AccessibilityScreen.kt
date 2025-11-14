@@ -40,7 +40,7 @@ fun AccessibilityScreen(
                 title = {
                     ScalableTitleMedium(
                         text = "Configuración de Accesibilidad",
-                        color = FutronoFondo
+                        color = FutronoBlanco
                     )
                 },
                 navigationIcon = {
@@ -48,7 +48,7 @@ fun AccessibilityScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = FutronoFondo
+                            tint = FutronoBlanco
                         )
                     }
                 },

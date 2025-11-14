@@ -8,14 +8,15 @@ val FutronoCafe = Color(0xFF633413)         // Café principal
 val FutronoCafeClaro = Color(0xFFBD6334)    // Café claro
 val FutronoCafeOscuro = Color(0xFF402A14)   // Café oscuro
 
-val FutronoNaranja = Color(0xFFEA8102)      // Naranja principal
-val FutronoNaranjaClaro = Color(0xFFB96E12) // Naranja claro
-val FutronoNaranjaOscuro = Color(0xFFda7511)// Naranja oscuro
+val FutronoNaranja = Color(0xFFDE8023)      // Naranja principal
+val FutronoNaranjaClaro = Color(0xFFD57B0B) // Naranja claro
+val FutronoNaranjaOscuro = Color(0xFFD26C05)// Naranja oscuro
+val FutronoFondo2 = Color(0xFFFAECE2)
 
 // Colores complementarios
 val FutronoBlanco = Color(0xFFFFFFFF)
 
-val FutronoFondo = Color(0xFFFBF1E6)        // Fondo crema suave para la app
+val FutronoFondo = Color(0xFFF5E2D1)        // Fondo crema suave para la app
 val FutronoSuperficie = Color(0xFFF8E3CC)   // Superficie crema para tarjetas
 
 // Colores de estado

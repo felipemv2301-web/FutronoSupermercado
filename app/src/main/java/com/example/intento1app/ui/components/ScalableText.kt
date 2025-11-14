@@ -75,7 +75,8 @@ fun ScalableHeadlineLarge(
     color: androidx.compose.ui.graphics.Color? = null,
     textAlign: TextAlign? = null,
     maxLines: Int? = null,
-    fontWeight: FontWeight? = null
+    fontWeight: FontWeight? = null,
+    fontSize: TextUnit = TextUnit.Unspecified
 ) {
     ScalableText(
         text = text,
@@ -84,6 +85,7 @@ fun ScalableHeadlineLarge(
         textAlign = textAlign,
         maxLines = maxLines,
         fontWeight = fontWeight,
+        fontSize = fontSize,
         style = LocalTypography.current.headlineLarge
     )
 }
@@ -167,7 +169,8 @@ fun ScalableTitleMedium(
     color: androidx.compose.ui.graphics.Color? = null,
     textAlign: TextAlign? = null,
     maxLines: Int? = null,
-    fontWeight: FontWeight? = null
+    fontWeight: FontWeight? = null,
+    fontSize: TextUnit = TextUnit.Unspecified
 ) {
     ScalableText(
         text = text,
@@ -176,6 +179,7 @@ fun ScalableTitleMedium(
         textAlign = textAlign,
         maxLines = maxLines,
         fontWeight = fontWeight,
+        fontSize = fontSize,
         style = LocalTypography.current.titleMedium
     )
 }
@@ -190,7 +194,8 @@ fun ScalableTitleSmall(
     color: androidx.compose.ui.graphics.Color? = null,
     textAlign: TextAlign? = null,
     maxLines: Int? = null,
-    fontWeight: FontWeight? = null
+    fontWeight: FontWeight? = null,
+    fontSize: TextUnit = TextUnit.Unspecified
 ) {
     ScalableText(
         text = text,
@@ -199,6 +204,7 @@ fun ScalableTitleSmall(
         textAlign = textAlign,
         maxLines = maxLines,
         fontWeight = fontWeight,
+        fontSize = fontSize,
         style = LocalTypography.current.titleSmall
     )
 }

@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import com.example.intento1app.data.models.CartItem
 import com.example.intento1app.ui.components.ScalableHeadlineSmall
 import com.example.intento1app.ui.components.ScalableTitleLarge
+import com.example.intento1app.ui.theme.FutronoBlanco
 import com.example.intento1app.ui.theme.LocalTypography
 import com.example.intento1app.ui.theme.FutronoCafe
 import com.example.intento1app.ui.theme.FutronoNaranja
@@ -46,7 +47,7 @@ fun CartScreen(
             title = {
                 ScalableHeadlineSmall(
                     text = "Carrito de Compras",
-                    color = Color.White,
+                    color = FutronoBlanco,
                     fontWeight = FontWeight.Bold
                 )
             },
@@ -55,7 +56,7 @@ fun CartScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Volver",
-                        tint = MaterialTheme.colorScheme.onPrimary
+                        tint = FutronoBlanco
                     )
                 }
             },
@@ -95,14 +96,14 @@ fun CartScreen(
                     Text(
                         text = "Tu carrito está vacío",
                         style = MaterialTheme.typography.headlineSmall,
-                        color = Color.White,
+                        color = FutronoBlanco,
                         textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Agrega productos para comenzar a comprar",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White,
+                        color = FutronoBlanco,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -158,13 +159,13 @@ private fun CartItemCard(
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = Color.White
+                    color = FutronoBlanco
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "$${String.format("%,.0f", cartItem.product.price).replace(",", ".")} por ${cartItem.product.unit}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White
+                    color = FutronoBlanco
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -172,7 +173,7 @@ private fun CartItemCard(
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = Color.White
+                    color = FutronoBlanco
                 )
             }
             
@@ -200,7 +201,7 @@ private fun CartItemCard(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
-                        color = Color.White,
+                        color = FutronoBlanco,
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
                     
@@ -233,7 +234,7 @@ private fun CartItemCard(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "Eliminar",
-                        color = Color.White
+                        color = FutronoBlanco
                     )
                 }
             }
@@ -269,14 +270,14 @@ private fun CartSummary(
                 Text(
                     text = "Total de productos:",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = Color.White
+                    color = FutronoBlanco
                 )
                 Text(
                     text = "$totalItems",
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = Color.White
+                    color = FutronoBlanco
                 )
             }
             
@@ -289,14 +290,14 @@ private fun CartSummary(
                 ScalableTitleLarge(
                     text = "Total a pagar:",
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = FutronoBlanco
                 )
                 Text(
                     text = "$${String.format("%,.0f", totalPrice).replace(",", ".")}",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = Color.White
+                    color = FutronoBlanco
                 )
             }
             
@@ -322,7 +323,7 @@ private fun CartSummary(
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = Color.White
+                    color = FutronoBlanco
                 )
             }
         }

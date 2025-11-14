@@ -152,6 +152,23 @@ class ProductFirebaseService {
     }
     
     /**
+     * Actualiza solo el stock de un producto en Firestore
+     * @param productId ID del producto
+     * @param newStock Nuevo valor de stock
+     */
+    suspend fun updateProductStock(productId: String, newStock: Int): Result<Unit> {
+        return try {
+            db.collection(collectionName).document(productId)
+                .update("stock", newStock)
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e("ProductFirebaseService", "Error al actualizar stock del producto: ${e.message}")
+            Result.failure(e)
+        }
+    }
+    
+    /**
      * Convierte un string a ProductCategory
      */
     private fun getProductCategoryFromString(categoryString: String): ProductCategory {

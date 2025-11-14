@@ -58,7 +58,7 @@ fun HelpAndContactScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = FutronoCafe,
-                    titleContentColor = FutronoFondo
+                    titleContentColor = FutronoBlanco
                 )
             )
         },
@@ -66,7 +66,7 @@ fun HelpAndContactScreen(
             Column(
                 modifier = modifier
                     .fillMaxSize()
-                    .background(FutronoFondo)
+                    .background(FutronoBlanco)
                     .padding(paddingValues)
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,

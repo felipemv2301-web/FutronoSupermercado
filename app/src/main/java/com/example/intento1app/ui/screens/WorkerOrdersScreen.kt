@@ -47,7 +47,7 @@ fun WorkerOrdersScreen(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
-                        color = FutronoFondo
+                        color = FutronoBlanco
                     ) 
                 },
                 navigationIcon = {
@@ -55,14 +55,14 @@ fun WorkerOrdersScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = FutronoFondo,
+                            tint = FutronoBlanco,
                             modifier = Modifier.size(24.dp)
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = FutronoCafe,
-                    titleContentColor = FutronoFondo
+                    titleContentColor = FutronoBlanco
                 )
             )
         }

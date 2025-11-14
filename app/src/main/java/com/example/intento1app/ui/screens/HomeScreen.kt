@@ -47,6 +47,7 @@ import com.google.firebase.ktx.Firebase
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.style.TextAlign
 
 val StockHigh = Color(0xFF2E7D32)
 val StockMedium = Color(0xFFF57C00)
@@ -148,9 +149,12 @@ fun CategorySelectionScreen(
         )
         ScalableHeadlineMedium(
             text = "Nuestras Categorías",
-            modifier = Modifier.padding(bottom = 16.dp),
+            modifier = Modifier
+                .fillMaxWidth() // Haz que el componente ocupe todo el ancho
+                .padding(top = 24.dp, bottom = 16.dp),
             color = MaterialTheme.colorScheme.onBackground,
             fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
         )
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),

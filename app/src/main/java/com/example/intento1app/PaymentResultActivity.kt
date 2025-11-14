@@ -17,13 +17,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.intento1app.data.models.PaymentStatus
 import com.example.intento1app.data.models.PaymentResult
+import com.example.intento1app.data.models.CartItem
 import com.example.intento1app.data.services.MercadoPagoService
 import com.example.intento1app.ui.theme.AccessibleFutronoTheme
 import com.example.intento1app.viewmodel.AccessibilityViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import android.content.SharedPreferences
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.launch
 
 /**
  * Activity que maneja el retorno de MercadoPago después del pago
@@ -51,6 +58,17 @@ class PaymentResultActivity : ComponentActivity() {
             val paymentResult = mercadoPagoService.processPaymentResult(uri)
             android.util.Log.d("PaymentResult", "Resultado procesado: ${paymentResult.status} - ${paymentResult.message}")
             
+            // Recuperar los items del carrito guardados
+            val cartItems = getCartItemsFromSharedPreferences()
+            
+            // Si el pago falló, restaurar el stock y marcar que se debe limpiar el carrito
+            if (paymentResult.status == PaymentStatus.FAILURE || paymentResult.status == PaymentStatus.CANCELLED) {
+                restoreStockFromSharedPreferences()
+                // Marcar que el carrito debe limpiarse cuando se vuelva a MainActivity
+                val prefs = getSharedPreferences("payment_prefs", MODE_PRIVATE)
+                prefs.edit().putBoolean("should_clear_cart", true).apply()
+            }
+            
             setContent {
                 val accessibilityViewModel: AccessibilityViewModel = viewModel()
                 AccessibleFutronoTheme(accessibilityViewModel = accessibilityViewModel) {
@@ -60,7 +78,10 @@ class PaymentResultActivity : ComponentActivity() {
                     ) {
                         PaymentResultScreen(
                             paymentResult = paymentResult,
+                            cartItems = cartItems,
                             onBackToHome = {
+                                // Limpiar los items guardados
+                                clearCartItemsFromSharedPreferences()
                                 // Volver a MainActivity y limpiar el stack
                                 val intent = Intent(this, MainActivity::class.java).apply {
                                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -86,7 +107,9 @@ class PaymentResultActivity : ComponentActivity() {
                                 status = PaymentStatus.FAILURE,
                                 message = "No se pudo procesar el resultado del pago"
                             ),
+                            cartItems = emptyList(),
                             onBackToHome = {
+                                clearCartItemsFromSharedPreferences()
                                 val intent = Intent(this, MainActivity::class.java).apply {
                                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                                 }
@@ -99,11 +122,84 @@ class PaymentResultActivity : ComponentActivity() {
             }
         }
     }
+    
+    /**
+     * Recupera los items del carrito desde SharedPreferences
+     */
+    private fun getCartItemsFromSharedPreferences(): List<CartItem> {
+        return try {
+            val prefs = getSharedPreferences("payment_prefs", MODE_PRIVATE)
+            val json = prefs.getString("cart_items", null)
+            if (json != null) {
+                val gson = Gson()
+                val type = object : TypeToken<List<CartItem>>() {}.type
+                gson.fromJson<List<CartItem>>(json, type) ?: emptyList()
+            } else {
+                emptyList()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("PaymentResult", "Error al recuperar cartItems: ${e.message}", e)
+            emptyList()
+        }
+    }
+    
+    /**
+     * Limpia los items del carrito guardados en SharedPreferences
+     */
+    private fun clearCartItemsFromSharedPreferences() {
+        val prefs = getSharedPreferences("payment_prefs", MODE_PRIVATE)
+        prefs.edit()
+            .remove("cart_items")
+            .remove("original_stock_map")
+            .apply()
+    }
+    
+    /**
+     * Recupera el mapa de stock original desde SharedPreferences
+     */
+    private fun getOriginalStockMapFromSharedPreferences(): Map<String, Int> {
+        return try {
+            val prefs = getSharedPreferences("payment_prefs", MODE_PRIVATE)
+            val json = prefs.getString("original_stock_map", null)
+            if (json != null) {
+                val gson = Gson()
+                val type = object : TypeToken<Map<String, Int>>() {}.type
+                gson.fromJson<Map<String, Int>>(json, type) ?: emptyMap()
+            } else {
+                emptyMap()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("PaymentResult", "Error al recuperar originalStockMap: ${e.message}", e)
+            emptyMap()
+        }
+    }
+    
+    /**
+     * Restaura el stock de todos los productos desde el mapa guardado
+     */
+    private fun restoreStockFromSharedPreferences() {
+        val originalStockMap = getOriginalStockMapFromSharedPreferences()
+        if (originalStockMap.isEmpty()) {
+            android.util.Log.w("PaymentResult", "No hay stock original guardado para restaurar")
+            return
+        }
+        
+        val productService = com.example.intento1app.data.services.ProductFirebaseService()
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            originalStockMap.forEach { (productId, originalStock) ->
+                productService.updateProductStock(productId, originalStock).onFailure { error ->
+                    android.util.Log.e("PaymentResult", "Error al restaurar stock de $productId: ${error.message}")
+                }
+            }
+            android.util.Log.d("PaymentResult", "Stock restaurado para ${originalStockMap.size} productos")
+        }
+    }
 }
 
 @Composable
 fun PaymentResultScreen(
     paymentResult: PaymentResult,
+    cartItems: List<CartItem> = emptyList(),
     onBackToHome: () -> Unit
 ) {
     val (icon, iconColor, title, message) = when (paymentResult.status) {
@@ -200,6 +296,12 @@ fun PaymentResultScreen(
             }
         }
         
+        // Mostrar contenido del carrito solo si el pago fue exitoso
+        if (paymentResult.status == PaymentStatus.SUCCESS && cartItems.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(24.dp))
+            CartItemsTable(cartItems = cartItems)
+        }
+        
         // Mensaje adicional para pagos pendientes
         if (paymentResult.status == PaymentStatus.PENDING) {
             Spacer(modifier = Modifier.height(16.dp))
@@ -272,6 +374,144 @@ fun PaymentResultScreen(
                     fontWeight = FontWeight.Bold
                 )
             )
+        }
+    }
+}
+
+/**
+ * Componente que muestra una tabla con los items del carrito
+ */
+@Composable
+private fun CartItemsTable(cartItems: List<CartItem>) {
+    val total = cartItems.sumOf { it.totalPrice }
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = "Detalle de la Compra",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Encabezado de la tabla
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "ID",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(0.15f)
+                )
+                Text(
+                    text = "Producto",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(0.3f)
+                )
+                Text(
+                    text = "Cant.",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(0.15f),
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = "Precio",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(0.2f),
+                    textAlign = TextAlign.End
+                )
+                Text(
+                    text = "Total",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(0.2f),
+                    textAlign = TextAlign.End
+                )
+            }
+            
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            
+            // Items del carrito
+            cartItems.forEach { cartItem ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = cartItem.product.id.take(8), // Mostrar solo los primeros 8 caracteres del ID
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(0.15f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = cartItem.product.name,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(0.3f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "${cartItem.quantity}",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(0.15f),
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = "$${String.format("%,.0f", cartItem.product.price).replace(",", ".")}",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(0.2f),
+                        textAlign = TextAlign.End
+                    )
+                    Text(
+                        text = "$${String.format("%,.0f", cartItem.totalPrice).replace(",", ".")}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(0.2f),
+                        textAlign = TextAlign.End
+                    )
+                }
+            }
+            
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            
+            // Total
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "TOTAL",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(0.6f)
+                )
+                Text(
+                    text = "$${String.format("%,.0f", total).replace(",", ".")}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(0.4f),
+                    textAlign = TextAlign.End
+                )
+            }
         }
     }
 }

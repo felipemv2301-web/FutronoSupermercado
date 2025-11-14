@@ -20,6 +20,7 @@ import com.example.intento1app.data.models.Product
 import com.example.intento1app.data.models.ProductCategory
 import com.example.intento1app.ui.components.ProductCard
 import com.example.intento1app.ui.components.ScalableHeadlineSmall
+import com.example.intento1app.ui.theme.FutronoBlanco
 import com.example.intento1app.ui.theme.FutronoCafe
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,7 +45,7 @@ fun ProductsScreen(
             title = {
                 ScalableHeadlineSmall(
                     text = category.displayName,
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = FutronoBlanco,
                     fontWeight = FontWeight.Bold
                 )
             },

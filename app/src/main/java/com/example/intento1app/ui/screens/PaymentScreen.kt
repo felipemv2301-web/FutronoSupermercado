@@ -21,12 +21,16 @@ import com.example.intento1app.data.models.CartItem
 import com.example.intento1app.data.models.User
 import com.example.intento1app.data.services.MercadoPagoService
 import kotlinx.coroutines.launch
+import android.content.SharedPreferences
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PaymentScreen(
     cartItems: List<CartItem>,
     currentUser: User? = null,
+    originalStockMap: Map<String, Int> = emptyMap(),
     onPaymentComplete: () -> Unit,
     onBackToCart: () -> Unit
 ) {
@@ -153,6 +157,8 @@ fun PaymentScreen(
                                     isLoading = true
                                     val result = mercadoPagoService.createPaymentPreference(cartItems)
                                     result.onSuccess { (checkoutUrl, preferenceId) ->
+                                        // Guardar los items del carrito y el mapa de stock original antes de abrir el checkout
+                                        saveCartItemsToSharedPreferences(context, cartItems, originalStockMap)
                                         mercadoPagoService.openCheckout(checkoutUrl, preferenceId)
                                         // El estado se resetea cuando se abre el checkout
                                         isLoading = false
@@ -506,4 +512,25 @@ private fun AdditionalInfoCard() {
             )
         }
     }
+}
+
+/**
+ * Guarda los items del carrito y el mapa de stock original en SharedPreferences
+ */
+private fun saveCartItemsToSharedPreferences(
+    context: android.content.Context, 
+    cartItems: List<CartItem>,
+    originalStockMap: Map<String, Int>
+) {
+    val prefs = context.getSharedPreferences("payment_prefs", android.content.Context.MODE_PRIVATE)
+    val gson = Gson()
+    val cartItemsJson = gson.toJson(cartItems)
+    
+    // Guardar también el mapa de stock original
+    val stockMapJson = gson.toJson(originalStockMap)
+    
+    prefs.edit()
+        .putString("cart_items", cartItemsJson)
+        .putString("original_stock_map", stockMapJson)
+        .apply()
 }

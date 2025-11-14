@@ -22,6 +22,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.intento1app.ui.theme.FutronoNaranja
 import com.example.intento1app.data.models.Product
 import com.example.intento1app.data.models.ProductCategory
+import com.example.intento1app.ui.theme.FutronoBlanco
 import com.example.intento1app.ui.theme.FutronoCafe
 import com.example.intento1app.ui.theme.FutronoFondo
 import com.example.intento1app.viewmodel.AddProductViewModel
@@ -59,7 +60,7 @@ fun AddProductScreen(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
-                        color = FutronoFondo
+                        color = FutronoBlanco
                     )
                 },
                 navigationIcon = {
@@ -67,13 +68,13 @@ fun AddProductScreen(
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Volver",
-                            tint = FutronoFondo
+                            tint = FutronoBlanco
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = FutronoCafe,
-                    titleContentColor = FutronoFondo
+                    titleContentColor = FutronoBlanco
                 )
             )
         },

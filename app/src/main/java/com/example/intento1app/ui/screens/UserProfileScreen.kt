@@ -63,7 +63,7 @@ fun UserProfileScreen(
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold
                         ),
-                        color = FutronoFondo
+                        color = FutronoBlanco
                     ) 
                 },
                 navigationIcon = {
@@ -71,14 +71,14 @@ fun UserProfileScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = FutronoFondo,
+                            tint = FutronoBlanco,
                             modifier = Modifier.size(24.dp)
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = FutronoCafe,
-                    titleContentColor = FutronoFondo
+                    titleContentColor = FutronoBlanco
                 )
             )
         }
@@ -92,7 +92,7 @@ fun UserProfileScreen(
             // Saludo con nombre de usuario
             Text(
                 text = "¡Hola, ${currentUser.nombre}!",
-                style = MaterialTheme.typography.headlineSmall.copy(
+                style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold
                 ),
                 color = FutronoCafeOscuro,
@@ -102,11 +102,11 @@ fun UserProfileScreen(
             // Información personal
             Text(
                 text = "Información personal",
-                style = MaterialTheme.typography.titleLarge.copy(
+                style = MaterialTheme.typography.titleSmall.copy(
                     fontWeight = FontWeight.Bold
                 ),
                 color = FutronoCafeOscuro,
-                modifier = Modifier.padding(16.dp, 24.dp, 16.dp, 8.dp)
+                modifier = Modifier.padding(16.dp, 15.dp, 16.dp, 8.dp)
             )
             
             // Mis datos

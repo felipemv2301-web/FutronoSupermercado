@@ -70,6 +70,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -2016,6 +2017,13 @@ private fun getProductCategoriesForClient(): List<String> {
     return listOf("Todos") + ProductCategory.values().map { it.displayName }
 }
 
+// Estado de carga de imagen
+private enum class ImageLoadingState {
+    Loading,
+    Success,
+    Error
+}
+
 @Composable
 fun ProductCard(
     product: Product,
@@ -2032,57 +2040,152 @@ fun ProductCard(
             containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(12.dp)
         ) {
-            // Contenedor para la imagen o el ícono
+            // Imagen en la parte superior
             Box(
                 modifier = Modifier
-                    .size(80.dp)
+                    .fillMaxWidth()
+                    .height(180.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant), // Fondo para el ícono
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
                 // Si la URL de la imagen no está vacía, intenta cargarla
                 if (!product.imageUrl.isNullOrBlank()) {
+                    var imageLoadingState by remember(product.imageUrl) { mutableStateOf<ImageLoadingState>(ImageLoadingState.Loading) }
+                    var errorMessage by remember { mutableStateOf<String?>(null) }
+                    
+                    // Convertir URL de Google Drive a formato directo si es necesario
+                    val imageUrl = remember(product.imageUrl) {
+                        val url = product.imageUrl.trim()
+                        when {
+                            // Google Drive: convertir de formato compartir a formato directo
+                            url.contains("drive.google.com/file/d/", ignoreCase = true) -> {
+                                val fileId = url.substringAfter("file/d/").substringBefore("/").substringBefore("?")
+                                "https://drive.google.com/uc?export=view&id=$fileId"
+                            }
+                            // Google Drive: formato de vista previa
+                            url.contains("drive.google.com/uc?id=", ignoreCase = true) -> {
+                                url // Ya está en formato correcto
+                            }
+                            // SharePoint: advertir pero intentar cargar
+                            url.contains("sharepoint.com", ignoreCase = true) -> {
+                                android.util.Log.w("ProductCard", "⚠️ URL de SharePoint detectada - puede requerir autenticación")
+                                url
+                            }
+                            else -> url
+                        }
+                    }
+                    
+                    // Cargar la imagen
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
-                            .data(product.imageUrl)
+                            .data(imageUrl)
                             .crossfade(true)
+                            .allowHardware(false)
+                            .memoryCachePolicy(coil.request.CachePolicy.ENABLED)
+                            .diskCachePolicy(coil.request.CachePolicy.ENABLED)
                             .build(),
                         contentDescription = "Imagen de ${product.name}",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize() // La imagen llenará el Box
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .alpha(if (imageLoadingState == ImageLoadingState.Success) 1f else 0f),
+                        onLoading = {
+                            imageLoadingState = ImageLoadingState.Loading
+                            errorMessage = null
+                        },
+                        onSuccess = {
+                            imageLoadingState = ImageLoadingState.Success
+                            errorMessage = null
+                            android.util.Log.d("ProductCard", "✅ Imagen cargada exitosamente: $imageUrl")
+                        },
+                        onError = { error ->
+                            imageLoadingState = ImageLoadingState.Error
+                            val throwable = error.result.throwable
+                            errorMessage = throwable?.message ?: "Error desconocido"
+                            android.util.Log.e("ProductCard", "❌ Error al cargar imagen")
+                            android.util.Log.e("ProductCard", "URL original: ${product.imageUrl}")
+                            android.util.Log.e("ProductCard", "URL procesada: $imageUrl")
+                            android.util.Log.e("ProductCard", "Mensaje: ${throwable?.message}")
+                            android.util.Log.e("ProductCard", "Tipo: ${throwable?.javaClass?.simpleName}")
+                            if (product.imageUrl.contains("sharepoint.com", ignoreCase = true)) {
+                                android.util.Log.e("ProductCard", "⚠️ Las URLs de SharePoint requieren autenticación y no son accesibles directamente")
+                            } else if (product.imageUrl.contains("drive.google.com", ignoreCase = true)) {
+                                android.util.Log.e("ProductCard", "⚠️ Asegúrate de que el archivo de Google Drive esté compartido como 'Cualquiera con el enlace'")
+                            }
+                            throwable?.printStackTrace()
+                        }
                     )
+                    
+                    // Mostrar placeholder o error solo cuando la imagen no está lista
+                    if (imageLoadingState != ImageLoadingState.Success) {
+                        when (imageLoadingState) {
+                            ImageLoadingState.Loading -> {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(32.dp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    strokeWidth = 3.dp
+                                )
+                            }
+                            ImageLoadingState.Error -> {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier.padding(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.ImageNotSupported,
+                                        contentDescription = "Error al cargar imagen",
+                                        modifier = Modifier.size(48.dp),
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                    if (errorMessage != null && errorMessage!!.length < 50) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = errorMessage!!,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.error,
+                                            textAlign = TextAlign.Center,
+                                            maxLines = 2
+                                        )
+                                    }
+                                }
+                            }
+                            ImageLoadingState.Success -> { /* No hacer nada */ }
+                        }
+                    }
                 } else {
                     // Si no hay URL, muestra el ícono directamente
                     Icon(
                         imageVector = Icons.Default.ImageNotSupported,
                         contentDescription = "Imagen no disponible",
+                        modifier = Modifier.size(48.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Columna para la información del producto
+            // Información del producto en la parte inferior
             Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.Center
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
                     text = product.name,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+                
                 Spacer(modifier = Modifier.height(4.dp))
+                
                 Text(
                     text = product.description,
                     style = MaterialTheme.typography.bodySmall,
@@ -2090,45 +2193,63 @@ fun ProductCard(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+                
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "$${String.format("%,.0f", product.price).replace(",", ".")} / ${product.unit}",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "$${String.format("%,.0f", product.price).replace(",", ".")} / ${product.unit}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Stock: ${product.stock}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = when {
+                                product.stock > 50 -> StockHigh
+                                product.stock > 30 -> StockMedium
+                                else -> StockLow
+                            }
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Botón para agregar al carrito
+                Button(
+                    onClick = { onAddToCart(product) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = FutronoNaranja,
+                        contentColor = Color.White,
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    enabled = product.stock > 0,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AddShoppingCart,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Stock: ${product.stock}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = when {
-                            product.stock > 50 -> StockHigh
-                            product.stock > 30 -> StockMedium
-                            else -> StockLow
-                        }
+                        text = "Agregar al carrito",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold
                     )
                 }
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Botón para agregar al carrito
-            IconButton(
-                onClick = { onAddToCart(product) },
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape),
-                colors = IconButtonDefaults.iconButtonColors(
-                    containerColor = FutronoNaranja,
-                    contentColor = Color.White
-                ),
-                enabled = product.stock > 0
-            ) {
-                Icon(
-                    imageVector = Icons.Default.AddShoppingCart,
-                    contentDescription = "Agregar al carrito"
-                )
             }
         }
     }

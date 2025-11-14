@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import com.example.intento1app.data.models.CartItem
 import com.example.intento1app.data.models.User
 import com.example.intento1app.data.services.MercadoPagoService
+import com.example.intento1app.ui.theme.FutronoBlanco
 import kotlinx.coroutines.launch
 import android.content.SharedPreferences
 import com.google.gson.Gson
@@ -136,6 +137,14 @@ fun PaymentScreen(
                         onContinue = {
                             phoneError = validateChileanPhone(guestPhone)
                             if (guestName.isNotEmpty() && guestPhone.isNotEmpty() && phoneError.isEmpty()) {
+                                // Guardar información del invitado
+                                val prefs = context.getSharedPreferences("payment_prefs", android.content.Context.MODE_PRIVATE)
+                                prefs.edit()
+                                    .putString("user_id", "guest")
+                                    .putString("user_name", guestName)
+                                    .putString("user_email", "")
+                                    .putString("user_phone", guestPhone)
+                                    .apply()
                                 showGuestForm = false
                             }
                         }
@@ -157,8 +166,9 @@ fun PaymentScreen(
                                     isLoading = true
                                     val result = mercadoPagoService.createPaymentPreference(cartItems)
                                     result.onSuccess { (checkoutUrl, preferenceId) ->
-                                        // Guardar los items del carrito y el mapa de stock original antes de abrir el checkout
+                                        // Guardar los items del carrito, el mapa de stock original y la información del usuario
                                         saveCartItemsToSharedPreferences(context, cartItems, originalStockMap)
+                                        saveUserInfoToSharedPreferences(context, currentUser)
                                         mercadoPagoService.openCheckout(checkoutUrl, preferenceId)
                                         // El estado se resetea cuando se abre el checkout
                                         isLoading = false
@@ -236,7 +246,10 @@ private fun SecurityHeader() {
 private fun PaymentSummaryCard(cartItems: List<CartItem>) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = FutronoBlanco
+        )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -294,7 +307,10 @@ private fun PaymentSummaryCard(cartItems: List<CartItem>) {
 private fun PaymentMethodsCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = FutronoBlanco
+        )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -482,7 +498,7 @@ private fun AdditionalInfoCard() {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = FutronoBlanco
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -533,4 +549,30 @@ private fun saveCartItemsToSharedPreferences(
         .putString("cart_items", cartItemsJson)
         .putString("original_stock_map", stockMapJson)
         .apply()
+}
+
+/**
+ * Guarda la información del usuario en SharedPreferences
+ */
+private fun saveUserInfoToSharedPreferences(
+    context: android.content.Context,
+    currentUser: User?
+) {
+    val prefs = context.getSharedPreferences("payment_prefs", android.content.Context.MODE_PRIVATE)
+    val gson = Gson()
+    
+    if (currentUser != null) {
+        val userJson = gson.toJson(currentUser)
+        prefs.edit()
+            .putString("user_info", userJson)
+            .apply()
+    } else {
+        // Si es invitado, guardar información básica
+        prefs.edit()
+            .putString("user_id", "guest")
+            .putString("user_name", "")
+            .putString("user_email", "")
+            .putString("user_phone", "")
+            .apply()
+    }
 }

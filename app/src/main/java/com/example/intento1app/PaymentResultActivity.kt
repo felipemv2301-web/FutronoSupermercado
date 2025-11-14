@@ -6,6 +6,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
@@ -23,7 +25,9 @@ import androidx.compose.ui.unit.dp
 import com.example.intento1app.data.models.PaymentStatus
 import com.example.intento1app.data.models.PaymentResult
 import com.example.intento1app.data.models.CartItem
+import com.example.intento1app.data.models.User
 import com.example.intento1app.data.services.MercadoPagoService
+import com.example.intento1app.data.services.FirebaseService
 import com.example.intento1app.ui.theme.AccessibleFutronoTheme
 import com.example.intento1app.viewmodel.AccessibilityViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -61,6 +65,21 @@ class PaymentResultActivity : ComponentActivity() {
             // Recuperar los items del carrito guardados
             val cartItems = getCartItemsFromSharedPreferences()
             
+            // Si el pago fue exitoso, guardar el registro en Firebase
+            if (paymentResult.status == PaymentStatus.SUCCESS && cartItems.isNotEmpty() && paymentResult.paymentId != null) {
+                android.util.Log.d("PaymentResult", "=== CONDICIONES PARA GUARDAR PAGO ===")
+                android.util.Log.d("PaymentResult", "Status: ${paymentResult.status}")
+                android.util.Log.d("PaymentResult", "CartItems count: ${cartItems.size}")
+                android.util.Log.d("PaymentResult", "PaymentId: ${paymentResult.paymentId}")
+                android.util.Log.d("PaymentResult", "Llamando a savePaymentToFirebase...")
+                savePaymentToFirebase(paymentResult.paymentId!!, cartItems)
+            } else {
+                android.util.Log.w("PaymentResult", "⚠️ No se guardará el pago:")
+                android.util.Log.w("PaymentResult", "Status: ${paymentResult.status}")
+                android.util.Log.w("PaymentResult", "CartItems vacío: ${cartItems.isEmpty()}")
+                android.util.Log.w("PaymentResult", "PaymentId null: ${paymentResult.paymentId == null}")
+            }
+            
             // Si el pago falló, restaurar el stock y marcar que se debe limpiar el carrito
             if (paymentResult.status == PaymentStatus.FAILURE || paymentResult.status == PaymentStatus.CANCELLED) {
                 restoreStockFromSharedPreferences()
@@ -76,9 +95,14 @@ class PaymentResultActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.background
                     ) {
+                        // Recuperar el tracking number si existe
+                        val prefs = getSharedPreferences("payment_prefs", MODE_PRIVATE)
+                        val trackingNumber = prefs.getString("tracking_number", null)
+                        
                         PaymentResultScreen(
                             paymentResult = paymentResult,
                             cartItems = cartItems,
+                            trackingNumber = trackingNumber,
                             onBackToHome = {
                                 // Limpiar los items guardados
                                 clearCartItemsFromSharedPreferences()
@@ -108,6 +132,7 @@ class PaymentResultActivity : ComponentActivity() {
                                 message = "No se pudo procesar el resultado del pago"
                             ),
                             cartItems = emptyList(),
+                            trackingNumber = null,
                             onBackToHome = {
                                 clearCartItemsFromSharedPreferences()
                                 val intent = Intent(this, MainActivity::class.java).apply {
@@ -151,6 +176,12 @@ class PaymentResultActivity : ComponentActivity() {
         prefs.edit()
             .remove("cart_items")
             .remove("original_stock_map")
+            .remove("tracking_number")
+            .remove("user_info")
+            .remove("user_id")
+            .remove("user_name")
+            .remove("user_email")
+            .remove("user_phone")
             .apply()
     }
     
@@ -171,6 +202,103 @@ class PaymentResultActivity : ComponentActivity() {
         } catch (e: Exception) {
             android.util.Log.e("PaymentResult", "Error al recuperar originalStockMap: ${e.message}", e)
             emptyMap()
+        }
+    }
+    
+    /**
+     * Data class para la información del usuario
+     */
+    private data class UserInfo(
+        val userId: String,
+        val userName: String,
+        val userEmail: String,
+        val userPhone: String
+    )
+    
+    /**
+     * Recupera la información del usuario desde SharedPreferences
+     */
+    private fun getUserInfoFromSharedPreferences(): UserInfo {
+        return try {
+            val prefs = getSharedPreferences("payment_prefs", MODE_PRIVATE)
+            val userJson = prefs.getString("user_info", null)
+            
+            if (userJson != null) {
+                // Usuario registrado
+                val gson = Gson()
+                val user = gson.fromJson<User>(userJson, User::class.java)
+                UserInfo(
+                    userId = user.id,
+                    userName = user.nombre + " " + user.apellido,
+                    userEmail = user.email ?: "",
+                    userPhone = user.telefono ?: ""
+                )
+            } else {
+                // Usuario invitado
+                val userId = prefs.getString("user_id", "guest") ?: "guest"
+                val userName = prefs.getString("user_name", "") ?: ""
+                val userEmail = prefs.getString("user_email", "") ?: ""
+                val userPhone = prefs.getString("user_phone", "") ?: ""
+                UserInfo(userId, userName, userEmail, userPhone)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("PaymentResult", "Error al recuperar información del usuario: ${e.message}", e)
+            UserInfo("guest", "", "", "")
+        }
+    }
+    
+    /**
+     * Guarda el pago exitoso en Firebase
+     */
+    private fun savePaymentToFirebase(paymentId: String, cartItems: List<CartItem>) {
+        android.util.Log.d("PaymentResult", "=== savePaymentToFirebase INICIADO ===")
+        android.util.Log.d("PaymentResult", "PaymentId recibido: $paymentId")
+        android.util.Log.d("PaymentResult", "CartItems recibidos: ${cartItems.size}")
+        
+        val userInfo = getUserInfoFromSharedPreferences()
+        android.util.Log.d("PaymentResult", "UserInfo recuperado:")
+        android.util.Log.d("PaymentResult", "  - userId: ${userInfo.userId}")
+        android.util.Log.d("PaymentResult", "  - userName: ${userInfo.userName}")
+        android.util.Log.d("PaymentResult", "  - userEmail: ${userInfo.userEmail}")
+        android.util.Log.d("PaymentResult", "  - userPhone: ${userInfo.userPhone}")
+        
+        val firebaseService = FirebaseService()
+        android.util.Log.d("PaymentResult", "FirebaseService creado, iniciando corrutina...")
+        
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            try {
+                android.util.Log.d("PaymentResult", "Dentro de la corrutina, llamando a savePaymentRecord...")
+                val result = firebaseService.savePaymentRecord(
+                    paymentId = paymentId,
+                    userId = userInfo.userId,
+                    userName = userInfo.userName,
+                    userEmail = userInfo.userEmail,
+                    userPhone = userInfo.userPhone,
+                    cartItems = cartItems
+                )
+                
+                result.onSuccess { pairResult ->
+                    val docId = pairResult.first
+                    val trackingNumber = pairResult.second
+                    android.util.Log.d("PaymentResult", "✅ Pago guardado exitosamente en Firebase")
+                    android.util.Log.d("PaymentResult", "Document ID: $docId")
+                    android.util.Log.d("PaymentResult", "Tracking Number: $trackingNumber")
+                    
+                    // Guardar el tracking number en SharedPreferences para mostrarlo en la pantalla
+                    val prefs = getSharedPreferences("payment_prefs", MODE_PRIVATE)
+                    prefs.edit().putString("tracking_number", trackingNumber).apply()
+                    android.util.Log.d("PaymentResult", "Tracking number guardado en SharedPreferences")
+                }.onFailure { error ->
+                    android.util.Log.e("PaymentResult", "❌ Error al guardar pago en Firebase")
+                    android.util.Log.e("PaymentResult", "Mensaje: ${error.message}")
+                    android.util.Log.e("PaymentResult", "Tipo: ${error.javaClass.simpleName}")
+                    error.printStackTrace()
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("PaymentResult", "❌ Excepción en savePaymentToFirebase")
+                android.util.Log.e("PaymentResult", "Mensaje: ${e.message}")
+                e.printStackTrace()
+            }
         }
     }
     
@@ -200,6 +328,7 @@ class PaymentResultActivity : ComponentActivity() {
 fun PaymentResultScreen(
     paymentResult: PaymentResult,
     cartItems: List<CartItem> = emptyList(),
+    trackingNumber: String? = null,
     onBackToHome: () -> Unit
 ) {
     val (icon, iconColor, title, message) = when (paymentResult.status) {
@@ -237,13 +366,21 @@ fun PaymentResultScreen(
         }
     }
     
+    val scrollState = rememberScrollState()
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Contenido scrollable
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(scrollState),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
@@ -292,6 +429,22 @@ fun PaymentResultScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    trackingNumber?.let { tracking ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Número de seguimiento:",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = tracking,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
@@ -357,8 +510,10 @@ fun PaymentResultScreen(
                 }
             }
         }
+        }
         
-        Spacer(modifier = Modifier.height(32.dp))
+        // Botón de regreso siempre visible al final (fuera del scroll)
+        Spacer(modifier = Modifier.height(24.dp))
         
         Button(
             onClick = onBackToHome,

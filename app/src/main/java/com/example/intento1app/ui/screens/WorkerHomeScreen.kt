@@ -34,7 +34,11 @@ import androidx.compose.ui.unit.dp
 import com.example.intento1app.data.models.User
 import com.example.intento1app.ui.theme.*
 import com.example.intento1app.viewmodel.AccessibilityViewModel
+import com.example.intento1app.viewmodel.AnalyticsViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.text.SimpleDateFormat
+import java.text.NumberFormat
 import java.util.*
 import androidx.compose.runtime.Composable
 import androidx.core.text.color
@@ -59,6 +63,7 @@ data class Stat(
 @Composable
 fun WorkerHomeScreen(
     currentUser: User?,
+    isAdmin: Boolean = false,
     onLogout: () -> Unit,
     onOrdersClick: () -> Unit,
     onInventoryClick: () -> Unit,
@@ -73,6 +78,7 @@ fun WorkerHomeScreen(
     onAccessibilityClick: () -> Unit = {},
     onUserProfileClick: () -> Unit = {},
     accessibilityViewModel: AccessibilityViewModel,
+    analyticsViewModel: AnalyticsViewModel = viewModel(),
     modifier: Modifier = Modifier
 ) {
     // Hora y fecha actuales
@@ -85,8 +91,8 @@ fun WorkerHomeScreen(
         formatter.format(Date())
     }
 
-    // Funciones principales con colores Futrono
-    val mainFunctions = listOf(
+    // Funciones principales con colores Futrono - filtradas según el rol
+    val allMainFunctions = listOf(
         WorkerFunction(
             title = "Gestión de Pedidos",
             icon = Icons.Filled.ShoppingCart,
@@ -110,44 +116,20 @@ fun WorkerHomeScreen(
             backgroundColor = FutronoAzul,
             titleColor = FutronoFondo,   // Superficie crema para fondo
             onClick = onCustomersClick
-        ),
-//        WorkerFunction(
-  //          title = "Productos",
-  //          icon = Icons.Filled.Category,
-  //          iconColor = FutronoFondo,        // Naranja claro para icono
-  //          backgroundColor = FutronoCafeClaro,
-  //          titleColor = FutronoFondo,   // Café principal para fondo
-  //          onClick = onProductsClick
-//        )
-        WorkerFunction(
-            title = "Consultar Estadísticas",
-            icon = Icons.Filled.Analytics,
-            iconColor = FutronoFondo,       // Naranja oscuro para icono
-            backgroundColor = FutronoVerde,
-            titleColor = FutronoFondo,   // Naranja claro para fondo
-            onClick = onReportsClick
         )
-
     )
+    
+    // Filtrar funciones según el rol: trabajador solo ve Gestión de Pedidos e Inventario
+    val mainFunctions = if (isAdmin) {
+        allMainFunctions // Admin ve todas las funciones
+    } else {
+        allMainFunctions.filter { function ->
+            function.title == "Gestión de Pedidos" || function.title == "Gestión de Inventario"
+        }
+    }
 
-    // Funciones adicionales con colores Futrono y complementarios
-    val additionalFunctions = listOf(
-        WorkerFunction(
-            title = "Horarios",
-            icon = Icons.Filled.Schedule,
-            iconColor = FutronoFondo,           // Café oscuro para icono
-            backgroundColor = FutronoCafe,// Crema para fondo
-            titleColor = FutronoFondo,
-            onClick = onScheduleClick
-        ),
-        WorkerFunction(
-            title = "Equipo",
-            icon = Icons.Filled.GroupWork,
-            iconColor = FutronoFondo,           // Naranja claro para icono,
-            backgroundColor = FutronoMorado,
-            titleColor = FutronoFondo,
-            onClick = onTeamClick
-        ),
+    // Funciones adicionales con colores Futrono y complementarios - filtradas según el rol
+    val allAdditionalFunctions = listOf(
         WorkerFunction(
             title = "Ayuda",
             icon = Icons.Filled.HelpOutline,
@@ -165,14 +147,60 @@ fun WorkerHomeScreen(
             onClick = onLogout
         )
     )
+    
+    // Filtrar funciones adicionales según el rol: trabajador solo ve Cerrar Sesión
+    val additionalFunctions = if (isAdmin) {
+        allAdditionalFunctions // Admin ve todas las funciones
+    } else {
+        allAdditionalFunctions.filter { function ->
+            function.title == "Cerrar Sesión"
+        }
+    }
 
-    //Parámetros de tarjetas de estadísticas
-    val dailyStats = listOf(
-        Stat("Pedidos", "12", Icons.Filled.ShoppingCart, FutronoNaranja),
-        Stat("Completados", "8", Icons.Filled.CheckCircle, FutronoVerde),
-        Stat("Pendientes", "4", Icons.Filled.Schedule, FutronoAmarillo),
-        Stat("Total", "$89.990", Icons.Filled.AttachMoney, FutronoMorado)
-    )
+    // Obtener estadísticas reales del día desde AnalyticsViewModel (solo para admin)
+    val dailyStatsData by analyticsViewModel.dailyStats.collectAsStateWithLifecycle()
+    val isLoadingStats by analyticsViewModel.isLoading.collectAsStateWithLifecycle()
+    
+    // Formatear el total de ingresos
+    val currencyFormatter = remember {
+        NumberFormat.getCurrencyInstance(Locale("es", "CL")).apply {
+            currency = java.util.Currency.getInstance("CLP")
+        }
+    }
+    
+    // Crear las tarjetas de estadísticas con datos reales (solo para admin)
+    val dailyStats = remember(dailyStatsData, isLoadingStats) {
+        if (isAdmin) {
+            listOf(
+                Stat(
+                    "Pedidos", 
+                    if (isLoadingStats) "..." else dailyStatsData.totalOrders.toString(), 
+                    Icons.Filled.ShoppingCart, 
+                    FutronoNaranja
+                ),
+                Stat(
+                    "Completados", 
+                    if (isLoadingStats) "..." else dailyStatsData.completedOrders.toString(), 
+                    Icons.Filled.CheckCircle, 
+                    FutronoVerde
+                ),
+                Stat(
+                    "Pendientes", 
+                    if (isLoadingStats) "..." else dailyStatsData.pendingOrders.toString(), 
+                    Icons.Filled.Schedule, 
+                    FutronoAmarillo
+                ),
+                Stat(
+                    "Total", 
+                    if (isLoadingStats) "..." else currencyFormatter.format(dailyStatsData.totalRevenue), 
+                    Icons.Filled.AttachMoney, 
+                    FutronoMorado
+                )
+            )
+        } else {
+            emptyList() // Trabajadores no ven estadísticas
+        }
+    }
 
     Column(
         modifier = modifier
@@ -245,14 +273,14 @@ fun WorkerHomeScreen(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "¡Hola, ${currentUser?.nombre ?: "Trabajador"}!",
+                    text = "¡Hola, ${currentUser?.nombre ?: if (isAdmin) "Administrador" else "Trabajador"}!",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
                 )
                 Text(
-                    text = "Bienvenido al panel de trabajo",
+                    text = if (isAdmin) "Bienvenido al panel de administración" else "Bienvenido al panel de trabajo",
                     style = MaterialTheme.typography.bodyLarge.copy(color = Color.White.copy(alpha = 0.9f))
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -275,25 +303,29 @@ fun WorkerHomeScreen(
                 }
             }
         }
-        //Componente de título y tarjeta
-        Text(
-            "Resumen del Día",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+        
+        // Resumen del Día - Solo visible para administradores
+        if (isAdmin) {
+            //Componente de título y tarjeta
+            Text(
+                "Resumen del Día",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
 
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            items(dailyStats) { stat ->
-                StatCard(
-                    title = stat.titleStat,
-                    value = stat.valueStat,
-                    icon = stat.iconStat,
-                    color = stat.colorStat
-                )
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(dailyStats) { stat ->
+                    StatCard(
+                        title = stat.titleStat,
+                        value = stat.valueStat,
+                        icon = stat.iconStat,
+                        color = stat.colorStat
+                    )
+                }
             }
         }
 

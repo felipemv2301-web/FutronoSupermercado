@@ -698,9 +698,12 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
         showMyOrders && currentUser != null -> {
             // Pantalla de mis pedidos
             val user = currentUser!!
-            // TODO: MyOrdersScreen requiere PaymentViewModel que fue eliminado
-            // Implementar alternativa para obtener órdenes
-            Text("Pantalla de mis órdenes no disponible temporalmente")
+            MyOrdersScreen(
+                currentUser = user,
+                onBackClick = {
+                    handleBackNavigation()
+                }
+            )
         }
         showUserProfile && currentUser != null -> {
             // Pantalla de perfil de usuario (funciona para usuarios autenticados e invitados)

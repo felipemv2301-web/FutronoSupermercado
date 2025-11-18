@@ -10,6 +10,9 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import java.util.Calendar
 
 /**
@@ -438,7 +441,7 @@ class FirebaseService {
             )
             
             android.util.Log.d("FirebaseService", "Objeto FirebasePurchase creado correctamente")
-            android.util.Log.d("FirebaseService", "Intentando guardar en colección 'payments'...")
+            android.util.Log.d("FirebaseService", "Intentando guardar en colección 'purchases'...")
             
             // Convertir el objeto a mapa para verificar que se serializa correctamente
             val purchaseMap = hashMapOf(
@@ -472,14 +475,61 @@ class FirebaseService {
             )
             
             android.util.Log.d("FirebaseService", "Mapa creado, guardando en Firestore...")
-            val docRef = firestore.collection("payments").add(purchaseMap).await()
+            val docRef = firestore.collection("purchases").add(purchaseMap).await()
             
             android.util.Log.d("FirebaseService", "✅ PAGO GUARDADO EXITOSAMENTE")
             android.util.Log.d("FirebaseService", "Document ID: ${docRef.id}")
             android.util.Log.d("FirebaseService", "Tracking Number: $trackingNumber")
-            android.util.Log.d("FirebaseService", "Ruta completa: payments/${docRef.id}")
+            android.util.Log.d("FirebaseService", "Ruta completa: purchases/${docRef.id}")
             
             println(" FirebaseService: Pago guardado con tracking: $trackingNumber, ID: ${docRef.id}")
+            
+            // Enviar email de confirmación (no bloquea si falla)
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    android.util.Log.d("FirebaseService", "=== INICIANDO ENVÍO DE EMAIL ===")
+                    android.util.Log.d("FirebaseService", "UserEmail: $userEmail")
+                    android.util.Log.d("FirebaseService", "TrackingNumber: $trackingNumber")
+                    
+                    // Calcular subtotal, IVA y shipping
+                    val subtotal = totalPrice / 1.19 // Asumiendo IVA del 19%
+                    val iva = totalPrice - subtotal
+                    val shipping = 0.0 // Por ahora sin costo de envío
+                    
+                    android.util.Log.d("FirebaseService", "Subtotal: $subtotal, IVA: $iva, Total: $totalPrice")
+                    android.util.Log.d("FirebaseService", "Items count: ${cartItems.size}")
+                    
+                    val emailService = com.example.intento1app.data.services.EmailJSService()
+                    val result = emailService.sendPurchaseConfirmationEmail(
+                        userName = userName,
+                        userEmail = userEmail,
+                        orderNumber = trackingNumber,
+                        totalPrice = totalPrice,
+                        subtotal = subtotal,
+                        iva = iva,
+                        shipping = shipping,
+                        totalItems = totalItems,
+                        cartItems = cartItems,
+                        paymentId = paymentId
+                    )
+                    
+                    result.onSuccess {
+                        android.util.Log.d("FirebaseService", "✅ EMAIL DE CONFIRMACIÓN ENVIADO EXITOSAMENTE")
+                    }.onFailure { error ->
+                        android.util.Log.e("FirebaseService", "❌ ERROR AL ENVIAR EMAIL DE CONFIRMACIÓN")
+                        android.util.Log.e("FirebaseService", "Error: ${error.message}")
+                        android.util.Log.e("FirebaseService", "Tipo: ${error.javaClass.simpleName}")
+                        error.printStackTrace()
+                        // No fallamos el proceso completo si el email falla
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("FirebaseService", "❌ EXCEPCIÓN AL INTENTAR ENVIAR EMAIL")
+                    android.util.Log.e("FirebaseService", "Error: ${e.message}")
+                    e.printStackTrace()
+                    // No fallamos el proceso completo si el email falla
+                }
+            }
+            
             Result.success(Pair(docRef.id, trackingNumber))
         } catch (e: Exception) {
             android.util.Log.e("FirebaseService", "❌ ERROR AL GUARDAR PAGO")
@@ -777,6 +827,61 @@ class FirebaseService {
             Result.success(orders)
         } catch (e: Exception) {
             println(" FirebaseService: Error al obtener pedidos: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Obtiene el historial de compras de un usuario desde la colección purchases
+     * (donde se guardan realmente las compras después de un pago exitoso)
+     */
+    suspend fun getUserPurchasesFromPayments(userId: String): Result<List<FirebasePurchase>> {
+        return try {
+            println(" FirebaseService: Obteniendo compras desde 'purchases' para usuario: $userId")
+            
+            // Primero intentar con orderBy, si falla por falta de índice, intentar sin orderBy
+            val snapshot = try {
+                firestore.collection("purchases")
+                    .whereEqualTo("userId", userId)
+                    .orderBy("purchaseDate", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                    .get()
+                    .await()
+            } catch (e: com.google.firebase.firestore.FirebaseFirestoreException) {
+                if (e.code == com.google.firebase.firestore.FirebaseFirestoreException.Code.FAILED_PRECONDITION) {
+                    println(" FirebaseService: Índice no encontrado, obteniendo sin orderBy...")
+                    // Si falta el índice, obtener sin orderBy y ordenar en memoria
+                    firestore.collection("purchases")
+                        .whereEqualTo("userId", userId)
+                        .get()
+                        .await()
+                } else {
+                    throw e
+                }
+            }
+            
+            println("FirebaseService: Snapshot obtenido con ${snapshot.documents.size} documentos de 'purchases'")
+            
+            val purchases = snapshot.documents.mapNotNull { doc ->
+                println("FirebaseService: Procesando documento de purchases: ${doc.id}")
+                println("FirebaseService: Datos del documento: ${doc.data}")
+                
+                val purchase = doc.toObject<FirebasePurchase>()?.copy(id = doc.id)
+                if (purchase != null) {
+                    println(" FirebaseService: Compra procesada: ${purchase.orderNumber} para usuario ${purchase.userId}")
+                } else {
+                    println(" FirebaseService: Error al convertir documento ${doc.id} a FirebasePurchase")
+                }
+                purchase
+            }.sortedByDescending { purchase ->
+                // Ordenar por fecha en memoria si no se pudo hacer en la consulta
+                purchase.purchaseDate?.toDate()?.time ?: 0L
+            }
+            
+            println(" FirebaseService: Compras obtenidas desde 'purchases': ${purchases.size} compras para usuario $userId")
+            Result.success(purchases)
+        } catch (e: Exception) {
+            println(" FirebaseService: Error al obtener compras desde 'purchases': ${e.message}")
             e.printStackTrace()
             Result.failure(e)
         }

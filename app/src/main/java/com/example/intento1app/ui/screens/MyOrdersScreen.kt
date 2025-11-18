@@ -23,7 +23,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.intento1app.R
 import com.example.intento1app.data.models.FirebasePurchase
+import com.example.intento1app.data.services.FirebaseService
 import com.example.intento1app.ui.theme.*
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -34,10 +36,38 @@ fun MyOrdersScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isLoadingPurchases by remember { mutableStateOf(false) }
+    val firebaseService = remember { FirebaseService() }
+    val coroutineScope = rememberCoroutineScope()
     
-    // TODO: Implementar alternativa para obtener pedidos sin PaymentViewModel
-    val purchases = emptyList<FirebasePurchase>()
+    var isLoadingPurchases by remember { mutableStateOf(true) }
+    var purchases by remember { mutableStateOf<List<FirebasePurchase>>(emptyList()) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    
+    // Cargar pedidos cuando se monta el componente
+    LaunchedEffect(currentUser.id) {
+        if (currentUser.id != "guest") {
+            isLoadingPurchases = true
+            errorMessage = null
+            
+            // Buscar en la colección 'payments' donde se guardan realmente las compras
+            val result = firebaseService.getUserPurchasesFromPayments(currentUser.id)
+            
+            result.fold(
+                onSuccess = { orders ->
+                    purchases = orders
+                    isLoadingPurchases = false
+                    println("MyOrdersScreen: ${orders.size} pedidos cargados")
+                },
+                onFailure = { error ->
+                    errorMessage = error.message ?: "Error al cargar pedidos"
+                    isLoadingPurchases = false
+                    println("MyOrdersScreen: Error al cargar pedidos: ${error.message}")
+                }
+            )
+        } else {
+            isLoadingPurchases = false
+        }
+    }
     
     Scaffold(
         topBar = {
@@ -126,6 +156,64 @@ fun MyOrdersScreen(
                             color = FutronoCafeOscuro.copy(alpha = 0.7f),
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
+                    }
+                }
+            } else if (errorMessage != null) {
+                // Estado de error
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Error,
+                            contentDescription = null,
+                            modifier = Modifier.size(80.dp),
+                            tint = Color(0xFFF44336).copy(alpha = 0.5f)
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Text(
+                            text = "Error al cargar pedidos",
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = FutronoCafeOscuro
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = errorMessage ?: "Ocurrió un error desconocido",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = FutronoCafeOscuro.copy(alpha = 0.7f),
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = {
+                                coroutineScope.launch {
+                                    isLoadingPurchases = true
+                                    errorMessage = null
+                                    val result = firebaseService.getUserPurchasesFromPayments(currentUser.id)
+                                    result.fold(
+                                        onSuccess = { orders ->
+                                            purchases = orders
+                                            isLoadingPurchases = false
+                                        },
+                                        onFailure = { error ->
+                                            errorMessage = error.message ?: "Error al cargar pedidos"
+                                            isLoadingPurchases = false
+                                        }
+                                    )
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = FutronoCafe
+                            )
+                        ) {
+                            Text("Reintentar")
+                        }
                     }
                 }
             } else if (purchases.isEmpty()) {

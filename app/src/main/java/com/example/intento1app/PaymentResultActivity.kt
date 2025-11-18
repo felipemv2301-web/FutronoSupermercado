@@ -17,6 +17,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import android.widget.Toast
+import kotlinx.coroutines.Dispatchers
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -28,10 +30,12 @@ import com.example.intento1app.data.models.CartItem
 import com.example.intento1app.data.models.User
 import com.example.intento1app.data.services.MercadoPagoService
 import com.example.intento1app.data.services.FirebaseService
+import com.example.intento1app.data.services.EmailJSService
 import com.example.intento1app.ui.theme.AccessibleFutronoTheme
 import com.example.intento1app.viewmodel.AccessibilityViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import android.content.SharedPreferences
+import com.example.intento1app.ui.theme.FutronoBlanco
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.launch
@@ -99,10 +103,16 @@ class PaymentResultActivity : ComponentActivity() {
                         val prefs = getSharedPreferences("payment_prefs", MODE_PRIVATE)
                         val trackingNumber = prefs.getString("tracking_number", null)
                         
+                        // Recuperar el estado del email
+                        val emailStatus = remember { mutableStateOf(prefs.getString("email_status", null)) }
+                        val emailError = remember { mutableStateOf(prefs.getString("email_error", null)) }
+                        
                         PaymentResultScreen(
                             paymentResult = paymentResult,
                             cartItems = cartItems,
                             trackingNumber = trackingNumber,
+                            emailStatus = emailStatus.value,
+                            emailError = emailError.value,
                             onBackToHome = {
                                 // Limpiar los items guardados
                                 clearCartItemsFromSharedPreferences()
@@ -288,6 +298,9 @@ class PaymentResultActivity : ComponentActivity() {
                     val prefs = getSharedPreferences("payment_prefs", MODE_PRIVATE)
                     prefs.edit().putString("tracking_number", trackingNumber).apply()
                     android.util.Log.d("PaymentResult", "Tracking number guardado en SharedPreferences")
+                    
+                    // Enviar email de confirmación usando EmailJS
+                    sendConfirmationEmail(paymentId, trackingNumber, userInfo, cartItems)
                 }.onFailure { error ->
                     android.util.Log.e("PaymentResult", "❌ Error al guardar pago en Firebase")
                     android.util.Log.e("PaymentResult", "Mensaje: ${error.message}")
@@ -298,6 +311,137 @@ class PaymentResultActivity : ComponentActivity() {
                 android.util.Log.e("PaymentResult", "❌ Excepción en savePaymentToFirebase")
                 android.util.Log.e("PaymentResult", "Mensaje: ${e.message}")
                 e.printStackTrace()
+            }
+        }
+    }
+    
+    /**
+     * Envía un email de confirmación de compra usando EmailJS
+     */
+    private fun sendConfirmationEmail(
+        paymentId: String,
+        trackingNumber: String,
+        userInfo: UserInfo,
+        cartItems: List<CartItem>
+    ) {
+        android.util.Log.d("PaymentResult", "=== INICIANDO ENVÍO DE EMAIL ===")
+        
+        // Validar que el email no esté vacío
+        if (userInfo.userEmail.isBlank()) {
+            android.util.Log.w("PaymentResult", "⚠️ Email vacío, no se enviará el correo")
+            runOnUiThread {
+                Toast.makeText(
+                    this,
+                    "⚠️ Email vacío, no se enviará correo de confirmación",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+            return
+        }
+        
+        // Guardar estado "enviando"
+        val prefs = getSharedPreferences("payment_prefs", MODE_PRIVATE)
+        prefs.edit()
+            .putString("email_status", "sending")
+            .remove("email_error")
+            .apply()
+        
+        // Mostrar Toast de inicio en el hilo principal
+        runOnUiThread {
+            Toast.makeText(
+                this,
+                "📧 Enviando email de confirmación...",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+        
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            try {
+                // Calcular subtotal, IVA y total
+                val subtotal = cartItems.sumOf { it.totalPrice }
+                val iva = subtotal * 0.19 // IVA del 19%
+                val shipping = 0.0 // Envío por defecto en 0
+                val totalPrice = subtotal + iva + shipping
+                
+                android.util.Log.d("PaymentResult", "Calculando valores para el email:")
+                android.util.Log.d("PaymentResult", "  - Subtotal: $subtotal")
+                android.util.Log.d("PaymentResult", "  - IVA: $iva")
+                android.util.Log.d("PaymentResult", "  - Total: $totalPrice")
+                
+                val emailJSService = EmailJSService()
+                val result = emailJSService.sendPurchaseConfirmationEmail(
+                    toName = userInfo.userName.ifBlank { "Cliente" },
+                    toEmail = userInfo.userEmail,
+                    trackingNumber = trackingNumber,
+                    paymentId = paymentId,
+                    purchaseDate = java.util.Date(),
+                    cartItems = cartItems,
+                    subtotal = subtotal,
+                    iva = iva,
+                    shipping = if (shipping > 0) shipping else null,
+                    totalPrice = totalPrice
+                )
+                
+                result.onSuccess {
+                    android.util.Log.d("PaymentResult", "✅ Email de confirmación enviado exitosamente")
+                    
+                    // Guardar estado exitoso
+                    val prefs = getSharedPreferences("payment_prefs", MODE_PRIVATE)
+                    prefs.edit()
+                        .putString("email_status", "success")
+                        .remove("email_error")
+                        .apply()
+                    
+                    // Mostrar Toast en el hilo principal
+                    runOnUiThread {
+                        Toast.makeText(
+                            this@PaymentResultActivity,
+                            "✅ Email de confirmación enviado",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }.onFailure { error ->
+                    android.util.Log.e("PaymentResult", "❌ Error al enviar email de confirmación")
+                    android.util.Log.e("PaymentResult", "Mensaje: ${error.message}")
+                    
+                    // Guardar estado de error
+                    val prefs = getSharedPreferences("payment_prefs", MODE_PRIVATE)
+                    prefs.edit()
+                        .putString("email_status", "error")
+                        .putString("email_error", error.message ?: "Error desconocido")
+                        .apply()
+                    
+                    // Mostrar Toast con el error en el hilo principal
+                    runOnUiThread {
+                        val errorMsg = error.message ?: "Error desconocido"
+                        Toast.makeText(
+                            this@PaymentResultActivity,
+                            "⚠️ Error al enviar email: $errorMsg",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("PaymentResult", "❌ Excepción al enviar email")
+                android.util.Log.e("PaymentResult", "Mensaje: ${e.message}")
+                e.printStackTrace()
+                
+                // Guardar estado de error
+                val prefs = getSharedPreferences("payment_prefs", MODE_PRIVATE)
+                prefs.edit()
+                    .putString("email_status", "error")
+                    .putString("email_error", e.message ?: "Excepción al enviar email")
+                    .apply()
+                
+                // Mostrar Toast con el error en el hilo principal
+                runOnUiThread {
+                    val errorMsg = e.message ?: "Excepción al enviar email"
+                    Toast.makeText(
+                        this@PaymentResultActivity,
+                        "⚠️ Error al enviar email: $errorMsg",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             }
         }
     }
@@ -329,6 +473,8 @@ fun PaymentResultScreen(
     paymentResult: PaymentResult,
     cartItems: List<CartItem> = emptyList(),
     trackingNumber: String? = null,
+    emailStatus: String? = null,
+    emailError: String? = null,
     onBackToHome: () -> Unit
 ) {
     val (icon, iconColor, title, message) = when (paymentResult.status) {
@@ -411,7 +557,7 @@ fun PaymentResultScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    containerColor = FutronoBlanco
                 )
             ) {
                 Column(
@@ -443,6 +589,86 @@ fun PaymentResultScreen(
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+        
+        // Mostrar estado del email si existe
+        emailStatus?.let { status ->
+            Spacer(modifier = Modifier.height(16.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = when (status) {
+                        "success" -> Color(0xFFE8F5E9)
+                        "error" -> Color(0xFFFFEBEE)
+                        "sending" -> Color(0xFFFFF3E0)
+                        else -> FutronoBlanco
+                    }
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        when (status) {
+                            "success" -> {
+                                Icon(
+                                    imageVector = Icons.Filled.CheckCircle,
+                                    contentDescription = null,
+                                    tint = Color(0xFF4CAF50),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Email enviado",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Color(0xFF2E7D32),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            "error" -> {
+                                Icon(
+                                    imageVector = Icons.Filled.Warning,
+                                    contentDescription = null,
+                                    tint = Color(0xFFF44336),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Error al enviar email",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Color(0xFFC62828),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            "sending" -> {
+                                Icon(
+                                    imageVector = Icons.Filled.Info,
+                                    contentDescription = null,
+                                    tint = Color(0xFFFF9800),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Enviando email...",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Color(0xFFE65100),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                    emailError?.let { error ->
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = error,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFFC62828)
                         )
                     }
                 }
@@ -538,12 +764,15 @@ fun PaymentResultScreen(
  */
 @Composable
 private fun CartItemsTable(cartItems: List<CartItem>) {
-    val total = cartItems.sumOf { it.totalPrice }
+    val subtotal = cartItems.sumOf { it.totalPrice }
+    val iva = subtotal * 0.19 // IVA del 19%
+    val shipping = 0.0 // Envío por defecto en 0
+    val total = subtotal + iva + shipping
     
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = FutronoBlanco
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -552,7 +781,7 @@ private fun CartItemsTable(cartItems: List<CartItem>) {
         ) {
             Text(
                 text = "Detalle de la Compra",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -640,6 +869,68 @@ private fun CartItemsTable(cartItems: List<CartItem>) {
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.weight(0.2f),
+                        textAlign = TextAlign.End
+                    )
+                }
+            }
+            
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            
+            // Desglose de precios
+            // Subtotal
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Subtotal:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(0.6f)
+                )
+                Text(
+                    text = "$${String.format("%,.0f", subtotal).replace(",", ".")}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(0.4f),
+                    textAlign = TextAlign.End
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            // IVA
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "IVA (19%):",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(0.6f)
+                )
+                Text(
+                    text = "$${String.format("%,.0f", iva).replace(",", ".")}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(0.4f),
+                    textAlign = TextAlign.End
+                )
+            }
+            
+            // Envío (solo si es mayor a 0)
+            if (shipping > 0) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Envío:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(0.6f)
+                    )
+                    Text(
+                        text = "$${String.format("%,.0f", shipping).replace(",", ".")}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(0.4f),
                         textAlign = TextAlign.End
                     )
                 }

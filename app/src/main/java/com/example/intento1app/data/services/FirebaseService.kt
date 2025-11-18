@@ -10,6 +10,7 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.launch
 import java.util.Calendar
 
 /**
@@ -402,9 +403,18 @@ class FirebaseService {
             val trackingNumber = generateTrackingNumber()
             android.util.Log.d("FirebaseService", "Tracking Number generado: $trackingNumber")
             
-            val totalPrice = cartItems.sumOf { it.totalPrice }
+            // Calcular subtotal (suma de todos los items)
+            val subtotal = cartItems.sumOf { it.totalPrice }
             val totalItems = cartItems.sumOf { it.quantity }
-            android.util.Log.d("FirebaseService", "Total Price: $totalPrice, Total Items: $totalItems")
+            
+            // Calcular IVA (19% del subtotal)
+            val iva = subtotal * 0.19
+            
+            // Calcular total (subtotal + IVA + envío)
+            val shipping = 0.0 // Envío por defecto en 0
+            val totalPrice = subtotal + iva + shipping
+            
+            android.util.Log.d("FirebaseService", "Subtotal: $subtotal, IVA: $iva, Total: $totalPrice, Total Items: $totalItems")
             
             // Convertir CartItem a FirebaseCartItem
             val firebaseItems = cartItems.map { cartItem ->
@@ -425,9 +435,9 @@ class FirebaseService {
                 userName = userName,
                 userPhone = userPhone,
                 items = firebaseItems,
-                subtotal = totalPrice,
-                iva = 0.0,
-                shipping = 0.0,
+                subtotal = subtotal,
+                iva = iva,
+                shipping = shipping,
                 totalPrice = totalPrice,
                 totalItems = totalItems,
                 paymentMethod = "Mercado Pago",
@@ -438,48 +448,78 @@ class FirebaseService {
             )
             
             android.util.Log.d("FirebaseService", "Objeto FirebasePurchase creado correctamente")
-            android.util.Log.d("FirebaseService", "Intentando guardar en colección 'payments'...")
+            android.util.Log.d("FirebaseService", "Intentando guardar en colección 'purchases'...")
+            
+            // Validar datos antes de guardar
+            if (paymentId.isBlank()) {
+                throw IllegalArgumentException("PaymentId no puede estar vacío")
+            }
+            if (cartItems.isEmpty()) {
+                throw IllegalArgumentException("El carrito no puede estar vacío")
+            }
+            if (userId.isBlank()) {
+                android.util.Log.w("FirebaseService", "⚠️ UserId está vacío, usando 'guest'")
+            }
             
             // Convertir el objeto a mapa para verificar que se serializa correctamente
-            val purchaseMap = hashMapOf(
-                "userId" to purchase.userId,
-                "userEmail" to purchase.userEmail,
-                "userName" to purchase.userName,
-                "userPhone" to purchase.userPhone,
-                "userAddress" to purchase.userAddress,
+            val purchaseMap = hashMapOf<String, Any>(
+                "userId" to (userId.ifBlank { "guest" }),
+                "userEmail" to (userEmail.ifBlank { "" }),
+                "userName" to (userName.ifBlank { "Usuario Invitado" }),
+                "userPhone" to (userPhone.ifBlank { "" }),
+                "userAddress" to (purchase.userAddress.ifBlank { "" }),
                 "subtotal" to purchase.subtotal,
                 "iva" to purchase.iva,
                 "shipping" to purchase.shipping,
                 "totalPrice" to purchase.totalPrice,
                 "totalItems" to purchase.totalItems,
                 "paymentMethod" to purchase.paymentMethod,
-                "paymentId" to purchase.paymentId,
+                "paymentId" to paymentId,
                 "paymentStatus" to purchase.paymentStatus,
                 "orderNumber" to purchase.orderNumber,
                 "trackingNumber" to purchase.trackingNumber,
                 "purchaseDate" to com.google.firebase.Timestamp.now(),
                 "items" to firebaseItems.map { item ->
-                    hashMapOf(
+                    hashMapOf<String, Any>(
                         "productId" to item.productId,
                         "productName" to item.productName,
-                        "productImageUrl" to item.productImageUrl,
+                        "productImageUrl" to (item.productImageUrl ?: ""),
                         "quantity" to item.quantity,
                         "unitPrice" to item.unitPrice,
                         "totalPrice" to item.totalPrice
                     )
                 },
-                "notes" to purchase.notes
+                "notes" to (purchase.notes.ifBlank { "" })
             )
             
+            android.util.Log.d("FirebaseService", "Mapa de datos preparado con ${purchaseMap.size} campos")
+            
             android.util.Log.d("FirebaseService", "Mapa creado, guardando en Firestore...")
-            val docRef = firestore.collection("payments").add(purchaseMap).await()
+            android.util.Log.d("FirebaseService", "Datos a guardar: ${purchaseMap.keys}")
+            
+            // Guardar en la colección "purchases"
+            val collectionName = "purchases"
+            val docRef = firestore.collection(collectionName).add(purchaseMap).await()
             
             android.util.Log.d("FirebaseService", "✅ PAGO GUARDADO EXITOSAMENTE")
             android.util.Log.d("FirebaseService", "Document ID: ${docRef.id}")
             android.util.Log.d("FirebaseService", "Tracking Number: $trackingNumber")
-            android.util.Log.d("FirebaseService", "Ruta completa: payments/${docRef.id}")
+            android.util.Log.d("FirebaseService", "Ruta completa: ${collectionName}/${docRef.id}")
+            
+            // Verificar que el documento se guardó correctamente
+            try {
+                val savedDoc = firestore.collection(collectionName).document(docRef.id).get().await()
+                if (savedDoc.exists()) {
+                    android.util.Log.d("FirebaseService", "✅ Documento verificado en Firebase")
+                } else {
+                    android.util.Log.w("FirebaseService", "⚠️ Documento no encontrado después de guardar")
+                }
+            } catch (e: Exception) {
+                android.util.Log.w("FirebaseService", "No se pudo verificar el documento: ${e.message}")
+            }
             
             println(" FirebaseService: Pago guardado con tracking: $trackingNumber, ID: ${docRef.id}")
+            
             Result.success(Pair(docRef.id, trackingNumber))
         } catch (e: Exception) {
             android.util.Log.e("FirebaseService", "❌ ERROR AL GUARDAR PAGO")
@@ -510,9 +550,9 @@ class FirebaseService {
      */
     suspend fun getUserPurchases(userId: String): Result<List<FirebasePurchase>> {
         return try {
+            // Obtener todas las compras del usuario sin ordenar (para evitar necesidad de índice)
             val snapshot = firestore.collection("purchases")
                 .whereEqualTo("userId", userId)
-                .orderBy("purchaseDate", com.google.firebase.firestore.Query.Direction.DESCENDING)
                 .get()
                 .await()
             
@@ -520,8 +560,13 @@ class FirebaseService {
                 doc.toObject<FirebasePurchase>()?.copy(id = doc.id)
             }
             
-            println(" FirebaseService: Historial obtenido: ${purchases.size} compras para usuario $userId")
-            Result.success(purchases)
+            // Ordenar por fecha de compra en el cliente (más reciente primero)
+            val sortedPurchases = purchases.sortedByDescending { purchase ->
+                purchase.purchaseDate?.toDate()?.time ?: 0L
+            }
+            
+            println(" FirebaseService: Historial obtenido: ${sortedPurchases.size} compras para usuario $userId")
+            Result.success(sortedPurchases)
         } catch (e: Exception) {
             println(" FirebaseService: Error al obtener historial: ${e.message}")
             Result.failure(e)

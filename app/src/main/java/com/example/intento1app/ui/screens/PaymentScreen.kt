@@ -281,8 +281,66 @@ private fun PaymentSummaryCard(cartItems: List<CartItem>) {
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
+            // Desglose de precios
+            val subtotal = cartItems.sumOf { it.totalPrice }
+            val iva = subtotal * 0.19
+            val shipping = 0.0
+            val total = subtotal + iva + shipping
+            
+            // Subtotal
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Subtotal:",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = "$${String.format("%,.0f", subtotal).replace(",", ".")}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            // IVA
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "IVA (19%):",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = "$${String.format("%,.0f", iva).replace(",", ".")}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            
+            if (shipping > 0) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Envío:",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "$${String.format("%,.0f", shipping).replace(",", ".")}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(8.dp))
+            
             // Total
-            val total = cartItems.sumOf { it.totalPrice }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -293,7 +351,7 @@ private fun PaymentSummaryCard(cartItems: List<CartItem>) {
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "$${total.toInt()}",
+                    text = "$${String.format("%,.0f", total).replace(",", ".")}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary

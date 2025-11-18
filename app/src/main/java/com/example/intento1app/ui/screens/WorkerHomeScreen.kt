@@ -132,17 +132,17 @@ fun WorkerHomeScreen(
         WorkerFunction(
             title = "Ayuda",
             icon = Icons.Filled.HelpOutline,
-            iconColor = FutronoFondo,            // Café claro para icono
+            iconColor = FutronoBlanco,            // Blanco para icono
             backgroundColor = FutronoCeleste,          // Fondo crema suave
-            titleColor = FutronoFondo,
+            titleColor = FutronoBlanco,
             onClick = onHelpClick
         ),
         WorkerFunction(
             title = "Cerrar Sesión",
             icon = Icons.Filled.Logout,
-            iconColor = FutronoFondo,                 // Rojo error corporativo para icono
+            iconColor = FutronoBlanco,                 // Blanco para icono
             backgroundColor = FutronoError,           // Fondo crema
-            titleColor = FutronoFondo,
+            titleColor = FutronoBlanco,
             onClick = onLogout
         )
     )

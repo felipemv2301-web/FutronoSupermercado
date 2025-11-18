@@ -43,7 +43,7 @@ fun HelpAndContactScreen(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
-                        color = FutronoFondo
+                        color = FutronoBlanco
                     )
                 },
                 navigationIcon = {
@@ -51,7 +51,7 @@ fun HelpAndContactScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = FutronoFondo,
+                            tint = FutronoBlanco,
                             modifier = Modifier.size(24.dp)
                         )
                     }

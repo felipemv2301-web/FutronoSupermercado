@@ -49,6 +49,7 @@ fun UserProfileScreen(
     onMyBankDetailsClick: () -> Unit = {},
     onDeleteAccountClick: () -> Unit = {},
     onMyOrdersClick: () -> Unit = {},
+    onMyPaymentsClick: () -> Unit = {},
     onHelpContactClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -152,6 +153,13 @@ fun UserProfileScreen(
                 iconVector = Icons.Default.ShoppingBag,
                 title = "Mis pedidos",
                 onClick = onMyOrdersClick
+            )
+            
+            // Mis compras
+            ProfileOptionCard(
+                iconVector = Icons.Default.ShoppingCart,
+                title = "Mis compras",
+                onClick = onMyPaymentsClick
             )
             
             // Centro de ayuda

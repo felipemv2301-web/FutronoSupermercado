@@ -70,7 +70,7 @@ fun MyDataScreen(
             // Información personal
             Text(
                 text = "Información Personal",
-                style = MaterialTheme.typography.headlineSmall.copy(
+                style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold
                 ),
                 color = FutronoCafeOscuro,
@@ -113,7 +113,7 @@ fun MyDataScreen(
             // Información de la cuenta
             Text(
                 text = "Información de la Cuenta",
-                style = MaterialTheme.typography.headlineSmall.copy(
+                style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold
                 ),
                 color = FutronoCafeOscuro,

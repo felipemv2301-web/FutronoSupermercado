@@ -23,21 +23,47 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.intento1app.R
 import com.example.intento1app.data.models.FirebasePurchase
+import com.example.intento1app.data.models.User
+import com.example.intento1app.data.services.FirebaseService
 import com.example.intento1app.ui.theme.*
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyOrdersScreen(
-    currentUser: com.example.intento1app.data.models.User,
+    currentUser: User,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isLoadingPurchases by remember { mutableStateOf(false) }
+    val firebaseService = remember { FirebaseService() }
+    val scope = rememberCoroutineScope()
     
-    // TODO: Implementar alternativa para obtener pedidos sin PaymentViewModel
-    val purchases = emptyList<FirebasePurchase>()
+    var purchases by remember { mutableStateOf<List<FirebasePurchase>>(emptyList()) }
+    var isLoadingPurchases by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    
+    // Cargar compras cuando se monta el componente
+    LaunchedEffect(currentUser.id) {
+        if (currentUser.id != "guest") {
+            isLoadingPurchases = true
+            errorMessage = null
+            
+            scope.launch {
+                val result = firebaseService.getUserPurchases(currentUser.id)
+                result.onSuccess { purchaseList ->
+                    purchases = purchaseList
+                    isLoadingPurchases = false
+                }.onFailure { error ->
+                    errorMessage = error.message ?: "Error al cargar los pedidos"
+                    isLoadingPurchases = false
+                }
+            }
+        } else {
+            isLoadingPurchases = false
+        }
+    }
     
     Scaffold(
         topBar = {
@@ -74,102 +100,163 @@ fun MyOrdersScreen(
                 .padding(paddingValues)
                 .background(FutronoFondo)
         ) {
-            if (isLoadingPurchases) {
-                // Estado de carga
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
+            when {
+                isLoadingPurchases -> {
+                    // Estado de carga
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(48.dp),
-                            color = FutronoCafe
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Cargando tus pedidos...",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = FutronoCafeOscuro
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(48.dp),
+                                color = FutronoCafe
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Cargando tus pedidos...",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = FutronoCafeOscuro
+                            )
+                        }
                     }
                 }
-            } else if (currentUser.id == "guest") {
-                // Mensaje para usuarios invitados
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(32.dp)
+                errorMessage != null -> {
+                    // Estado de error
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = null,
-                            modifier = Modifier.size(80.dp),
-                            tint = FutronoCafe.copy(alpha = 0.5f)
-                        )
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Text(
-                            text = "Modo Invitado",
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = FutronoCafeOscuro
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Como invitado, tus pedidos se guardan pero no se pueden mostrar aquí. Para ver tu historial de pedidos, crea una cuenta.",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = FutronoCafeOscuro.copy(alpha = 0.7f),
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Error,
+                                contentDescription = null,
+                                modifier = Modifier.size(80.dp),
+                                tint = Color(0xFFF44336)
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Text(
+                                text = "Error al cargar",
+                                style = MaterialTheme.typography.headlineSmall.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = FutronoCafeOscuro
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = errorMessage ?: "Ocurrió un error desconocido",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = FutronoCafeOscuro.copy(alpha = 0.7f),
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Button(
+                                onClick = {
+                                    isLoadingPurchases = true
+                                    errorMessage = null
+                                    scope.launch {
+                                        val result = firebaseService.getUserPurchases(currentUser.id)
+                                        result.onSuccess { purchaseList ->
+                                            purchases = purchaseList
+                                            isLoadingPurchases = false
+                                        }.onFailure { error ->
+                                            errorMessage = error.message ?: "Error al cargar los pedidos"
+                                            isLoadingPurchases = false
+                                        }
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = FutronoCafe
+                                )
+                            ) {
+                                Text("Reintentar")
+                            }
+                        }
                     }
                 }
-            } else if (purchases.isEmpty()) {
-                // Estado vacío para usuarios autenticados
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(32.dp)
+                currentUser.id == "guest" -> {
+                    // Mensaje para usuarios invitados
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.ShoppingBag,
-                            contentDescription = null,
-                            modifier = Modifier.size(80.dp),
-                            tint = FutronoCafe.copy(alpha = 0.5f)
-                        )
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Text(
-                            text = "No tienes pedidos aún",
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = FutronoCafeOscuro
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Cuando realices tu primera compra, tus pedidos aparecerán aquí",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = FutronoCafeOscuro.copy(alpha = 0.7f),
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                modifier = Modifier.size(80.dp),
+                                tint = FutronoCafe.copy(alpha = 0.5f)
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Text(
+                                text = "Modo Invitado",
+                                style = MaterialTheme.typography.headlineSmall.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = FutronoCafeOscuro
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Como invitado, tus pedidos se guardan pero no se pueden mostrar aquí. Para ver tu historial de pedidos, crea una cuenta.",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = FutronoCafeOscuro.copy(alpha = 0.7f),
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                        }
                     }
                 }
-            } else {
-                // Lista de pedidos
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(purchases) { purchase ->
-                        OrderCard(purchase = purchase)
+                (currentUser.id != "guest" && purchases.isEmpty()) -> {
+                    // Estado vacío para usuarios autenticados
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ShoppingBag,
+                                contentDescription = null,
+                                modifier = Modifier.size(80.dp),
+                                tint = FutronoCafe.copy(alpha = 0.5f)
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Text(
+                                text = "No tienes pedidos aún",
+                                style = MaterialTheme.typography.headlineSmall.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = FutronoCafeOscuro
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Cuando realices tu primera compra, tus pedidos aparecerán aquí",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = FutronoCafeOscuro.copy(alpha = 0.7f),
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                        }
+                    }
+                }
+                else -> {
+                    // Lista de pedidos
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(purchases) { purchase ->
+                            OrderCard(purchase = purchase)
+                        }
                     }
                 }
             }
@@ -208,7 +295,7 @@ private fun OrderCard(
             ) {
                 Column {
                     Text(
-                        text = " #${purchase.orderNumber}",
+                        text = "Pedido #${purchase.trackingNumber.takeIf { it.isNotEmpty() } ?: purchase.orderNumber}",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold
                         ),
@@ -247,10 +334,10 @@ private fun OrderCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
-                        color = when (purchase.paymentStatus) {
-                            "approved" -> Color(0xFF4CAF50).copy(alpha = 0.1f)
-                            "pending" -> Color(0xFFFF9800).copy(alpha = 0.1f)
-                            "rejected" -> Color(0xFFF44336).copy(alpha = 0.1f)
+                        color = when (purchase.paymentStatus.lowercase()) {
+                            in listOf("approved", "aprobado") -> Color(0xFF4CAF50).copy(alpha = 0.1f)
+                            in listOf("pending", "pendiente") -> Color(0xFFFF9800).copy(alpha = 0.1f)
+                            in listOf("rejected", "rechazado", "failure") -> Color(0xFFF44336).copy(alpha = 0.1f)
                             else -> FutronoCafe.copy(alpha = 0.1f)
                         },
                         shape = RoundedCornerShape(8.dp)
@@ -258,36 +345,36 @@ private fun OrderCard(
                     .padding(12.dp)
             ) {
                 Icon(
-                    imageVector = when (purchase.paymentStatus) {
-                        "approved" -> Icons.Default.CreditCard
-                        "pending" -> Icons.Default.CreditCard
-                        "rejected" -> Icons.Default.Delete
-                        else -> Icons.Default.CreditCard
+                    imageVector = when (purchase.paymentStatus.lowercase()) {
+                        in listOf("approved", "aprobado") -> Icons.Default.CheckCircle
+                        in listOf("pending", "pendiente") -> Icons.Default.Schedule
+                        in listOf("rejected", "rechazado", "failure") -> Icons.Default.Cancel
+                        else -> Icons.Default.Payment
                     },
                     contentDescription = null,
                     modifier = Modifier.size(20.dp),
-                    tint = when (purchase.paymentStatus) {
-                        "approved" -> Color(0xFF4CAF50)
-                        "pending" -> Color(0xFFFF9800)
-                        "rejected" -> Color(0xFFF44336)
+                    tint = when (purchase.paymentStatus.lowercase()) {
+                        in listOf("approved", "aprobado") -> Color(0xFF4CAF50)
+                        in listOf("pending", "pendiente") -> Color(0xFFFF9800)
+                        in listOf("rejected", "rechazado", "failure") -> Color(0xFFF44336)
                         else -> FutronoCafe
                     }
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = when (purchase.paymentStatus) {
-                        "approved" -> "Pagado"
-                        "pending" -> "Pendiente"
-                        "rejected" -> "Rechazado"
+                    text = when (purchase.paymentStatus.lowercase()) {
+                        in listOf("approved", "aprobado") -> "Pagado"
+                        in listOf("pending", "pendiente") -> "Pendiente"
+                        in listOf("rejected", "rechazado", "failure") -> "Rechazado"
                         else -> purchase.paymentStatus
                     },
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = when (purchase.paymentStatus) {
-                        "approved" -> Color(0xFF4CAF50)
-                        "pending" -> Color(0xFFFF9800)
-                        "rejected" -> Color(0xFFF44336)
+                    color = when (purchase.paymentStatus.lowercase()) {
+                        in listOf("approved", "aprobado") -> Color(0xFF4CAF50)
+                        in listOf("pending", "pendiente") -> Color(0xFFFF9800)
+                        in listOf("rejected", "rechazado", "failure") -> Color(0xFFF44336)
                         else -> FutronoCafeOscuro
                     }
                 )

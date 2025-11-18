@@ -91,6 +91,7 @@ import com.example.intento1app.ui.screens.PaymentScreen
 import com.example.intento1app.ui.screens.AccessibilityScreen
 import com.example.intento1app.ui.screens.UserProfileScreen
 import com.example.intento1app.ui.screens.MyOrdersScreen
+import com.example.intento1app.ui.screens.MyPaymentsScreen
 import com.example.intento1app.ui.screens.MyDataScreen
 import com.example.intento1app.ui.screens.MyBankDetailsScreen
 import com.example.intento1app.ui.screens.HelpAndContactScreen
@@ -237,6 +238,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
     // Variables de estado para las pantallas del perfil
     var showUserProfile by remember { mutableStateOf(false) }
     var showMyOrders by remember { mutableStateOf(false) }
+    var showMyPayments by remember { mutableStateOf(false) }
     var showMyData by remember { mutableStateOf(false) }
     var showMyBankDetails by remember { mutableStateOf(false) }
     var showHelpAndContact by remember { mutableStateOf(false) }
@@ -287,6 +289,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
         showUserProfile = false
         showMyData = false
         showMyOrders = false
+        showMyPayments = false
         showMyBankDetails = false
         showHelpAndContact = false
         showWorkerOrders = false
@@ -305,6 +308,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
             "userProfile" -> showUserProfile = true
             "myData" -> showMyData = true
             "myOrders" -> showMyOrders = true
+            "myPayments" -> showMyPayments = true
             "myBankDetails" -> showMyBankDetails = true
             "helpAndContact" -> showHelpAndContact = true
             "workerOrders" -> showWorkerOrders = true
@@ -693,9 +697,22 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
         showMyOrders && currentUser != null -> {
             // Pantalla de mis pedidos
             val user = currentUser!!
-            // TODO: MyOrdersScreen requiere PaymentViewModel que fue eliminado
-            // Implementar alternativa para obtener órdenes
-            Text("Pantalla de mis órdenes no disponible temporalmente")
+            MyOrdersScreen(
+                currentUser = user,
+                onBackClick = {
+                    handleBackNavigation()
+                }
+            )
+        }
+        showMyPayments && currentUser != null -> {
+            // Pantalla de mis compras
+            val user = currentUser!!
+            MyPaymentsScreen(
+                currentUser = user,
+                onBackClick = {
+                    handleBackNavigation()
+                }
+            )
         }
         showUserProfile && currentUser != null -> {
             // Pantalla de perfil de usuario (funciona para usuarios autenticados e invitados)
@@ -738,6 +755,11 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     navigateTo("myOrders")
                     showUserProfile = false
                     showMyOrders = true
+                },
+                onMyPaymentsClick = {
+                    navigateTo("myPayments")
+                    showUserProfile = false
+                    showMyPayments = true
                 },
                 onHelpContactClick = {
                     navigateTo("helpAndContact")
@@ -900,7 +922,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     }
                 }
                 // Aquí se mejora lo visual del simón y las funcionalidades
-                showShortSnackbar("${product.name} se añadio al carrito Correctamente", 2000)
+                showShortSnackbar("${product.name} se añadió al carrito correctamente", 2000)
             },
             onCartClick = {
                 currentScreen = "cart"
@@ -1011,7 +1033,7 @@ fun AuthScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(FutronoFondo)
             .padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -1204,7 +1226,7 @@ fun RegisterScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(FutronoFondo)
     ) {
         // Top App Bar
         TopAppBar(
@@ -1552,7 +1574,7 @@ fun FutronoHomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(FutronoFondo)
     ) {
         Column(
             modifier = modifier
@@ -1993,7 +2015,7 @@ fun ProductsScreen(
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(FutronoFondo)
                 .padding(paddingValues)
         ) {
 
@@ -2450,7 +2472,7 @@ fun CartScreen(
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(FutronoFondo)
                 .padding(paddingValues)
         ) {
         // Contenido principal
@@ -2537,7 +2559,7 @@ fun CategorySelectionScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(FutronoFondo)
             .padding(16.dp)
     ) {
         // --- Header con logo y carrito (Tu código original, sin cambios) ---
@@ -2781,6 +2803,71 @@ fun CartSummary(
             }
 
             Spacer(modifier = Modifier.height(8.dp))
+            
+            // Desglose de precios
+            val subtotal = cartItems.sumOf { it.totalPrice }
+            val iva = subtotal * 0.19
+            val shipping = 0.0
+            val totalWithIva = subtotal + iva + shipping
+            
+            // Subtotal
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Subtotal:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = FutronoBlanco
+                )
+                Text(
+                    text = "$${String.format("%,.0f", subtotal).replace(",", ".")}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = FutronoBlanco
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            // IVA
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "IVA (19%):",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = FutronoBlanco
+                )
+                Text(
+                    text = "$${String.format("%,.0f", iva).replace(",", ".")}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = FutronoBlanco
+                )
+            }
+            
+            if (shipping > 0) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Envío:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = FutronoBlanco
+                    )
+                    Text(
+                        text = "$${String.format("%,.0f", shipping).replace(",", ".")}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = FutronoBlanco
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider(color = FutronoBlanco.copy(alpha = 0.3f))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -2794,7 +2881,7 @@ fun CartSummary(
                     color = FutronoBlanco
                 )
                 Text(
-                    text = "${String.format("%,.0f", totalPrice).replace(",", ".")}",
+                    text = "$${String.format("%,.0f", totalWithIva).replace(",", ".")}",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold
                     ),

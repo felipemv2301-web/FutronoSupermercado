@@ -51,17 +51,54 @@ class MercadoPagoService(private val context: Context) {
                     Exception("El carrito está vacío. No se puede crear una preferencia de pago sin items.")
                 )
             }
+            // Calcular subtotal e IVA
+            val subtotal = cartItems.sumOf { it.totalPrice }
+            val iva = subtotal * 0.19 // IVA del 19%
+            val shipping = 0.0 // Envío por defecto en 0
+            
+            // Función helper para convertir precios a enteros
+            // MercadoPago requiere que unit_price sea un entero
+            // Para CLP, redondeamos a enteros (sin decimales)
+            // Ejemplo: 10.50 -> 11, 10.49 -> 10
+            fun roundToInteger(price: Double): Double {
+                return Math.round(price).toDouble()
+            }
+            
             // Convertir items del carrito a items de preferencia
             val preferenceItems = cartItems.map { cartItem ->
                 PreferenceItem(
                     title = cartItem.product.name,
                     quantity = cartItem.quantity,
-                    unitPrice = cartItem.product.price
+                    unitPrice = roundToInteger(cartItem.product.price)
+                )
+            }.toMutableList()
+            
+            // Agregar IVA como item adicional en la preferencia
+            if (iva > 0) {
+                preferenceItems.add(
+                    PreferenceItem(
+                        title = "IVA (19%)",
+                        quantity = 1,
+                        unitPrice = roundToInteger(iva)
+                    )
                 )
             }
             
-            // Calcular el total
-            val totalAmount = cartItems.sumOf { it.totalPrice }
+            // Agregar envío si es mayor a 0
+            if (shipping > 0) {
+                preferenceItems.add(
+                    PreferenceItem(
+                        title = "Costo de envío",
+                        quantity = 1,
+                        unitPrice = roundToInteger(shipping)
+                    )
+                )
+            }
+            
+            // Calcular el total (subtotal + IVA + envío)
+            val totalAmount = subtotal + iva + shipping
+            
+            android.util.Log.d("MercadoPago", "Subtotal: $subtotal, IVA: $iva, Total: $totalAmount")
             
             // MercadoPago requiere URLs HTTP/HTTPS válidas y accesibles desde internet
             // Si hay un servidor de redirección configurado, usarlo

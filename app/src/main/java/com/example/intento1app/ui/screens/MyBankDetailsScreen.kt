@@ -400,7 +400,7 @@ fun MyBankDetailsScreen(
                 ) {
                     Text(
                         text = "Guardar datos",
-                        color = FutronoFondo,
+                        color = FutronoBlanco,
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         )

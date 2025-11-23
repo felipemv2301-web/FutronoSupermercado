@@ -56,6 +56,7 @@ import com.example.intento1app.ui.theme.FutronoFondo
 import com.example.intento1app.ui.theme.FutronoCafeOscuro
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material.icons.filled.AccessibilityNew
 import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.ImageNotSupported
 import androidx.compose.material.icons.filled.Search
@@ -1772,7 +1773,7 @@ private fun FutronoLogo(modifier: Modifier = Modifier) {
 
         modifier = modifier
             .height(70.dp) // Altura fija
-            .widthIn(max = 190.dp) // Ancho máximo para evitar que sea demasiado grande
+            .widthIn(max = 150.dp) // Ancho máximo para evitar que sea demasiado grande
             .padding(start = 1.dp)
     )
 }
@@ -1803,7 +1804,7 @@ private fun HeaderActions(
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "Accesibilidad",
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.bodySmall,
                 color = FutronoCafe
             )
         }
@@ -1819,7 +1820,7 @@ private fun HeaderActions(
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "Perfil",
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.bodySmall,
                 color = FutronoCafe
             )
         }
@@ -1838,7 +1839,6 @@ private fun HeaderActions(
             )
         }
     }
-
 
 }
 

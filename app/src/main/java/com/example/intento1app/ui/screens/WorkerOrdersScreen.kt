@@ -22,29 +22,21 @@ import com.example.intento1app.R
 import com.example.intento1app.data.models.FirebasePurchase
 import com.example.intento1app.data.models.OrderStatus
 import com.example.intento1app.ui.theme.*
-import com.example.intento1app.viewmodel.PaymentViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkerOrdersScreen(
-    paymentViewModel: PaymentViewModel,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Estados para las órdenes
-    val orders by paymentViewModel.userOrders.collectAsStateWithLifecycle()
+    // TODO: Implementar alternativa para obtener órdenes sin PaymentViewModel
     var isLoading by remember { mutableStateOf(false) }
     
-    // Iniciar listener de todas las órdenes cuando se monta la pantalla
-    LaunchedEffect(Unit) {
-        paymentViewModel.startAllOrdersListener()
-    }
-    
-    // Filtrar órdenes por estado
-    val ordersInPreparation = orders.filter { it.paymentStatus == "en_preparacion" }
-    val ordersReady = orders.filter { it.paymentStatus == "pedido_listo" }
+    // Estados vacíos temporalmente
+    val ordersInPreparation = emptyList<FirebasePurchase>()
+    val ordersReady = emptyList<FirebasePurchase>()
     
     Scaffold(
         topBar = {
@@ -145,7 +137,7 @@ fun WorkerOrdersScreen(
                             OrderCard(
                                 order = order,
                                 onMarkAsReady = {
-                                    paymentViewModel.markOrderAsReady(order.id)
+                                    // TODO: Implementar marcado de orden como lista sin PaymentViewModel
                                 }
                             )
                         }

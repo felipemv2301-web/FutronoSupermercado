@@ -6,13 +6,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.intento1app.R
@@ -43,7 +46,7 @@ fun MyDataScreen(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            painter = painterResource(id = R.drawable.ic_arrow_back),
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
                             tint = FutronoFondo,
                             modifier = Modifier.size(24.dp)
@@ -78,31 +81,31 @@ fun MyDataScreen(
             DataCard(
                 title = "Nombre",
                 value = currentUser.nombre,
-                icon = R.drawable.ic_person
+                iconVector = Icons.Default.Person
             )
             
             DataCard(
                 title = "Apellido",
                 value = currentUser.apellido,
-                icon = R.drawable.ic_person
+                iconVector = Icons.Default.Person
             )
             
             DataCard(
                 title = "RUT",
                 value = currentUser.rut.ifEmpty { "No registrado" },
-                icon = R.drawable.ic_credit_card
+                iconVector = Icons.Default.CreditCard
             )
             
             DataCard(
                 title = "Teléfono",
                 value = firebaseUser?.phoneNumber?.ifEmpty { currentUser.telefono } ?: currentUser.telefono.ifEmpty { "No registrado" },
-                icon = R.drawable.ic_phone
+                iconVector = Icons.Default.Phone
             )
             
             DataCard(
                 title = "Email",
                 value = currentUser.email,
-                icon = R.drawable.ic_email
+                iconVector = Icons.Default.Email
             )
             
             Spacer(modifier = Modifier.height(24.dp))
@@ -121,13 +124,13 @@ fun MyDataScreen(
                 DataCard(
                     title = "Email Verificado",
                     value = if (user.isEmailVerified) "Sí" else "No",
-                    icon = R.drawable.ic_check_circle
+                    iconVector = Icons.Default.CheckCircle
                 )
                 
                 DataCard(
                     title = "Cuenta Activa",
                     value = if (user.isActive) "Sí" else "No",
-                    icon = R.drawable.ic_check_circle
+                    iconVector = Icons.Default.CheckCircle
                 )
             }
             
@@ -140,7 +143,7 @@ fun MyDataScreen(
 private fun DataCard(
     title: String,
     value: String,
-    icon: Int,
+    iconVector: ImageVector,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -160,7 +163,7 @@ private fun DataCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                painter = painterResource(id = icon),
+                imageVector = iconVector,
                 contentDescription = null,
                 modifier = Modifier.size(24.dp),
                 tint = FutronoCafe

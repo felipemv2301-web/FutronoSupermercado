@@ -8,8 +8,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
-import androidx.compose.ui.res.painterResource
-import com.example.intento1app.R
+import androidx.compose.material.icons.filled.Construction
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -76,7 +76,7 @@ fun InventoryScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
-                        painter = painterResource(id = R.drawable.ic_construction),
+                        imageVector = Icons.Default.Construction,
                         contentDescription = null,
                         modifier = Modifier.size(48.dp),
                         tint = Color.White
@@ -142,7 +142,7 @@ fun InventoryScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                painter = painterResource(id = R.drawable.ic_check_circle_outline),
+                                imageVector = Icons.Default.CheckCircle,
                                 contentDescription = null,
                                 modifier = Modifier.size(20.dp),
                                 tint = FutronoCafeOscuro.copy(alpha = 0.6f)

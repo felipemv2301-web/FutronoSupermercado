@@ -1,5 +1,6 @@
 package com.example.intento1app.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,7 +12,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import android.graphics.BitmapFactory
+import androidx.compose.runtime.remember
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -53,13 +60,23 @@ fun CategoryCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-
+            val context = LocalContext.current
+            val bitmap = remember(category.imageResId) {
+                BitmapFactory.decodeResource(context.resources, category.imageResId)
+            }
+            Image(
+                painter = BitmapPainter(bitmap.asImageBitmap()),
+                contentDescription = null, // Decorative
+                modifier = Modifier
+                    .size(55.dp)
+                    .padding(bottom = 5.dp)
+            )
             ScalableTitleMedium(
                 text = category.displayName,
                 color = category.textColor,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.SemiBold
             )
         }
     }

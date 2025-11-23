@@ -9,9 +9,9 @@
               <option name="connection">
                 <ConnectionSetting>
                   <option name="appId" value="com.example.intento1app" />
-                  <option name="mobileSdkAppId" value="1:503967477303:android:30e0b7dc90878e4177d9b2" />
-                  <option name="projectId" value="inova9-app" />
-                  <option name="projectNumber" value="503967477303" />
+                  <option name="mobileSdkAppId" value="1:311434428659:android:263d6e7e204a4c642cb786" />
+                  <option name="projectId" value="futronosupermercado" />
+                  <option name="projectNumber" value="311434428659" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

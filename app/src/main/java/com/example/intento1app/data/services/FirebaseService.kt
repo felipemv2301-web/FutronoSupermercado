@@ -328,7 +328,7 @@ class FirebaseService {
                     totalPrice = 20000.0,
                     totalItems = 2,
                     status = OrderStatus.PENDING,
-                    paymentMethod = "mercadopago",
+                    paymentMethod = "directo",
                     paymentId = "payment_123",
                     shippingAddress = null,
                     notes = "Orden de prueba"

@@ -16,8 +16,6 @@ import com.example.intento1app.ui.theme.FutronoNaranjaClaro
 import com.example.intento1app.ui.theme.FutronoNaranjaOscuro
 import com.example.intento1app.ui.theme.FutronoSuccess
 
-
-
 /**
  * Modelos de datos principales de la aplicación
  */
@@ -55,64 +53,49 @@ data class Product(
     val stock: Int = 100,
     val isAvailable: Boolean = true
 )
-
 enum class ProductCategory(
     val displayName: String,
     val containerColor: Color,
-    val contentColor: Color,
     val textColor: Color,
-    @DrawableRes val imageResId: Int,
-    val icon: ImageVector
+    @DrawableRes val imageResId: Int
 )
 
 {
     CARNES_PESCADOS(
         displayName = "Carnes y Pescados",
-        containerColor = Color(0xFF791F1F),     // Fondo más serio
-        contentColor = FutronoBlanco,           // Icono blanco
+        containerColor = Color(0xFF7A5050),     // Fondo más serio         // Icono blanco
         textColor = FutronoBlanco,              // Texto blanco
-        imageResId = R.drawable.ic_carnes,
-        icon = Icons.Default.KebabDining
+        imageResId = R.drawable.ic_carnes
     ),
     DESPENSA(
         displayName = "Despensa",
-        containerColor = FutronoCafeClaro,      // Café claro
-        contentColor = FutronoFondo,
+        containerColor = Color(0xFF7A6E50),      // Café claro
         textColor = FutronoFondo,
-        imageResId = R.drawable.ic_despensa,
-        icon = Icons.Default.Inventory2
+        imageResId = R.drawable.ic_despensa
     ),
     FRUTAS_VERDURAS(
         displayName = "Frutas y Verduras",
-        containerColor = FutronoSuccess,          // Verde institucional (para frescura)
-        contentColor = FutronoFondo,
+        containerColor = Color(0xFF657A50),          // Verde institucional (para frescura)
         textColor = FutronoFondo,
-        imageResId = R.drawable.ic_fruta,
-        icon = Icons.Default.Grass
+        imageResId = R.drawable.ic_fruta
     ),
     BEBIDAS_SNACKS(
         displayName = "Bebidas y Snacks",
-        containerColor = Color(0xFF315677),  // Naranja oscuro vibrante
-        contentColor = FutronoFondo,
+        containerColor = Color(0xFF505C7A),  // Naranja oscuro vibrante
         textColor = FutronoFondo,
-        imageResId = R.drawable.ic_bebidas,
-        icon = Icons.Default.LocalBar
+        imageResId = R.drawable.ic_bebidas
     ),
     FRESCOS_LACTEOS(
         displayName = "Frescos y Lácteos",
-        containerColor = Color(0xFF4B8C93), // Fondo crema
-        contentColor = FutronoFondo,
+        containerColor = Color(0xFF507A7A), // Fondo crema
         textColor = FutronoFondo,
-        imageResId = R.drawable.ic_lacteos,
-        icon = Icons.Default.Egg
+        imageResId = R.drawable.ic_lacteos
     ),
     PANADERIA_PASTELERIA(
         displayName = "Panadería y Pastelería",
-        containerColor = FutronoNaranjaClaro,   // Naranja cálido y amable
-        contentColor = FutronoFondo,
+        containerColor = Color(0xFF7A6150),   // Naranja cálido y amable
         textColor = FutronoFondo,
-        imageResId = R.drawable.ic_panaderia,
-        icon = Icons.Default.BakeryDining
+        imageResId = R.drawable.ic_panaderia
     ),
 }
 

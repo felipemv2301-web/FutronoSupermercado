@@ -74,12 +74,9 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.runtime.rememberCoroutineScope
-<<<<<<< Updated upstream
-=======
 import androidx.compose.ui.text.style.TextDecoration
 import com.example.intento1app.ui.screens.PaymentScreen
 import com.example.intento1app.ui.screens.AccessibilityScreen
->>>>>>> Stashed changes
 import com.example.intento1app.ui.screens.UserProfileScreen
 import com.example.intento1app.ui.screens.MyOrdersScreen
 import com.example.intento1app.ui.screens.SolicitudSoporte
@@ -2050,7 +2047,7 @@ fun ProductsScreen(
     var error by remember { mutableStateOf<String?>(null) }
     var selectedCategories by remember { mutableStateOf(setOf<String>()) }
 
-    // Carga los productos desde Firebase (tu código original, sin cambios)
+    // Carga los productos desde Firebase
     LaunchedEffect(category) {
         isLoading = true
         error = null
@@ -2094,8 +2091,17 @@ fun ProductsScreen(
             TopAppBar(
                 title = {
                     ScalableHeadlineSmall(
-                        text = if (category == "TODOS") "Todos los Productos" else category,
-                        color = MaterialTheme.colorScheme.onPrimary,
+                        text = when (category) {
+                            "TODOS" -> "Todos los Productos"
+                            "CARNES_PESCADOS" -> "Carnes y Pescados"
+                            "DESPENSA" -> "Despensa"
+                            "FRUTAS_VERDURAS" -> "Frutas y Verduras"
+                            "BEBIDAS_SNACKS" -> "Bebidas y Snacks"
+                            "FRESCOS_LACTEOS" -> "Frescos y lácteos"
+                            "PANADERIA_PASTELERIA" -> "Panadería y pastelería"
+                            else -> category
+                        },
+                        color = FutronoBlanco,
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -2104,7 +2110,7 @@ fun ProductsScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = MaterialTheme.colorScheme.onPrimary
+                            tint = FutronoBlanco
                         )
                     }
                 },
@@ -2193,7 +2199,7 @@ fun ProductsScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            label = { Text("Ingresar elemento a buscar...") },
+            label = { Text("Ingresar búsqueda...") },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar") },
             singleLine = true,
             shape = RoundedCornerShape(24.dp)
@@ -2282,7 +2288,7 @@ fun ProductCard(
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = FutronoBlanco
         )
     ) {
         Column(
@@ -2296,7 +2302,7 @@ fun ProductCard(
                     .fillMaxWidth()
                     .height(180.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .background(FutronoBlanco),
                 contentAlignment = Alignment.Center
             ) {
                 // Si la URL de la imagen no está vacía, intenta cargarla

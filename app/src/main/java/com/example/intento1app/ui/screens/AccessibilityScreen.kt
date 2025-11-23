@@ -132,7 +132,7 @@ private fun AccessibilitySection(
             .padding(16.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = FutronoSuperficie
+            containerColor = FutronoBlanco
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 4.dp
@@ -169,7 +169,7 @@ private fun TextSizeControls(accessibilityViewModel: AccessibilityViewModel) {
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
             colors = CardDefaults.cardColors(
-                containerColor = FutronoNaranjaClaro
+                containerColor = FutronoFondo
             ),
             shape = RoundedCornerShape(8.dp)
         ) {

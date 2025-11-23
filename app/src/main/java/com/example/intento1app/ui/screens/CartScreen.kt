@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import com.example.intento1app.data.models.CartItem
 import com.example.intento1app.ui.components.ScalableHeadlineSmall
 import com.example.intento1app.ui.components.ScalableTitleLarge
+import com.example.intento1app.ui.components.ScalableTitleMedium
 import com.example.intento1app.ui.theme.FutronoBlanco
 import com.example.intento1app.ui.theme.LocalTypography
 import com.example.intento1app.ui.theme.FutronoCafe
@@ -45,7 +46,7 @@ fun CartScreen(
         // Top App Bar
         TopAppBar(
             title = {
-                ScalableHeadlineSmall(
+                ScalableTitleMedium(
                     text = "Carrito de Compras",
                     color = FutronoBlanco,
                     fontWeight = FontWeight.Bold

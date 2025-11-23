@@ -50,7 +50,7 @@ fun UserProfileScreen(
             TopAppBar(
                 title = { 
                     Text(
-                        "Perfil",
+                        "Perfil de ${currentUser.nombre}",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold
                         ),
@@ -80,23 +80,14 @@ fun UserProfileScreen(
                 .padding(paddingValues)
                 .background(FutronoFondo)
         ) {
-            // Saludo con nombre de usuario
-            Text(
-                text = "¡Hola, ${currentUser.nombre}!",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold
-                ),
-                color = FutronoCafeOscuro,
-                modifier = Modifier.padding(16.dp, 8.dp, 16.dp, 0.dp)
-            )
-            
+
             // Información personal
             Text(
                 text = "Información personal",
-                style = MaterialTheme.typography.titleSmall.copy(
+                style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold
                 ),
-                color = FutronoCafeOscuro,
+                color = FutronoCafe,
                 modifier = Modifier.padding(16.dp, 15.dp, 16.dp, 8.dp)
             )
             
@@ -131,10 +122,10 @@ fun UserProfileScreen(
             // Pedidos
             Text(
                 text = "Pedidos",
-                style = MaterialTheme.typography.titleLarge.copy(
+                style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold
                 ),
-                color = FutronoCafeOscuro,
+                color = FutronoCafe,
                 modifier = Modifier.padding(16.dp, 24.dp, 16.dp, 8.dp)
             )
             
@@ -153,10 +144,10 @@ fun UserProfileScreen(
             // Centro de ayuda
             Text(
                 text = "Centro de ayuda",
-                style = MaterialTheme.typography.titleLarge.copy(
+                style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold
                 ),
-                color = FutronoCafeOscuro,
+                color = FutronoCafe,
                 modifier = Modifier.padding(16.dp, 24.dp, 16.dp, 8.dp)
             )
             

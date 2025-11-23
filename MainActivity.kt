@@ -939,7 +939,7 @@ fun AuthScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                text = "Entrar sin iniciar sesión",
+                text = "Ingresar como invitado",
                 style = MaterialTheme.typography.bodyLarge.copy(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

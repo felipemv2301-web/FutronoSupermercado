@@ -74,6 +74,12 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.runtime.rememberCoroutineScope
+<<<<<<< Updated upstream
+=======
+import androidx.compose.ui.text.style.TextDecoration
+import com.example.intento1app.ui.screens.PaymentScreen
+import com.example.intento1app.ui.screens.AccessibilityScreen
+>>>>>>> Stashed changes
 import com.example.intento1app.ui.screens.UserProfileScreen
 import com.example.intento1app.ui.screens.MyOrdersScreen
 import com.example.intento1app.ui.screens.SolicitudSoporte
@@ -1027,7 +1033,7 @@ fun AuthScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(20.dp),
+            .padding(17.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -1039,7 +1045,7 @@ fun AuthScreen(
                 painter = painterResource(id = R.drawable.ic_logo),
                 contentDescription = "Logo de Futrono Supermercado",
                 modifier = Modifier
-                    .fillMaxWidth(0.6f)
+                    .fillMaxWidth(0.5f)
             )
         }
 
@@ -1112,21 +1118,7 @@ fun AuthScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         // Botón de "¿Olvidaste tu contraseña?"
-        TextButton(
-            onClick = { 
-                showForgotPasswordDialog = true
-                forgotPasswordEmail = email // Pre-llenar con el email del login si existe
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "¿Olvidaste tu contraseña?",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = FutronoCafe,
-                    fontWeight = FontWeight.Medium
-                )
-            )
-        }
+        // Primer botón: ¿Olvidaste tu contraseña?
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -1199,15 +1191,34 @@ fun AuthScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Botón de entrar sin cuenta
+        TextButton(
+            onClick = {
+                showForgotPasswordDialog = true
+                forgotPasswordEmail = email
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = "¿Olvidaste tu contraseña?",
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    color = FutronoCafe,
+                    fontWeight = FontWeight.Medium,
+                    textDecoration = TextDecoration.Underline // <--- Agregado aquí
+                )
+            )
+        }
+
+// Segundo botón: Entrar sin iniciar sesión
         TextButton(
             onClick = onGuestLogin,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                text = "Entrar sin iniciar sesión",
+                text = "Ingresar como invitado",
                 style = MaterialTheme.typography.bodyLarge.copy(
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = FutronoCafe,
+                    fontWeight = FontWeight.Medium,
+                    textDecoration = TextDecoration.Underline // <--- Agregado aquí
                 )
             )
         }

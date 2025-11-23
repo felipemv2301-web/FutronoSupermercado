@@ -71,7 +71,7 @@ fun WorkerProductsScreen(
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = FutronoFondo
+                    color = FutronoBlanco
                 )
             },
             navigationIcon = {
@@ -79,7 +79,7 @@ fun WorkerProductsScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Volver",
-                        tint = FutronoFondo
+                        tint = FutronoBlanco
 
                     )
                 }
@@ -89,7 +89,7 @@ fun WorkerProductsScreen(
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = "Agregar producto",
-                        tint = FutronoFondo
+                        tint = FutronoBlanco
                     )
                 }
             },

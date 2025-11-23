@@ -89,7 +89,7 @@ fun MyBankDetailsScreen(
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold
                         ),
-                        color = FutronoFondo
+                        color = FutronoBlanco
                     )
                 },
                 navigationIcon = {
@@ -97,14 +97,14 @@ fun MyBankDetailsScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = FutronoFondo,
+                            tint = FutronoBlanco,
                             modifier = Modifier.size(24.dp)
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = FutronoCafe,
-                    titleContentColor = FutronoFondo
+                    titleContentColor = FutronoBlanco
                 )
             )
         },
@@ -113,7 +113,7 @@ fun MyBankDetailsScreen(
                 modifier = modifier
                     .padding(paddingValues)
                     .fillMaxSize()
-                    .background(FutronoFondo)
+                    .background(FutronoBlanco)
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
                 horizontalAlignment = Alignment.Start

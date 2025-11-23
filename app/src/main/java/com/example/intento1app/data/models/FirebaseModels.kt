@@ -106,6 +106,7 @@ data class FirebasePurchase(
     val paymentId: String = "",
     val paymentStatus: String = "en_preparacion", // Estado por defecto: en preparación
     val orderNumber: String = "",
+    val trackingNumber: String = "", // Número de seguimiento único
     @ServerTimestamp
     val purchaseDate: Timestamp? = null,
     val shippingAddress: FirebaseAddress? = null,

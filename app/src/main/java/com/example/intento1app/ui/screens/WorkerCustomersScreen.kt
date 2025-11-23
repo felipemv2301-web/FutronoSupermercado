@@ -52,7 +52,7 @@ fun WorkerCustomersScreen(
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = FutronoFondo
+                    color = FutronoBlanco
                 )
             },
             navigationIcon = {
@@ -60,7 +60,7 @@ fun WorkerCustomersScreen(
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "Volver",
-                        tint = FutronoFondo
+                        tint = FutronoBlanco
                     )
                 }
             },

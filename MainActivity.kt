@@ -1314,10 +1314,10 @@ fun FutronoHomeScreen(
                 fontWeight = FontWeight.Bold, // Se mantiene el grosor personalizado
                 textAlign = TextAlign.Center   // Se centra el texto
             ),
-            color = MaterialTheme.colorScheme.onBackground,
+            color = MaterialTheme.colorScheme.FutronoBlanco,
             modifier = Modifier
                 .fillMaxWidth() // 1. El texto ocupa todo el ancho de la pantalla
-                .padding(bottom = 36.dp) // 2. Se mantiene el padding inferior
+                .padding(top = 16.dp, bottom = 36.dp) // 2. Padding superior e inferior modificable
         )
 
         CategoriesGrid(

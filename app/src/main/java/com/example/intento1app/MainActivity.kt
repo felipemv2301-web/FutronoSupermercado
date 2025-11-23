@@ -1,7 +1,5 @@
 package com.example.intento1app
 
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -9,7 +7,6 @@ import com.google.firebase.FirebaseApp
 import com.example.intento1app.utils.Validators
 import com.example.intento1app.utils.TipoError
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -26,8 +23,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.withContext
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -37,7 +32,6 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.remember
@@ -45,18 +39,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.Image
-import android.graphics.BitmapFactory
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.intento1app.ui.theme.AccessibleFutronoTheme
@@ -64,10 +53,8 @@ import com.example.intento1app.ui.theme.FutronoCafe
 import com.example.intento1app.ui.theme.FutronoNaranja
 import com.example.intento1app.ui.theme.FutronoFondo
 import com.example.intento1app.ui.theme.FutronoCafeOscuro
-import com.example.intento1app.ui.theme.FutronoFondo2
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.ImageNotSupported
 import androidx.compose.material.icons.filled.Search
@@ -85,16 +72,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.rememberCoroutineScope
-import com.example.intento1app.ui.screens.PaymentScreen
-import com.example.intento1app.ui.screens.AccessibilityScreen
 import com.example.intento1app.ui.screens.UserProfileScreen
 import com.example.intento1app.ui.screens.MyOrdersScreen
+import com.example.intento1app.ui.screens.SolicitudSoporte
 import com.example.intento1app.ui.screens.MyDataScreen
 import com.example.intento1app.ui.screens.MyBankDetailsScreen
 import com.example.intento1app.ui.screens.HelpAndContactScreen
-import com.example.intento1app.ui.screens.WorkerOrdersScreen
 import com.example.intento1app.ui.screens.WorkerHomeScreen
 import com.example.intento1app.ui.screens.InventoryScreen
 import com.example.intento1app.ui.screens.WorkerCustomersScreen
@@ -103,9 +87,7 @@ import com.example.intento1app.data.models.User
 import com.example.intento1app.data.models.Product
 import com.example.intento1app.data.models.ProductCategory
 import coil.request.ImageRequest
-import com.example.intento1app.ui.components.ScalableHeadlineMedium
 import com.example.intento1app.ui.components.ScalableHeadlineSmall
-import com.example.intento1app.ui.components.ScalableTitleMedium
 import com.example.intento1app.viewmodel.AccessibilityViewModel
 import com.example.intento1app.viewmodel.AuthViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -113,9 +95,13 @@ import coil.compose.AsyncImage
 import com.example.intento1app.data.models.CartItem
 import com.example.intento1app.ui.components.ScalableHeadlineLarge
 import com.example.intento1app.ui.components.ScalableTitleSmall
+import com.example.intento1app.ui.screens.AccessibilityScreen
 import com.example.intento1app.ui.screens.AddProductScreen
+import com.example.intento1app.ui.screens.SolicitudSoporte
 import com.example.intento1app.ui.screens.WorkerProductsScreen
 import com.example.intento1app.ui.screens.EditProductScreen
+import com.example.intento1app.ui.screens.PaymentScreen
+import com.example.intento1app.ui.screens.SolicitudSoporte
 import com.example.intento1app.ui.theme.FutronoBlanco
 import com.example.intento1app.ui.theme.FutronoVerde
 import com.example.intento1app.ui.theme.StockHigh
@@ -258,6 +244,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
     var showWorkerTeam by remember { mutableStateOf(false) }
     var showWorkerSettings by remember { mutableStateOf(false) }
     var showWorkerHelp by remember { mutableStateOf(false) }
+    var showWorkerDevolutionDinero by remember { mutableStateOf(false) }
 
     var searchQuery by remember { mutableStateOf("") }
 
@@ -304,6 +291,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
         showWorkerTeam = false
         showWorkerSettings = false
         showWorkerHelp = false
+        showWorkerDevolutionDinero = false
 
         // Mostrar la pantalla anterior basándose en la pila
         when (previousScreen) {
@@ -322,6 +310,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
             "workerTeam" -> showWorkerTeam = true
             "workerSettings" -> showWorkerSettings = true
             "workerHelp" -> showWorkerHelp = true
+            "onMyDevolutionDinero" -> showWorkerDevolutionDinero = true
             else -> {
                 // Si no hay pantalla anterior, volver a home
                 currentScreen = "home"
@@ -660,6 +649,14 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                 }
             )
         }
+
+        showWorkerDevolutionDinero -> {
+            SolicitudSoporte(
+                onBackClick = {
+                    handleBackNavigation() },
+                Onclick = { /* Lógica futura */ }
+            )
+        }
         showMyData && currentUser != null -> {
             // Pantalla de mis datos
             val user = currentUser!!
@@ -751,6 +748,11 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     navigateTo("helpAndContact")
                     showUserProfile = false
                     showHelpAndContact = true
+                },
+                onDevolutionClick = {
+                    navigateTo("myDevolution")
+                    showUserProfile = false
+                    showWorkerDevolutionDinero = true
                 }
             )
         }

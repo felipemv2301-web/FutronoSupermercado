@@ -153,6 +153,43 @@ class AuthViewModel : ViewModel() {
     }
     
     /**
+     * Envía un email de recuperación de contraseña
+     */
+    fun resetPassword(
+        email: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                _errorMessage.value = null
+                
+                println("AuthViewModel: Enviando email de recuperación a: $email")
+                
+                val result = firebaseService.sendPasswordResetEmail(email)
+                
+                if (result.isSuccess) {
+                    println("AuthViewModel: Email de recuperación enviado exitosamente")
+                    onSuccess()
+                } else {
+                    val error = result.exceptionOrNull()?.message ?: "Error desconocido"
+                    _errorMessage.value = error
+                    println("AuthViewModel: Error al enviar email de recuperación: $error")
+                    onError(error)
+                }
+            } catch (e: Exception) {
+                val error = "Error inesperado: ${e.message}"
+                _errorMessage.value = error
+                println("AuthViewModel: Excepción al enviar email de recuperación: ${e.message}")
+                onError(error)
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+    
+    /**
      * Cierra la sesión del usuario
      */
     fun signOut() {

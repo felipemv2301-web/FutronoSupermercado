@@ -1525,11 +1525,11 @@ private fun FutronoHeader(
             .fillMaxWidth()
             .height(80.dp)
             .background(FutronoBlanco)
-            .padding(horizontal = 16.dp) // Padding interno para el contenido
-        ,
+            .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
-    ) {
+    )
+    {
         // Logo alineado a la izquierda con margen natural
         FutronoLogo()
 
@@ -1653,25 +1653,54 @@ private fun HeaderActions(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        IconActionButton(
-            onClick = onAccessibilityClick,
-            icon = Icons.Default.Settings,
-            description = "Accesibilidad",
-            backgroundColor = FutronoCafe
-        )
+        // 1. Columna para Configuración
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            IconActionButton(
+                onClick = onAccessibilityClick,
+                icon = Icons.Default.AccessibilityNew,
+                description = "Accesibilidad",
+                backgroundColor = FutronoCafe
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Accesibilidad",
+                style = MaterialTheme.typography.labelSmall,
+                color = FutronoCafe
+            )
+        }
 
-        IconActionButton(
-            onClick = onUserProfileClick,
-            icon = Icons.Default.Person,
-            description = "Mi cuenta",
-            backgroundColor = FutronoCafe
-        )
+        // 2. Columna para Perfil
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            IconActionButton(
+                onClick = onUserProfileClick,
+                icon = Icons.Default.Person,
+                description = "Mi cuenta",
+                backgroundColor = FutronoCafe
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Perfil",
+                style = MaterialTheme.typography.labelSmall,
+                color = FutronoCafe
+            )
+        }
 
-        CartButton(
-            cartItemCount = cartItemCount,
-            onClick = onCartClick
-        )
+        // 3. Columna para Carrito
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CartButton(
+                cartItemCount = cartItemCount,
+                onClick = onCartClick
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Carrito",
+                style = MaterialTheme.typography.labelSmall,
+                color = FutronoCafe // O el color verde si prefieres
+            )
+        }
     }
+
+
 }
 
 //Programa las acciones de los botones del header
@@ -1732,6 +1761,7 @@ private fun CartButton(
                 modifier = Modifier.size(24.dp)
             )
         }
+
 
         if (cartItemCount > 0) {
             Badge(

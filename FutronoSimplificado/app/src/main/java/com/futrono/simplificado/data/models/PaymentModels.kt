@@ -26,15 +26,20 @@ data class PaymentError(
 
 data class PaymentSummary(
     val subtotal: Double,
+    val iva: Double,
     val total: Double,
     val items: List<CartItem>
 ) {
     companion object {
+        private const val IVA_RATE = 0.19 // 19% IVA
+        
         fun fromCartItems(items: List<CartItem>): PaymentSummary {
             val subtotal = items.sumOf { it.totalPrice }
-            val total = subtotal
+            val iva = subtotal * IVA_RATE
+            val total = subtotal + iva
             return PaymentSummary(
                 subtotal = subtotal,
+                iva = iva,
                 total = total,
                 items = items
             )

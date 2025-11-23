@@ -205,7 +205,7 @@ fun MercadoPagoCheckoutScreen(
                         text = "Pago Seguro",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF00A1E0)
+                        color = FutronoBlanco
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(

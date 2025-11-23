@@ -23,6 +23,7 @@ import com.example.intento1app.data.services.MercadoPagoService
 import com.example.intento1app.ui.theme.FutronoBlanco
 import kotlinx.coroutines.launch
 import android.content.SharedPreferences
+import com.example.intento1app.ui.theme.FutronoCafe
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
@@ -85,15 +86,15 @@ fun PaymentScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Pago Seguro") },
+                title = { Text("Pago Seguro")},
                 navigationIcon = {
                     IconButton(onClick = onBackToCart) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    containerColor = FutronoCafe,
+                    titleContentColor = FutronoBlanco
                 )
             )
         }
@@ -281,8 +282,46 @@ private fun PaymentSummaryCard(cartItems: List<CartItem>) {
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
+            // Calcular subtotal, IVA y total
+            val subtotal = cartItems.sumOf { it.totalPrice }
+            val iva = subtotal * 0.19 // 19% IVA
+            val total = subtotal + iva
+            
+            // Subtotal
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Subtotal",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = "$${String.format("%,.0f", subtotal).replace(",", ".")}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            // IVA
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "IVA (19%)",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = "$${String.format("%,.0f", iva).replace(",", ".")}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(8.dp))
+            
             // Total
-            val total = cartItems.sumOf { it.totalPrice }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -293,7 +332,7 @@ private fun PaymentSummaryCard(cartItems: List<CartItem>) {
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "$${total.toInt()}",
+                    text = "$${String.format("%,.0f", total).replace(",", ".")}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary

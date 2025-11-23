@@ -20,8 +20,8 @@ val FutronoFondo = Color(0xFFF5E2D1)        // Fondo crema suave para la app
 val FutronoSuperficie = Color(0xFFF8E3CC)   // Superficie crema para tarjetas
 
 // Colores de estado
-val FutronoError = Color(0xFFDC143C)        // Rojo para errores
-val FutronoSuccess = Color(0xFF279F27)
+val FutronoError = Color(0xFFB21131)        // Rojo para errores
+val FutronoSuccess = Color(0xFF228622)
 val FutronoCremaSuperficie = Color(0xFFF8E3CC)
 
 val FutronoAzul = Color(0xFF334c84)

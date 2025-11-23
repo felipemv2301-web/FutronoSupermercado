@@ -23,6 +23,19 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.DrawerDefaults
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.fontScale
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.futrono.simplificado.data.models.*
@@ -335,6 +348,7 @@ fun SimpleAuthScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SimpleHomeScreen(
     currentUser: User?,
@@ -347,6 +361,10 @@ fun SimpleHomeScreen(
     val category = ProductCategory.DESPENSA
     var product by remember { mutableStateOf<Product?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    
+    // Estado del drawer
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val topAppBarState = rememberTopAppBarState()
 
     // Cargar el primer producto de la categoría DESPENSA desde Firebase
     LaunchedEffect(Unit) {
@@ -403,75 +421,182 @@ fun SimpleHomeScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp)
-    ) {
-        // Header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Futrono",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = FutronoCafe
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box {
-                    IconButton(onClick = onCartClick) {
-                        Icon(
-                            Icons.Default.ShoppingCart,
-                            contentDescription = "Carrito",
-                            tint = FutronoNaranja
+    // Detectar el ancho de la pantalla y el tamaño del texto
+    BoxWithConstraints {
+        val screenWidth = with(LocalDensity.current) { constraints.maxWidth.toDp() }
+        val configuration = LocalConfiguration.current
+        val fontScale = configuration.fontScale
+        
+        // Usar menú hamburguesa si la pantalla es pequeña O el texto es muy grande
+        // Para testing, puedes cambiar el umbral (por ejemplo, usar siempre true para ver el menú)
+        val useCompactLayout = screenWidth < 600.dp || fontScale > 1.2f
+        
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                ModalDrawerSheet(
+                    drawerContainerColor = MaterialTheme.colorScheme.surface,
+                    drawerContentColor = MaterialTheme.colorScheme.onSurface
+                ) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Futrono",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = FutronoCafe,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    NavigationDrawerItem(
+                        icon = {
+                            Box {
+                                Icon(
+                                    Icons.Default.ShoppingCart,
+                                    contentDescription = "Carrito",
+                                    tint = FutronoNaranja
+                                )
+                                if (cartItems.isNotEmpty()) {
+                                    Badge(
+                                        modifier = Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-6).dp),
+                                        containerColor = FutronoCafe
+                                    ) {
+                                        Text(
+                                            text = cartItems.sumOf { it.quantity }.toString(),
+                                            color = Color.White,
+                                            fontSize = 10.sp
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        label = { Text("Carrito") },
+                        selected = false,
+                        onClick = {
+                            onCartClick()
+                            drawerState.close()
+                        },
+                        colors = NavigationDrawerItemDefaults.colors(
+                            selectedContainerColor = FutronoCafe.copy(alpha = 0.12f)
                         )
-                    }
-                    if (cartItems.isNotEmpty()) {
-                        Badge(
-                            modifier = Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-6).dp),
-                            containerColor = FutronoCafe
-                        ) {
-                            Text(
-                                text = cartItems.sumOf { it.quantity }.toString(),
-                                color = Color.White,
-                                fontSize = 10.sp
+                    )
+                    
+                    NavigationDrawerItem(
+                        icon = {
+                            Icon(
+                                Icons.Default.Logout,
+                                contentDescription = "Cerrar sesión",
+                                tint = FutronoCafe
                             )
+                        },
+                        label = { Text("Cerrar Sesión") },
+                        selected = false,
+                        onClick = {
+                            onLogout()
+                            drawerState.close()
+                        },
+                        colors = NavigationDrawerItemDefaults.colors(
+                            selectedContainerColor = FutronoCafe.copy(alpha = 0.12f)
+                        )
+                    )
+                }
+            }
+        ) {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = {
+                            Text(
+                                text = "Futrono",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = FutronoCafe,
+                                modifier = Modifier.widthIn(max = screenWidth * 0.5f)
+                            )
+                        },
+                        navigationIcon = {
+                            if (useCompactLayout) {
+                                IconButton(onClick = { drawerState.open() }) {
+                                    Icon(
+                                        Icons.Default.Menu,
+                                        contentDescription = "Menú",
+                                        tint = FutronoCafe
+                                    )
+                                }
+                            }
+                        },
+                        actions = {
+                            if (!useCompactLayout) {
+                                // Mostrar botones directamente en pantallas grandes
+                                Box {
+                                    IconButton(onClick = onCartClick) {
+                                        Icon(
+                                            Icons.Default.ShoppingCart,
+                                            contentDescription = "Carrito",
+                                            tint = FutronoNaranja
+                                        )
+                                    }
+                                    if (cartItems.isNotEmpty()) {
+                                        Badge(
+                                            modifier = Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-6).dp),
+                                            containerColor = FutronoCafe
+                                        ) {
+                                            Text(
+                                                text = cartItems.sumOf { it.quantity }.toString(),
+                                                color = Color.White,
+                                                fontSize = 10.sp
+                                            )
+                                        }
+                                    }
+                                }
+                                IconButton(onClick = onLogout) {
+                                    Icon(
+                                        Icons.Default.Logout,
+                                        contentDescription = "Cerrar sesión",
+                                        tint = FutronoCafe
+                                    )
+                                }
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.background
+                        )
+                    )
+                }
+            ) { paddingValues ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                        .padding(paddingValues)
+                        .padding(16.dp)
+                ) {
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Categoría
+                    Text(
+                        text = category.displayName,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Producto
+                    if (isLoading) {
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
                         }
+                    } else if (product != null) {
+                        SimpleProductCard(
+                            product = product!!,
+                            onAddToCart = onAddToCart
+                        )
+                    } else {
+                        Text("No hay productos disponibles")
                     }
                 }
-                IconButton(onClick = onLogout) {
-                    Icon(Icons.Default.Logout, contentDescription = "Cerrar sesión", tint = FutronoCafe)
-                }
             }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Categoría
-        Text(
-            text = category.displayName,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Producto
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else if (product != null) {
-            SimpleProductCard(
-                product = product!!,
-                onAddToCart = onAddToCart
-            )
-        } else {
-            Text("No hay productos disponibles")
         }
     }
 }

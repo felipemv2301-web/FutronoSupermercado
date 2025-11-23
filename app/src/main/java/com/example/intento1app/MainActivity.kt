@@ -108,6 +108,8 @@ import com.example.intento1app.ui.screens.EditProductScreen
 import com.example.intento1app.ui.screens.PaymentScreen
 import com.example.intento1app.ui.screens.SolicitudSoporte
 import com.example.intento1app.ui.theme.FutronoBlanco
+import com.example.intento1app.ui.theme.FutronoError
+import com.example.intento1app.ui.theme.FutronoSuccess
 import com.example.intento1app.ui.theme.FutronoVerde
 import com.example.intento1app.ui.theme.StockHigh
 import com.example.intento1app.ui.theme.StockLow
@@ -915,7 +917,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     }
                 }
                 // Aquí se mejora lo visual del simón y las funcionalidades
-                showShortSnackbar("${product.name} se añadio al carrito Correctamente", 2000)
+                showShortSnackbar("${product.name} se añadió al carrito correctamente", 2000)
             },
             onCartClick = {
                 currentScreen = "cart"
@@ -941,7 +943,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     }
                     cartItems = cartItems.filter { it.product.id != productId }
                     // Aquí se mejora lo visual del simón y las funcionalidades
-                    showShortSnackbar("Se ha eliminado el producto $productName del carrito", 2000)
+                    showShortSnackbar("Se ha eliminado $productName del carrito", 2000)
                 } else {
                     // Ajustar stock cuando cambia la cantidad
                     scope.launch {
@@ -960,9 +962,9 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     // Mostrar mensaje según si aumentó o disminuyó
                     // Aquí se mejora lo visual del simón y las funcionalidades
                     val message = if (quantity > oldQuantity) {
-                        "Se aumentó la cantidad de $productName"
+                        "Se añadió $quantity unidad(es) de $productName"
                     } else {
-                        "Se disminuyó la cantidad de $productName"
+                        "Se quitó $quantity unidad(es) de $productName"
                     }
                     showShortSnackbar(message, 2000)
                 }
@@ -2175,8 +2177,17 @@ fun ProductsScreen(
             )
         },
         snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
-        }
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                Snackbar(
+                    modifier = Modifier.padding(12.dp),
+                    containerColor = FutronoSuccess,      // <-- Color de fondo
+                    contentColor = FutronoBlanco,        // <-- Color del texto
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(text = data.visuals.message)
+                }
+            }
+        },
     ) { paddingValues ->
         Column(
             modifier = modifier
@@ -2588,8 +2599,17 @@ fun CartScreen(
             )
         },
         snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
-        }
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                Snackbar(
+                    modifier = Modifier.padding(12.dp),
+                    containerColor = FutronoError,
+                    contentColor = FutronoBlanco,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(text = data.visuals.message)
+                }
+            }
+        },
     ) { paddingValues ->
         // Diálogo de confirmación para vaciar el carrito
         if (showClearCartDialog) {

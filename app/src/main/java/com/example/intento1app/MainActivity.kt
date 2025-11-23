@@ -1,6 +1,7 @@
 package com.example.intento1app
 
 import android.os.Bundle
+import android.util.Patterns
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.google.firebase.FirebaseApp
@@ -925,6 +926,10 @@ fun AuthScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var showError by remember { mutableStateOf(false) }
+    var showForgotPasswordDialog by remember { mutableStateOf(false) }
+    var forgotPasswordEmail by remember { mutableStateOf("") }
+    var forgotPasswordMessage by remember { mutableStateOf<String?>(null) }
+    var forgotPasswordError by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -1012,6 +1017,25 @@ fun AuthScreen(
             )
         }
 
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Botón de "¿Olvidaste tu contraseña?"
+        TextButton(
+            onClick = { 
+                showForgotPasswordDialog = true
+                forgotPasswordEmail = email // Pre-llenar con el email del login si existe
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = "¿Olvidaste tu contraseña?",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = FutronoCafe,
+                    fontWeight = FontWeight.Medium
+                )
+            )
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
 
         // Botón de inicio de sesión
@@ -1095,6 +1119,113 @@ fun AuthScreen(
                 )
             )
         }
+    }
+    
+    // Diálogo de recuperación de contraseña
+    if (showForgotPasswordDialog) {
+        AlertDialog(
+            onDismissRequest = { 
+                showForgotPasswordDialog = false
+                forgotPasswordEmail = ""
+                forgotPasswordMessage = null
+                forgotPasswordError = false
+            },
+            title = {
+                Text(
+                    text = "Recuperar Contraseña",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+            },
+            text = {
+                Column {
+                    if (forgotPasswordMessage != null) {
+                        Text(
+                            text = forgotPasswordMessage!!,
+                            color = if (forgotPasswordError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
+                    } else {
+                        Text(
+                            text = "Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
+                    }
+                    
+                    OutlinedTextField(
+                        value = forgotPasswordEmail,
+                        onValueChange = { forgotPasswordEmail = it },
+                        label = { Text("Correo electrónico") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Email,
+                                contentDescription = "Correo electrónico",
+                                tint = FutronoCafe
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = FutronoCafe,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        ),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        enabled = forgotPasswordMessage == null
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (forgotPasswordEmail.isNotEmpty() && android.util.Patterns.EMAIL_ADDRESS.matcher(forgotPasswordEmail).matches()) {
+                            authViewModel.resetPassword(
+                                email = forgotPasswordEmail,
+                                onSuccess = {
+                                    forgotPasswordMessage = "Se ha enviado un enlace de recuperación a tu correo electrónico. Por favor, revisa tu bandeja de entrada."
+                                    forgotPasswordError = false
+                                },
+                                onError = { error ->
+                                    forgotPasswordMessage = when {
+                                        error.contains("user-not-found", ignoreCase = true) -> 
+                                            "No existe una cuenta con este correo electrónico."
+                                        error.contains("invalid-email", ignoreCase = true) -> 
+                                            "El correo electrónico no es válido."
+                                        else -> 
+                                            "Error al enviar el email. Por favor, intenta de nuevo más tarde."
+                                    }
+                                    forgotPasswordError = true
+                                }
+                            )
+                        } else {
+                            forgotPasswordMessage = "Por favor, ingresa un correo electrónico válido."
+                            forgotPasswordError = true
+                        }
+                    },
+                    enabled = forgotPasswordMessage == null,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = FutronoCafeOscuro
+                    )
+                ) {
+                    Text("Enviar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { 
+                        showForgotPasswordDialog = false
+                        forgotPasswordEmail = ""
+                        forgotPasswordMessage = null
+                        forgotPasswordError = false
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            },
+            shape = RoundedCornerShape(16.dp)
+        )
     }
 }
 

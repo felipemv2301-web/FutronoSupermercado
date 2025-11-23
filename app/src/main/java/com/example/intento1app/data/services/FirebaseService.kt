@@ -111,6 +111,20 @@ class FirebaseService {
     }
     
     /**
+     * Envía un email de recuperación de contraseña
+     */
+    suspend fun sendPasswordResetEmail(email: String): Result<Unit> {
+        return try {
+            auth.sendPasswordResetEmail(email).await()
+            println(" FirebaseService: Email de recuperación enviado a: $email")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            println(" FirebaseService: Error al enviar email de recuperación: ${e.message}")
+            Result.failure(e)
+        }
+    }
+    
+    /**
      * Cierra la sesión del usuario
      */
     suspend fun signOut(): Result<Unit> {

@@ -100,13 +100,10 @@ fun HelpAndContactScreen(
                     title = "Términos y condiciones",
                     onClick = onTermsAndConditionsClick
                 )
-
                 HelpOptionCard(
                     iconVector = Icons.Default.ReportProblem,
-
                     title = "Reclamo de pedido",
-                    onClick = onClaimClick,
-
+                    onClick = onClaimClick
                 )
             }
         }

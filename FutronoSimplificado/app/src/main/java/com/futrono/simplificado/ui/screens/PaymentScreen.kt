@@ -50,7 +50,6 @@ fun PaymentScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Pago Seguro") },
-                Color = FutronoBlanco
                 navigationIcon = {
                     IconButton(onClick = onBackToCart) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")

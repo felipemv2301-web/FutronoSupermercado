@@ -214,7 +214,8 @@ class PaymentResultActivity : ComponentActivity() {
         val userId: String,
         val userName: String,
         val userEmail: String,
-        val userPhone: String
+        val userPhone: String,
+        val userAddress: String = ""
     )
     
     /**
@@ -233,7 +234,8 @@ class PaymentResultActivity : ComponentActivity() {
                     userId = user.id,
                     userName = user.nombre + " " + user.apellido,
                     userEmail = user.email ?: "",
-                    userPhone = user.telefono ?: ""
+                    userPhone = user.telefono ?: "",
+                    userAddress = user.direccion ?: ""
                 )
             } else {
                 // Usuario invitado
@@ -241,11 +243,12 @@ class PaymentResultActivity : ComponentActivity() {
                 val userName = prefs.getString("user_name", "") ?: ""
                 val userEmail = prefs.getString("user_email", "") ?: ""
                 val userPhone = prefs.getString("user_phone", "") ?: ""
-                UserInfo(userId, userName, userEmail, userPhone)
+                val userAddress = prefs.getString("user_address", "") ?: ""
+                UserInfo(userId, userName, userEmail, userPhone, userAddress)
             }
         } catch (e: Exception) {
             android.util.Log.e("PaymentResult", "Error al recuperar información del usuario: ${e.message}", e)
-            UserInfo("guest", "", "", "")
+            UserInfo("guest", "", "", "", "")
         }
     }
     
@@ -276,6 +279,7 @@ class PaymentResultActivity : ComponentActivity() {
                     userName = userInfo.userName,
                     userEmail = userInfo.userEmail,
                     userPhone = userInfo.userPhone,
+                    userAddress = userInfo.userAddress,
                     cartItems = cartItems
                 )
                 

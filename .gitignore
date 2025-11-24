@@ -1,23 +1,7 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
-DATABASE_CALLS.md
-FIREBASE_SETUP.md
-IMPORTS_ANALYSIS.md
-PROJECT_SYNC.md
-FIREBASE_SETUP.md
-*.md
-*.xlsx
-*.py
+# Firebase
+serviceAccountKey.json
+scripts/serviceAccountKey.json
+
+# Node
+node_modules/
+package-lock.json

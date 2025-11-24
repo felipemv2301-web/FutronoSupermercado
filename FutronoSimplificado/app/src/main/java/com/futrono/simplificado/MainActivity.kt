@@ -22,6 +22,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.widthIn
@@ -36,6 +39,19 @@ import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.fontScale
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.futrono.simplificado.data.models.*
@@ -122,6 +138,34 @@ fun SimpleFutronoApp() {
             isCheckingAuth = false
             if (!isLoggedIn) {
                 currentScreen = "auth"
+            }
+        }
+    }
+
+    // Manejar el botón de atrás del dispositivo en todas las pantallas
+    // Siempre habilitado excepto cuando estamos cargando
+    BackHandler(enabled = currentScreen != "loading" && !isCheckingAuth) {
+        when {
+            showCheckout -> {
+                // Si estamos en el checkout de MercadoPago, volver a payment
+                showCheckout = false
+                currentScreen = "payment"
+            }
+            currentScreen == "payment" -> {
+                // Si estamos en payment, volver a cart
+                currentScreen = "cart"
+            }
+            currentScreen == "cart" -> {
+                // Si estamos en cart, volver a home
+                currentScreen = "home"
+            }
+            currentScreen == "home" -> {
+                // Si estamos en home, no hacer nada (el BackHandler consume el evento)
+                // Esto previene que la app se cierre
+            }
+            currentScreen == "auth" -> {
+                // Si estamos en auth, no hacer nada (el BackHandler consume el evento)
+                // Esto previene que la app se cierre
             }
         }
     }
@@ -250,15 +294,21 @@ fun SimpleAuthScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var showError by remember { mutableStateOf(false) }
+    
+    val scrollState = rememberScrollState()
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .imePadding() // Ajusta el contenido cuando aparece el teclado
+            .verticalScroll(scrollState)
             .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(modifier = Modifier.height(32.dp))
+        
         Text(
             text = "Futrono Supermercado",
             style = MaterialTheme.typography.headlineLarge,
@@ -277,7 +327,11 @@ fun SimpleAuthScreen(
             },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Email,
+                imeAction = ImeAction.Next
+            ),
+            singleLine = true
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -300,7 +354,38 @@ fun SimpleAuthScreen(
             },
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    keyboardController?.hide()
+                    // Intentar iniciar sesión cuando se presiona "Done"
+                    if (email.isNotEmpty() && password.isNotEmpty()) {
+                        authViewModel.signInUser(
+                            email = email,
+                            password = password,
+                            onSuccess = { firebaseUser ->
+                                val localUser = User(
+                                    id = firebaseUser.id,
+                                    nombre = firebaseUser.displayName.split(" ").getOrNull(0) ?: "Usuario",
+                                    apellido = firebaseUser.displayName.split(" ").getOrNull(1) ?: "Ejemplo",
+                                    rut = "12345678-9",
+                                    telefono = firebaseUser.phoneNumber ?: "",
+                                    email = firebaseUser.email ?: ""
+                                )
+                                onLoginSuccess(localUser)
+                            },
+                            onError = {
+                                showError = true
+                            }
+                        )
+                    }
+                }
+            ),
+            singleLine = true
         )
 
         if (showError) {
@@ -316,6 +401,7 @@ fun SimpleAuthScreen(
 
         Button(
             onClick = {
+                keyboardController?.hide()
                 if (email.isNotEmpty() && password.isNotEmpty()) {
                     authViewModel.signInUser(
                         email = email,
@@ -345,6 +431,9 @@ fun SimpleAuthScreen(
         ) {
             Text("Iniciar Sesión", fontWeight = FontWeight.Bold)
         }
+        
+        // Spacer adicional para asegurar que el botón sea visible cuando aparece el teclado
+        Spacer(modifier = Modifier.height(32.dp))
     }
 }
 

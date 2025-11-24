@@ -16,6 +16,8 @@ data class FirebaseUser(
     val displayName: String = "",
     val photoUrl: String = "",
     val phoneNumber: String = "",
+    val rut: String = "", // RUT del usuario
+    val address: String = "", // Dirección del usuario
     val isEmailVerified: Boolean = false,
     val isActive: Boolean = true,
     val roles: List<String> = listOf("cliente"), // Roles del usuario, "cliente" por defecto

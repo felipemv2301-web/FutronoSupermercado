@@ -51,7 +51,7 @@ fun UserProfileScreen(
                 title = { 
                     Text(
                         "Perfil de ${currentUser.nombre}",
-                        style = MaterialTheme.typography.titleLarge.copy(
+                        style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
                         color = FutronoBlanco

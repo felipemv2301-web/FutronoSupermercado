@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.util.Patterns
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import com.google.firebase.FirebaseApp
 import com.example.intento1app.utils.Validators
 import com.example.intento1app.utils.TipoError
@@ -17,6 +18,13 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.runtime.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
@@ -61,6 +69,7 @@ import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.ImageNotSupported
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.HomeWork
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
@@ -435,9 +444,10 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     id = firebaseUser.id,
                     nombre = firebaseUser.displayName.split(" ").getOrNull(0) ?: "Usuario",
                     apellido = firebaseUser.displayName.split(" ").getOrNull(1) ?: "Ejemplo",
-                    rut = "12345678-9", // Se puede obtener de Firestore
+                    rut = firebaseUser.rut.ifEmpty { "No registrado" }, // Obtener RUT de Firestore
                     telefono = firebaseUser.phoneNumber,
-                    email = firebaseUser.email
+                    email = firebaseUser.email,
+                    direccion = firebaseUser.address // Obtener dirección de Firestore
                 )
                 currentUser = localUser
                 currentScreen = "home"
@@ -484,15 +494,76 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     id = firebaseUser.id,
                     nombre = firebaseUser.displayName.split(" ").getOrNull(0) ?: "Usuario",
                     apellido = firebaseUser.displayName.split(" ").getOrNull(1) ?: "Ejemplo",
-                    rut = "12345678-9", // Se puede obtener de Firestore
+                    rut = firebaseUser.rut.ifEmpty { "No registrado" }, // Obtener RUT de Firestore
                     telefono = firebaseUser.phoneNumber,
-                    email = firebaseUser.email
+                    email = firebaseUser.email,
+                    direccion = firebaseUser.address // Obtener dirección de Firestore
                 )
                 currentUser = localUser
                 println("MainActivity: Usuario sincronizado con roles válidos: ${userRoles}")
             } else {
                 println("MainActivity: Usuario sin roles válidos, no se sincroniza: ${userRoles}")
                 currentUser = null
+            }
+        }
+    }
+
+    // Manejar el botón de atrás del dispositivo en todas las pantallas
+    // Siempre habilitado excepto cuando estamos cargando
+    BackHandler(enabled = currentScreen != "loading" && !isCheckingAuth) {
+        // Primero verificar si hay alguna pantalla de perfil activa
+        val hasProfileScreenActive = showUserProfile || showMyData || showMyOrders || showMyBankDetails || 
+            showHelpAndContact || showWorkerOrders || showInventory || 
+            showWorkerCustomers || showWorkerProducts || showAddProduct || 
+            showEditProduct || showWorkerNotifications || showWorkerReports || 
+            showWorkerSchedule || showWorkerTeam || showWorkerSettings || 
+            showWorkerHelp || showWorkerDevolutionDinero
+        
+        android.util.Log.d("BackHandler", "Back button pressed - currentScreen: $currentScreen, hasProfileScreenActive: $hasProfileScreenActive")
+        
+        // Usar remember para capturar el estado actual
+        val currentScreenValue = currentScreen
+        
+        when {
+            // Pantallas de perfil - usar handleBackNavigation
+            hasProfileScreenActive -> {
+                android.util.Log.d("BackHandler", "Navigating back from profile screen")
+                handleBackNavigation()
+            }
+            // Pantallas principales
+            currentScreenValue == "payment" -> {
+                android.util.Log.d("BackHandler", "Navigating from payment to cart")
+                currentScreen = "cart"
+            }
+            currentScreenValue == "cart" -> {
+                android.util.Log.d("BackHandler", "Navigating from cart to home")
+                currentScreen = "home"
+            }
+            currentScreenValue == "register" -> {
+                android.util.Log.d("BackHandler", "Navigating from register to auth")
+                currentScreen = "auth"
+            }
+            currentScreenValue == "accessibility" -> {
+                android.util.Log.d("BackHandler", "Navigating from accessibility to home")
+                currentScreen = "home"
+            }
+            currentScreenValue == "home" -> {
+                android.util.Log.d("BackHandler", "On home screen - consuming back event")
+                // Si estamos en home, no hacer nada (el BackHandler consume el evento)
+                // Esto previene que la app se cierre
+            }
+            currentScreenValue == "auth" -> {
+                android.util.Log.d("BackHandler", "On auth screen - consuming back event")
+                // Si estamos en auth, no hacer nada (el BackHandler consume el evento)
+                // Esto previene que la app se cierre
+            }
+            else -> {
+                android.util.Log.d("BackHandler", "Unknown screen: $currentScreenValue - falling back to home")
+                // Si no hay ningún caso específico, intentar volver a home
+                // Esto es un fallback para cualquier pantalla no contemplada
+                if (currentScreenValue != "home" && currentScreenValue != "auth") {
+                    currentScreen = "home"
+                }
             }
         }
     }
@@ -676,6 +747,8 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     displayName = "${user.nombre} ${user.apellido}",
                     photoUrl = "",
                     phoneNumber = user.telefono,
+                    rut = user.rut,
+                    address = user.direccion,
                     isEmailVerified = true,
                     isActive = true
                 )
@@ -687,6 +760,8 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     displayName = "Usuario Invitado",
                     photoUrl = "",
                     phoneNumber = "",
+                    rut = "",
+                    address = "",
                     isEmailVerified = false,
                     isActive = true
                 )
@@ -773,7 +848,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                 currentScreen = "register"
             },
             onGuestLogin = {
-                currentUser = User("guest", "Invitado", "Invitado", "", "", "")
+                currentUser = User("guest", "Invitado", "Invitado", "", "", "", "")
                 currentScreen = "home"
             }
         )
@@ -1028,11 +1103,17 @@ fun AuthScreen(
     var forgotPasswordEmail by remember { mutableStateOf("") }
     var forgotPasswordMessage by remember { mutableStateOf<String?>(null) }
     var forgotPasswordError by remember { mutableStateOf(false) }
+    
+    val emailFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    val passwordFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .imePadding() // Ajusta el contenido cuando aparece el teclado
             .padding(17.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -1065,13 +1146,23 @@ fun AuthScreen(
                     tint = FutronoCafe
                 )
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(emailFocusRequester)
+                .bringIntoViewRequester(bringIntoViewRequester),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = FutronoCafe,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline
             ),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Email,
+                imeAction = ImeAction.Next
+            ),
+            keyboardActions = KeyboardActions(
+                onNext = { passwordFocusRequester.requestFocus() }
+            ),
+            singleLine = true
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -1098,12 +1189,49 @@ fun AuthScreen(
                 }
             },
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(passwordFocusRequester)
+                .bringIntoViewRequester(bringIntoViewRequester),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = FutronoCafeOscuro,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline
-            )
+            ),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    keyboardController?.hide()
+                    // Intentar iniciar sesión cuando se presiona "Done"
+                    if (email.isNotEmpty() && password.isNotEmpty()) {
+                        authViewModel.signInUser(
+                            email = email,
+                            password = password,
+                            onSuccess = { firebaseUser ->
+                                val localUser = User(
+                                    id = firebaseUser.id,
+                                    nombre = firebaseUser.displayName.split(" ").getOrNull(0) ?: "Usuario",
+                                    apellido = firebaseUser.displayName.split(" ").getOrNull(1) ?: "Ejemplo",
+                                    rut = firebaseUser.rut.ifEmpty { "No registrado" },
+                                    telefono = firebaseUser.phoneNumber ?: "",
+                                    email = firebaseUser.email ?: "",
+                                    direccion = firebaseUser.address.ifEmpty { "" }
+                                )
+                                onLoginSuccess(localUser)
+                            },
+                            onError = {
+                                showError = true
+                            }
+                        )
+                    } else {
+                        showError = true
+                    }
+                }
+            ),
+            singleLine = true
         )
 
         if (showError) {
@@ -1135,9 +1263,10 @@ fun AuthScreen(
                                 id = firebaseUser.id,
                                 nombre = firebaseUser.displayName.split(" ").getOrNull(0) ?: "Usuario",
                                 apellido = firebaseUser.displayName.split(" ").getOrNull(1) ?: "Ejemplo",
-                                rut = "12345678-9", // Se puede obtener de Firestore
+                                rut = firebaseUser.rut.ifEmpty { "No registrado" }, // Obtener RUT de Firestore
                                 telefono = firebaseUser.phoneNumber,
-                                email = firebaseUser.email
+                                email = firebaseUser.email,
+                                direccion = firebaseUser.address // Obtener dirección de Firestore
                             )
                             onLoginSuccess(localUser)
                         },
@@ -1343,6 +1472,7 @@ fun RegisterScreen(
     var apellido by remember { mutableStateOf("") }
     var rut by remember { mutableStateOf("") }
     var telefono by remember { mutableStateOf("") }
+    var direccion by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var confirmEmail by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -1352,6 +1482,20 @@ fun RegisterScreen(
     var showError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+    
+    // Focus requesters para navegar entre campos
+    val nombreFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    val apellidoFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    val rutFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    val telefonoFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    val direccionFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    val emailFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    val confirmEmailFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    val passwordFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    val confirmPasswordFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
 
     Column(
         modifier = Modifier
@@ -1385,6 +1529,7 @@ fun RegisterScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
+                .imePadding() // Ajusta el contenido cuando aparece el teclado
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -1404,12 +1549,23 @@ fun RegisterScreen(
                     value = nombre,
                     onValueChange = { nombre = it },
                     label = { Text("Nombre") },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(nombreFocusRequester)
+                        .bringIntoViewRequester(bringIntoViewRequester),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = FutronoCafe,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
+                    ),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { apellidoFocusRequester.requestFocus() }
+                    ),
+                    singleLine = true
                 )
             }
 
@@ -1419,12 +1575,23 @@ fun RegisterScreen(
                     value = apellido,
                     onValueChange = { apellido = it },
                     label = { Text("Apellido") },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(apellidoFocusRequester)
+                        .bringIntoViewRequester(bringIntoViewRequester),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = FutronoCafe,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
+                    ),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { rutFocusRequester.requestFocus() }
+                    ),
+                    singleLine = true
                 )
             }
 
@@ -1436,12 +1603,23 @@ fun RegisterScreen(
                     label = { Text("RUT") },
                     placeholder = { Text("12345678-9") },
                     supportingText = { Text("Formato: 12345678-9 o 12.345.678-9") },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(rutFocusRequester)
+                        .bringIntoViewRequester(bringIntoViewRequester),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = FutronoCafe,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
+                    ),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { telefonoFocusRequester.requestFocus() }
+                    ),
+                    singleLine = true
                 )
             }
 
@@ -1462,13 +1640,57 @@ fun RegisterScreen(
                     label = { Text("Teléfono Móvil") },
                     placeholder = { Text("+56912345678") },
                     supportingText = { Text("Solo móviles: +569XXXXXXXX") },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(telefonoFocusRequester)
+                        .bringIntoViewRequester(bringIntoViewRequester),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = FutronoCafe,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline
                     ),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Phone,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { direccionFocusRequester.requestFocus() }
+                    ),
+                    singleLine = true
+                )
+            }
+
+            item {
+                // Campo Dirección
+                OutlinedTextField(
+                    value = direccion,
+                    onValueChange = { direccion = it },
+                    label = { Text("Dirección") },
+                    placeholder = { Text("Calle, número, comuna, región") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.HomeWork,
+                            contentDescription = "Dirección",
+                            tint = FutronoCafe
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(direccionFocusRequester)
+                        .bringIntoViewRequester(bringIntoViewRequester),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = FutronoCafe,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    ),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { emailFocusRequester.requestFocus() }
+                    ),
+                    singleLine = true
                 )
             }
 
@@ -1485,13 +1707,23 @@ fun RegisterScreen(
                             tint = FutronoCafe
                         )
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(emailFocusRequester)
+                        .bringIntoViewRequester(bringIntoViewRequester),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = FutronoCafe,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline
                     ),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { confirmEmailFocusRequester.requestFocus() }
+                    ),
+                    singleLine = true
                 )
             }
 
@@ -1508,13 +1740,23 @@ fun RegisterScreen(
                             tint = FutronoCafe
                         )
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(confirmEmailFocusRequester)
+                        .bringIntoViewRequester(bringIntoViewRequester),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = FutronoCafe,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline
                     ),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { passwordFocusRequester.requestFocus() }
+                    ),
+                    singleLine = true
                 )
             }
 
@@ -1541,12 +1783,23 @@ fun RegisterScreen(
                         }
                     },
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(passwordFocusRequester)
+                        .bringIntoViewRequester(bringIntoViewRequester),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = FutronoCafe,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
+                    ),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { confirmPasswordFocusRequester.requestFocus() }
+                    ),
+                    singleLine = true
                 )
             }
 
@@ -1573,12 +1826,57 @@ fun RegisterScreen(
                         }
                     },
                     visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(confirmPasswordFocusRequester)
+                        .bringIntoViewRequester(bringIntoViewRequester),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = FutronoCafe,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
+                    ),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            keyboardController?.hide()
+                            // Intentar registrar cuando se presiona "Done"
+                            val errorType = ValidationHelper.validateFormWithError(nombre, apellido, rut, telefono, email, confirmEmail, password, confirmPassword)
+                            if (errorType == null) {
+                                val displayName = "$nombre $apellido"
+                                authViewModel.registerUser(
+                                    email = email,
+                                    password = password,
+                                    displayName = displayName,
+                                    phoneNumber = telefono,
+                                    rut = rut,
+                                    address = direccion,
+                                    onSuccess = { firebaseUser ->
+                                        val localUser = User(
+                                            id = firebaseUser.id,
+                                            nombre = nombre,
+                                            apellido = apellido,
+                                            rut = firebaseUser.rut.ifEmpty { rut },
+                                            telefono = telefono,
+                                            email = email,
+                                            direccion = firebaseUser.address.ifEmpty { direccion }
+                                        )
+                                        onRegisterSuccess(localUser)
+                                    },
+                                    onError = { error ->
+                                        showError = true
+                                        errorMessage = error
+                                    }
+                                )
+                            } else {
+                                showError = true
+                                errorMessage = Validators.obtenerMensajeError(errorType ?: TipoError.CAMPO_OBLIGATORIO)
+                            }
+                        }
+                    ),
+                    singleLine = true
                 )
             }
 
@@ -1606,15 +1904,18 @@ fun RegisterScreen(
                                 password = password,
                                 displayName = displayName,
                                 phoneNumber = telefono,
+                                rut = rut,
+                                address = direccion,
                                 onSuccess = { firebaseUser ->
                                     // Crear usuario local para compatibilidad
                                     val localUser = User(
                                         id = firebaseUser.id,
                                         nombre = nombre,
                                         apellido = apellido,
-                                        rut = rut,
+                                        rut = firebaseUser.rut.ifEmpty { rut }, // Usar RUT de Firebase, si está vacío usar el del formulario
                                         telefono = telefono,
-                                        email = email
+                                        email = email,
+                                        direccion = firebaseUser.address.ifEmpty { direccion } // Usar dirección de Firebase, si está vacía usar la del formulario
                                     )
                                     onRegisterSuccess(localUser)
                                 },

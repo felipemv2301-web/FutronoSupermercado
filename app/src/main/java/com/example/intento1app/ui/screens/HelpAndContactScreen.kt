@@ -43,7 +43,7 @@ fun HelpAndContactScreen(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
-                        color = FutronoFondo
+                        color = FutronoBlanco
                     )
                 },
                 navigationIcon = {
@@ -66,7 +66,7 @@ fun HelpAndContactScreen(
             Column(
                 modifier = modifier
                     .fillMaxSize()
-                    .background(FutronoBlanco)
+                    .background(FutronoFondo)
                     .padding(paddingValues)
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,

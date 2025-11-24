@@ -3,6 +3,8 @@ package com.example.intento1app.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
@@ -12,7 +14,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -102,6 +111,7 @@ fun PaymentScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
+                .imePadding() // Ajusta el contenido cuando aparece el teclado
                 .padding(paddingValues)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -145,6 +155,7 @@ fun PaymentScreen(
                                     .putString("user_name", guestName)
                                     .putString("user_email", "")
                                     .putString("user_phone", guestPhone)
+                                    .putString("user_address", "")
                                     .apply()
                                 showGuestForm = false
                             }
@@ -472,6 +483,10 @@ private fun GuestInfoForm(
     onPhoneChange: (String) -> Unit,
     onContinue: () -> Unit
 ) {
+    val nameFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    val phoneFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp)
@@ -497,8 +512,18 @@ private fun GuestInfoForm(
                 value = guestName,
                 onValueChange = onNameChange,
                 label = { Text("Nombre completo") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(nameFocusRequester)
+                    .bringIntoViewRequester(bringIntoViewRequester),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { phoneFocusRequester.requestFocus() }
+                )
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -508,14 +533,27 @@ private fun GuestInfoForm(
                 onValueChange = onPhoneChange,
                 label = { Text("Teléfono") },
                 placeholder = { Text("+56912345678 o 912345678") },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(phoneFocusRequester)
+                    .bringIntoViewRequester(bringIntoViewRequester),
                 singleLine = true,
                 isError = phoneError.isNotEmpty(),
                 supportingText = if (phoneError.isNotEmpty()) {
                     { Text(phoneError, color = MaterialTheme.colorScheme.error) }
                 } else {
                     { Text("Formato: +56912345678, 56912345678 o 912345678") }
-                }
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Phone,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        keyboardController?.hide()
+                        onContinue()
+                    }
+                )
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -612,6 +650,7 @@ private fun saveUserInfoToSharedPreferences(
             .putString("user_name", "")
             .putString("user_email", "")
             .putString("user_phone", "")
+            .putString("user_address", "")
             .apply()
     }
 }

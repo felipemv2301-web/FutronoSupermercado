@@ -49,7 +49,8 @@ class EmailJSService {
         shipping: Double,
         totalItems: Int,
         cartItems: List<CartItem>,
-        paymentId: String
+        paymentId: String,
+        userAddress: String = ""
     ): Result<Unit> = withContext(Dispatchers.IO) {
         return@withContext try {
             // Verificar que la configuración esté completa
@@ -61,6 +62,7 @@ class EmailJSService {
             Log.d("EmailJSService", "=== INICIANDO ENVÍO DE EMAIL ===")
             Log.d("EmailJSService", "Destinatario: $userEmail")
             Log.d("EmailJSService", "Orden: $orderNumber")
+            Log.d("EmailJSService", "Dirección del usuario: ${if (userAddress.isNotEmpty()) userAddress else "No especificada"}")
             
             // Formatear fecha
             val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("es", "CL"))
@@ -102,6 +104,10 @@ class EmailJSService {
                     put("shipping", formatPrice(shipping))
                 }
                 put("total_price", formatPrice(totalPrice))
+                // Agregar dirección del usuario
+                if (userAddress.isNotEmpty()) {
+                    put("user_address", userAddress)
+                }
                 // Agregar el array de items directamente
                 put("items", itemsArray)
             }

@@ -29,7 +29,7 @@ class FirebaseService {
     /**
      * Registra un nuevo usuario
      */
-    suspend fun registerUser(email: String, password: String, displayName: String, phoneNumber: String = ""): Result<FirebaseUser> {
+    suspend fun registerUser(email: String, password: String, displayName: String, phoneNumber: String = "", rut: String = "", address: String = ""): Result<FirebaseUser> {
         return try {
             val authResult = auth.createUserWithEmailAndPassword(email, password).await()
             val user = authResult.user!!
@@ -47,6 +47,8 @@ class FirebaseService {
                 displayName = user.displayName ?: displayName,
                 photoUrl = user.photoUrl?.toString() ?: "",
                 phoneNumber = phoneNumber, // Usar el phoneNumber pasado como parámetro
+                rut = rut, // Usar el RUT pasado como parámetro
+                address = address, // Usar la dirección pasada como parámetro
                 isEmailVerified = user.isEmailVerified,
                 isActive = true,
                 roles = listOf("cliente") // Rol por defecto para nuevos usuarios
@@ -57,6 +59,8 @@ class FirebaseService {
             
             println(" FirebaseService: Usuario registrado en Firebase: ${firebaseUser.email}")
             println(" FirebaseService: Teléfono guardado: ${firebaseUser.phoneNumber}")
+            println(" FirebaseService: RUT guardado: ${firebaseUser.rut}")
+            println(" FirebaseService: Dirección guardada: ${firebaseUser.address}")
             Result.success(firebaseUser)
         } catch (e: Exception) {
             println(" FirebaseService: Error al registrar usuario: ${e.message}")
@@ -405,6 +409,7 @@ class FirebaseService {
         userName: String,
         userEmail: String,
         userPhone: String,
+        userAddress: String = "",
         cartItems: List<com.example.intento1app.data.models.CartItem>
     ): Result<Pair<String, String>> { // Retorna (docId, trackingNumber)
         return try {
@@ -414,6 +419,7 @@ class FirebaseService {
             android.util.Log.d("FirebaseService", "UserName: $userName")
             android.util.Log.d("FirebaseService", "UserEmail: $userEmail")
             android.util.Log.d("FirebaseService", "UserPhone: $userPhone")
+            android.util.Log.d("FirebaseService", "UserAddress: $userAddress")
             android.util.Log.d("FirebaseService", "CartItems count: ${cartItems.size}")
             
             val trackingNumber = generateTrackingNumber()
@@ -443,6 +449,7 @@ class FirebaseService {
                 userEmail = userEmail,
                 userName = userName,
                 userPhone = userPhone,
+                userAddress = userAddress, // Dirección del usuario
                 items = firebaseItems,
                 subtotal = subtotal,
                 iva = iva,
@@ -524,7 +531,8 @@ class FirebaseService {
                         shipping = shipping,
                         totalItems = totalItems,
                         cartItems = cartItems,
-                        paymentId = paymentId
+                        paymentId = paymentId,
+                        userAddress = userAddress // Dirección del usuario
                     )
                     
                     result.onSuccess {

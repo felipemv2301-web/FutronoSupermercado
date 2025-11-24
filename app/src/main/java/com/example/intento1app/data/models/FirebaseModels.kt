@@ -224,3 +224,20 @@ data class FirebaseAppConfig(
     // @ServerTimestamp // Comentado temporalmente
     val updatedAt: String? = null // Cambiado a String para simulación
 )
+
+// Reclamo de pedido
+data class FirebaseClaim(
+    @DocumentId
+    val id: String = "",
+    val orderNumber: String = "", // N° de orden
+    val problem: String = "", // Problema
+    val phoneNumber: String = "", // Número de teléfono
+    val observation: String = "", // Observación
+    val userId: String = "", // ID del usuario que hace el reclamo
+    val userEmail: String = "", // Email del usuario
+    val status: List<String> = listOf("Reclamo pendiente"), // Array de estados
+    @ServerTimestamp
+    val createdAt: Timestamp? = null,
+    @ServerTimestamp
+    val updatedAt: Timestamp? = null
+)

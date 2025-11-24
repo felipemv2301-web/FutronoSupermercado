@@ -92,7 +92,9 @@ import com.example.intento1app.ui.screens.MyOrdersScreen
 import com.example.intento1app.ui.screens.SolicitudSoporte
 import com.example.intento1app.ui.screens.MyDataScreen
 import com.example.intento1app.ui.screens.MyBankDetailsScreen
-import com.example.intento1app.ui.screens.HelpAndContactScreen
+import com.example.intento1app.ui.screens.HelpAndContac
+import com.example.intento1app.ui.screens.SolicitudSoporte
+import com.example.intento1app.ui.screens.WorkerOrdersScreen
 import com.example.intento1app.ui.screens.WorkerHomeScreen
 import com.example.intento1app.ui.screens.InventoryScreen
 import com.example.intento1app.ui.screens.WorkerCustomersScreen
@@ -598,6 +600,11 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
             HelpAndContactScreen(
                 onBackClick = {
                     handleBackNavigation()
+                },
+                onClaimClick = {
+                    navigateTo("myDevolution")
+                    showHelpAndContact = false
+                    showWorkerDevolutionDinero = true
                 }
             )
         }
@@ -727,12 +734,15 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                 }
             )
         }
-
         showWorkerDevolutionDinero -> {
             SolicitudSoporte(
+                currentUser = currentUser,
                 onBackClick = {
-                    handleBackNavigation() },
-                Onclick = { /* Lógica futura */ }
+                    handleBackNavigation()
+                },
+                onSuccess = {
+                    // Opcional: mostrar mensaje de éxito o actualizar UI
+                }
             )
         }
         showMyData && currentUser != null -> {

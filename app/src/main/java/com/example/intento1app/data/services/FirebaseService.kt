@@ -1236,8 +1236,69 @@ class FirebaseService {
         }
     }
     
+    // ==================== RECLAMOS ====================
+    
     /**
-     * Obtiene las órdenes de un cliente específico para calcular actividad
+     * Guarda un reclamo de pedido en la colección 'claims'
+     */
+    suspend fun saveClaim(claim: FirebaseClaim): Result<String> {
+        return try {
+            println(" FirebaseService: Guardando reclamo para orden: ${claim.orderNumber}")
+            
+            val docRef = firestore.collection("claims").add(claim).await()
+            
+            println(" FirebaseService: Reclamo guardado exitosamente con ID: ${docRef.id}")
+            Result.success(docRef.id)
+        } catch (e: Exception) {
+            println(" FirebaseService: Error al guardar reclamo: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Obtiene todos los reclamos de un usuario
+     */
+    suspend fun getUserClaims(userId: String): Result<List<FirebaseClaim>> {
+        return try {
+            // Intentar con orderBy, si falla por falta de índice, obtener sin orderBy
+            val snapshot = try {
+                firestore.collection("claims")
+                    .whereEqualTo("userId", userId)
+                    .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                    .get()
+                    .await()
+            } catch (e: com.google.firebase.firestore.FirebaseFirestoreException) {
+                if (e.code == com.google.firebase.firestore.FirebaseFirestoreException.Code.FAILED_PRECONDITION) {
+                    println(" FirebaseService: Índice no encontrado, obteniendo reclamos sin orderBy...")
+                    // Si falta el índice, obtener sin orderBy y ordenar en memoria
+                    firestore.collection("claims")
+                        .whereEqualTo("userId", userId)
+                        .get()
+                        .await()
+                } else {
+                    throw e
+                }
+            }
+            
+            val claims = snapshot.documents.mapNotNull { doc ->
+                doc.toObject<FirebaseClaim>()?.copy(id = doc.id)
+            }.sortedByDescending { claim ->
+                // Ordenar por fecha en memoria si no se pudo hacer en la consulta
+                claim.createdAt?.toDate()?.time ?: 0L
+            }
+            
+            println(" FirebaseService: Reclamos obtenidos: ${claims.size} para usuario $userId")
+            Result.success(claims)
+        } catch (e: Exception) {
+            println(" FirebaseService: Error al obtener reclamos: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Obtiene todas las órdenes de un cliente específico para calcular actividad
      */
     suspend fun getClientOrders(userId: String, daysBack: Int = 30): Result<List<FirebasePurchase>> {
         return try {

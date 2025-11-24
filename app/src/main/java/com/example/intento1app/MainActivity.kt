@@ -55,6 +55,7 @@ import com.example.intento1app.ui.theme.FutronoFondo
 import com.example.intento1app.ui.theme.FutronoCafeOscuro
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material.icons.filled.AccessibilityNew
 import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.ImageNotSupported
 import androidx.compose.material.icons.filled.Search
@@ -746,10 +747,6 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     navigateTo("myData")
                     showUserProfile = false
                     showMyData = true
-                },
-                onPaymentMethodsClick = {
-                    // TODO: Implementar pantalla de medios de pago
-                    println("Medios de pago - No implementado aún")
                 },
                 onMyBankDetailsClick = {
                     navigateTo("myBankDetails")

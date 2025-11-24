@@ -34,8 +34,6 @@ fun UserProfileScreen(
     onLogout: () -> Unit,
     onAccessibilityClick: () -> Unit,
     onMyDataClick: () -> Unit = {},
-    onPaymentMethodsClick: () -> Unit = {},
-    onBankDataClick: () -> Unit = {},
     onMyBankDetailsClick: () -> Unit = {},
     onDeleteAccountClick: () -> Unit = {},
     onMyOrdersClick: () -> Unit = {},
@@ -105,13 +103,6 @@ fun UserProfileScreen(
                 iconVector = Icons.Default.Person,
                 title = "Mis datos",
                 onClick = onMyDataClick
-            )
-            
-            // Mis medios de pago
-            ProfileOptionCard(
-                iconVector = Icons.Default.CreditCard,
-                title = "Mis medios de pago",
-                onClick = onPaymentMethodsClick
             )
             
             // Mis datos bancarios

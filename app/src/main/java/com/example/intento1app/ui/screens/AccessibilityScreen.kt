@@ -6,14 +6,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.intento1app.ui.components.*
@@ -28,12 +30,12 @@ fun AccessibilityScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    
+
     // Inicializar accesibilidad
     LaunchedEffect(Unit) {
         accessibilityViewModel.initializeAccessibility(context)
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -72,7 +74,7 @@ fun AccessibilityScreen(
             ) {
                 TextSizeControls(accessibilityViewModel)
             }
-            
+
             // Sección de alto contraste
             AccessibilitySection(
                 title = "Alto Contraste",
@@ -80,7 +82,7 @@ fun AccessibilityScreen(
             ) {
                 HighContrastToggle(accessibilityViewModel)
             }
-            
+
             // Sección de lector de pantalla
             AccessibilitySection(
                 title = "Lector de Pantalla",
@@ -88,7 +90,7 @@ fun AccessibilityScreen(
             ) {
                 ScreenReaderToggle(accessibilityViewModel)
             }
-            
+
             // Sección de prueba para verificar que la tipografía escalable esté funcionando
             AccessibilitySection(
                 title = "Prueba de Tipografía Escalable",
@@ -98,7 +100,7 @@ fun AccessibilityScreen(
                     text = "Texto de prueba que debería escalar: ${(accessibilityViewModel.textScaleFactor * 100).toInt()}%",
                     modifier = Modifier.padding(16.dp)
                 )
-                
+
                 // Prueba adicional con MaterialTheme.typography
                 Text(
                     text = "Texto con MaterialTheme: ${(accessibilityViewModel.textScaleFactor * 100).toInt()}%",
@@ -106,7 +108,7 @@ fun AccessibilityScreen(
                     modifier = Modifier.padding(16.dp)
                 )
             }
-            
+
             // Sección de información
             AccessibilitySection(
                 title = "Información de Accesibilidad",
@@ -114,7 +116,7 @@ fun AccessibilityScreen(
             ) {
                 AccessibilityInfo()
             }
-            
+
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
@@ -132,7 +134,7 @@ private fun AccessibilitySection(
             .padding(16.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = FutronoSuperficie
+            containerColor = FutronoBlanco
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 4.dp
@@ -146,13 +148,13 @@ private fun AccessibilitySection(
                 color = FutronoCafeOscuro,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
-            
+
             ScalableBodyMedium(
                 text = description,
                 color = FutronoCafeOscuro.copy(alpha = 0.7f),
                 modifier = Modifier.padding(bottom = 16.dp)
             )
-            
+
             content()
         }
     }
@@ -161,7 +163,7 @@ private fun AccessibilitySection(
 @Composable
 private fun TextSizeControls(accessibilityViewModel: AccessibilityViewModel) {
     val context = LocalContext.current
-    
+
     Column {
         // Indicador del tamaño actual
         Card(
@@ -169,7 +171,7 @@ private fun TextSizeControls(accessibilityViewModel: AccessibilityViewModel) {
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
             colors = CardDefaults.cardColors(
-                containerColor = FutronoNaranjaClaro
+                containerColor = FutronoFondo
             ),
             shape = RoundedCornerShape(8.dp)
         ) {
@@ -184,52 +186,55 @@ private fun TextSizeControls(accessibilityViewModel: AccessibilityViewModel) {
                     text = "Tamaño actual:",
                     color = FutronoCafeOscuro
                 )
-                
+
                 ScalableTitleMedium(
                     text = "${(accessibilityViewModel.textScaleFactor * 100).toInt()}%",
                     color = FutronoCafeOscuro
                 )
             }
         }
-        
+
         // Botones de control
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-                         AccessibilityButton(
-                 icon = null,
-                 label = "A-",
-                 description = "Disminuir tamaño de texto",
-                 backgroundColor = FutronoCafe,
-                 onClick = { accessibilityViewModel.decreaseTextSize(context) },
-                 modifier = Modifier.weight(1f)
-             )
-            
+            AccessibilityButton(
+                icon = null,
+                label = "A-",
+                description = "Disminuir tamaño de texto",
+                backgroundColor = FutronoCafe,
+                textColor = FutronoBlanco, // Color corregido
+                onClick = { accessibilityViewModel.decreaseTextSize(context) },
+                modifier = Modifier.weight(1f)
+            )
+
             Spacer(modifier = Modifier.width(8.dp))
-            
-                                                         AccessibilityButton(
-                     icon = null,
-                     label = "A",
-                     description = "Restablecer tamaño de texto",
-                     backgroundColor = FutronoNaranja,
-                     onClick = { accessibilityViewModel.resetTextSize(context) },
-                     modifier = Modifier.weight(1f)
-                 )
-            
+
+            AccessibilityButton(
+                icon = null,
+                label = "A",
+                description = "Restablecer tamaño de texto",
+                backgroundColor = FutronoNaranja,
+                textColor = FutronoBlanco, // Color corregido
+                onClick = { accessibilityViewModel.resetTextSize(context) },
+                modifier = Modifier.weight(1f)
+            )
+
             Spacer(modifier = Modifier.width(8.dp))
-            
-                         AccessibilityButton(
-                 icon = null,
-                 label = "A+",
-                 description = "Aumentar tamaño de texto",
-                 backgroundColor = FutronoCafe,
-                 onClick = { accessibilityViewModel.increaseTextSize(context) },
-                 modifier = Modifier.weight(1f)
-             )
+
+            AccessibilityButton(
+                icon = null,
+                label = "A+",
+                description = "Aumentar tamaño de texto",
+                backgroundColor = FutronoCafe,
+                textColor = FutronoBlanco, // Color corregido
+                onClick = { accessibilityViewModel.increaseTextSize(context) },
+                modifier = Modifier.weight(1f)
+            )
         }
-        
+
         // Información adicional
         ScalableBodySmall(
             text = "Los cambios se aplican inmediatamente a toda la aplicación",
@@ -242,7 +247,7 @@ private fun TextSizeControls(accessibilityViewModel: AccessibilityViewModel) {
 @Composable
 private fun HighContrastToggle(accessibilityViewModel: AccessibilityViewModel) {
     val context = LocalContext.current
-    
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -260,7 +265,7 @@ private fun HighContrastToggle(accessibilityViewModel: AccessibilityViewModel) {
                 color = FutronoCafeOscuro.copy(alpha = 0.6f)
             )
         }
-        
+
         Switch(
             checked = accessibilityViewModel.isHighContrastEnabled,
             onCheckedChange = { accessibilityViewModel.toggleHighContrast(context) },
@@ -277,7 +282,7 @@ private fun HighContrastToggle(accessibilityViewModel: AccessibilityViewModel) {
 @Composable
 private fun ScreenReaderToggle(accessibilityViewModel: AccessibilityViewModel) {
     val context = LocalContext.current
-    
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -295,7 +300,7 @@ private fun ScreenReaderToggle(accessibilityViewModel: AccessibilityViewModel) {
                 color = FutronoCafeOscuro.copy(alpha = 0.6f)
             )
         }
-        
+
         Switch(
             checked = accessibilityViewModel.isScreenReaderEnabled,
             onCheckedChange = { accessibilityViewModel.toggleScreenReader(context) },
@@ -317,7 +322,7 @@ private fun AccessibilityInfo() {
             color = FutronoCafeOscuro,
             modifier = Modifier.padding(bottom = 8.dp)
         )
-        
+
         val features = listOf(
             "• Ajuste de tamaño de texto (80% - 140%)",
             "• Modo de alto contraste",
@@ -326,7 +331,7 @@ private fun AccessibilityInfo() {
             "• Botones de tamaño adecuado para interacción táctil",
             "• Descripciones de contenido para tecnologías asistivas"
         )
-        
+
         features.forEach { feature ->
             ScalableBodySmall(
                 text = feature,
@@ -334,13 +339,60 @@ private fun AccessibilityInfo() {
                 modifier = Modifier.padding(vertical = 2.dp)
             )
         }
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         ScalableBodySmall(
             text = "Esta aplicación cumple con las recomendaciones de accesibilidad universal y Material Design para garantizar una experiencia inclusiva para todos los usuarios.",
             color = FutronoCafeOscuro.copy(alpha = 0.6f),
             modifier = Modifier.padding(top = 8.dp)
         )
+    }
+}
+
+/**
+ * Componente del Botón de Accesibilidad Actualizado.
+ * Si tienes este componente en un archivo separado, actualízalo allí.
+ */
+@Composable
+fun AccessibilityButton(
+    icon: ImageVector?,
+    label: String,
+    description: String,
+    backgroundColor: Color,
+    textColor: Color = Color.White, // Nuevo parámetro para controlar el color del texto
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = backgroundColor,
+            contentColor = textColor // Aplica el color al contenido (icono y texto)
+        ),
+        shape = RoundedCornerShape(8.dp),
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp),
+        modifier = modifier
+            .semantics { contentDescription = description } // Accesibilidad
+    ) {
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp)
+            )
+            // Solo agregamos espacio si hay un label además del ícono
+            if (label.isNotEmpty()) {
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+        }
+
+        if (label.isNotEmpty()) {
+            Text(
+                text = label,
+                fontWeight = FontWeight.Bold,
+                color = textColor // Asegura el color explícito
+            )
+        }
     }
 }

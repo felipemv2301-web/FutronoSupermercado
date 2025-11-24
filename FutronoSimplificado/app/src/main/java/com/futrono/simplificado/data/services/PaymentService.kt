@@ -6,6 +6,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 
@@ -18,16 +19,32 @@ class PaymentService {
     
     suspend fun createPreference(cartItems: List<CartItem>): Result<PaymentResponse> = withContext(Dispatchers.IO) {
         try {
-            val items = cartItems.map { item ->
-                JSONObject().apply {
+            val itemsArray = org.json.JSONArray()
+            
+            // Agregar items del carrito
+            // MercadoPago requiere unit_price como entero (sin decimales para CLP)
+            cartItems.forEach { item ->
+                itemsArray.put(JSONObject().apply {
                     put("title", item.product.name)
                     put("quantity", item.quantity)
-                    put("unit_price", item.product.price)
-                }
+                    put("unit_price", kotlin.math.round(item.product.price).toInt()) // Redondear y convertir a entero
+                })
             }
             
+            // Calcular subtotal e IVA
+            val subtotal = cartItems.sumOf { it.totalPrice }
+            val iva = subtotal * 0.19 // 19% IVA
+            
+            // Agregar el IVA como un item adicional
+            // Convertir a entero redondeando
+            itemsArray.put(JSONObject().apply {
+                put("title", "IVA (19%)")
+                put("quantity", 1)
+                put("unit_price", kotlin.math.round(iva).toInt()) // Redondear y convertir a entero
+            })
+            
             val requestBody = JSONObject().apply {
-                put("items", org.json.JSONArray(items.map { it.toString() }))
+                put("items", itemsArray)
                 put("auto_return", "approved")
             }.toString()
             

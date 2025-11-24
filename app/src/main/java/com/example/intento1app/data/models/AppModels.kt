@@ -26,7 +26,8 @@ data class User(
     val apellido: String,
     val rut: String,
     val telefono: String,
-    val email: String
+    val email: String,
+    val direccion: String = "" // Dirección del usuario
 )
 
 data class ProductFirestore(

@@ -86,7 +86,7 @@ fun MyBankDetailsScreen(
                 title = {
                     Text(
                         text = "Mis datos bancarios",
-                        style = MaterialTheme.typography.titleLarge.copy(
+                        style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
                         color = FutronoBlanco

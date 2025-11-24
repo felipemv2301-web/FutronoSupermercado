@@ -124,7 +124,47 @@ fun PaymentScreen(
                             Spacer(modifier = Modifier.height(4.dp))
                         }
                         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                        val total = cartItems.sumOf { it.totalPrice }
+                        
+                        // Calcular subtotal, IVA y total
+                        val subtotal = cartItems.sumOf { it.totalPrice }
+                        val iva = subtotal * 0.19 // 19% IVA
+                        val total = subtotal + iva
+                        
+                        // Subtotal
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                "Subtotal",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                "$${String.format("%,.0f", subtotal).replace(",", ".")}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        
+                        // IVA
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                "IVA (19%)",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                "$${String.format("%,.0f", iva).replace(",", ".")}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        HorizontalDivider()
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // Total
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween

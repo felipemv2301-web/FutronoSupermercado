@@ -32,6 +32,8 @@ import com.example.intento1app.ui.theme.AccessibleFutronoTheme
 import com.example.intento1app.viewmodel.AccessibilityViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import android.content.SharedPreferences
+import com.example.intento1app.ui.theme.FutronoBlanco
+import com.example.intento1app.ui.theme.FutronoCafe
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.launch
@@ -212,7 +214,8 @@ class PaymentResultActivity : ComponentActivity() {
         val userId: String,
         val userName: String,
         val userEmail: String,
-        val userPhone: String
+        val userPhone: String,
+        val userAddress: String = ""
     )
     
     /**
@@ -231,7 +234,8 @@ class PaymentResultActivity : ComponentActivity() {
                     userId = user.id,
                     userName = user.nombre + " " + user.apellido,
                     userEmail = user.email ?: "",
-                    userPhone = user.telefono ?: ""
+                    userPhone = user.telefono ?: "",
+                    userAddress = user.direccion ?: ""
                 )
             } else {
                 // Usuario invitado
@@ -239,11 +243,12 @@ class PaymentResultActivity : ComponentActivity() {
                 val userName = prefs.getString("user_name", "") ?: ""
                 val userEmail = prefs.getString("user_email", "") ?: ""
                 val userPhone = prefs.getString("user_phone", "") ?: ""
-                UserInfo(userId, userName, userEmail, userPhone)
+                val userAddress = prefs.getString("user_address", "") ?: ""
+                UserInfo(userId, userName, userEmail, userPhone, userAddress)
             }
         } catch (e: Exception) {
             android.util.Log.e("PaymentResult", "Error al recuperar información del usuario: ${e.message}", e)
-            UserInfo("guest", "", "", "")
+            UserInfo("guest", "", "", "", "")
         }
     }
     
@@ -274,6 +279,7 @@ class PaymentResultActivity : ComponentActivity() {
                     userName = userInfo.userName,
                     userEmail = userInfo.userEmail,
                     userPhone = userInfo.userPhone,
+                    userAddress = userInfo.userAddress,
                     cartItems = cartItems
                 )
                 
@@ -411,7 +417,7 @@ fun PaymentResultScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    containerColor = FutronoBlanco
                 )
             ) {
                 Column(
@@ -538,7 +544,10 @@ fun PaymentResultScreen(
  */
 @Composable
 private fun CartItemsTable(cartItems: List<CartItem>) {
-    val total = cartItems.sumOf { it.totalPrice }
+    // Calcular subtotal, IVA y total
+    val subtotal = cartItems.sumOf { it.totalPrice }
+    val iva = subtotal * 0.19 // 19% IVA
+    val total = subtotal + iva
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -552,9 +561,9 @@ private fun CartItemsTable(cartItems: List<CartItem>) {
         ) {
             Text(
                 text = "Detalle de la Compra",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = FutronoCafe
             )
             
             Spacer(modifier = Modifier.height(16.dp))
@@ -646,6 +655,48 @@ private fun CartItemsTable(cartItems: List<CartItem>) {
             }
             
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            
+            // Subtotal
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Subtotal",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.weight(0.5f)
+                )
+                Text(
+                    text = "$${String.format("%,.0f", subtotal).replace(",", ".")}",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.weight(0.4f),
+                    textAlign = TextAlign.End
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            // IVA
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "IVA (19%)",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.weight(0.5f)
+                )
+                Text(
+                    text = "$${String.format("%,.0f", iva).replace(",", ".")}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(0.4f),
+                    textAlign = TextAlign.End
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(8.dp))
             
             // Total
             Row(

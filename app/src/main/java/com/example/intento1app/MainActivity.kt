@@ -1,16 +1,14 @@
 package com.example.intento1app
 
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.util.Patterns
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import com.google.firebase.FirebaseApp
 import com.example.intento1app.utils.Validators
 import com.example.intento1app.utils.TipoError
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -20,6 +18,13 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.runtime.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
@@ -27,8 +32,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.withContext
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -38,7 +41,6 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.remember
@@ -46,18 +48,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.Image
-import android.graphics.BitmapFactory
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.intento1app.ui.theme.AccessibleFutronoTheme
@@ -65,14 +62,14 @@ import com.example.intento1app.ui.theme.FutronoCafe
 import com.example.intento1app.ui.theme.FutronoNaranja
 import com.example.intento1app.ui.theme.FutronoFondo
 import com.example.intento1app.ui.theme.FutronoCafeOscuro
-import com.example.intento1app.ui.theme.FutronoFondo2
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.AccessibilityNew
 import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.ImageNotSupported
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.HomeWork
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
@@ -86,15 +83,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.text.style.TextDecoration
 import com.example.intento1app.ui.screens.PaymentScreen
 import com.example.intento1app.ui.screens.AccessibilityScreen
 import com.example.intento1app.ui.screens.UserProfileScreen
 import com.example.intento1app.ui.screens.MyOrdersScreen
+import com.example.intento1app.ui.screens.SolicitudSoporte
 import com.example.intento1app.ui.screens.MyDataScreen
 import com.example.intento1app.ui.screens.MyBankDetailsScreen
-import com.example.intento1app.ui.screens.HelpAndContactScreen
+import com.example.intento1app.ui.screens.HelpAndContac
 import com.example.intento1app.ui.screens.SolicitudSoporte
 import com.example.intento1app.ui.screens.WorkerOrdersScreen
 import com.example.intento1app.ui.screens.WorkerHomeScreen
@@ -105,9 +103,7 @@ import com.example.intento1app.data.models.User
 import com.example.intento1app.data.models.Product
 import com.example.intento1app.data.models.ProductCategory
 import coil.request.ImageRequest
-import com.example.intento1app.ui.components.ScalableHeadlineMedium
 import com.example.intento1app.ui.components.ScalableHeadlineSmall
-import com.example.intento1app.ui.components.ScalableTitleMedium
 import com.example.intento1app.viewmodel.AccessibilityViewModel
 import com.example.intento1app.viewmodel.AuthViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -115,10 +111,16 @@ import coil.compose.AsyncImage
 import com.example.intento1app.data.models.CartItem
 import com.example.intento1app.ui.components.ScalableHeadlineLarge
 import com.example.intento1app.ui.components.ScalableTitleSmall
+import com.example.intento1app.ui.screens.AccessibilityScreen
 import com.example.intento1app.ui.screens.AddProductScreen
+import com.example.intento1app.ui.screens.SolicitudSoporte
 import com.example.intento1app.ui.screens.WorkerProductsScreen
 import com.example.intento1app.ui.screens.EditProductScreen
+import com.example.intento1app.ui.screens.PaymentScreen
+import com.example.intento1app.ui.screens.SolicitudSoporte
 import com.example.intento1app.ui.theme.FutronoBlanco
+import com.example.intento1app.ui.theme.FutronoError
+import com.example.intento1app.ui.theme.FutronoSuccess
 import com.example.intento1app.ui.theme.FutronoVerde
 import com.example.intento1app.ui.theme.StockHigh
 import com.example.intento1app.ui.theme.StockLow
@@ -326,6 +328,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
             "workerTeam" -> showWorkerTeam = true
             "workerSettings" -> showWorkerSettings = true
             "workerHelp" -> showWorkerHelp = true
+            "onMyDevolutionDinero" -> showWorkerDevolutionDinero = true
             else -> {
                 // Si no hay pantalla anterior, volver a home
                 currentScreen = "home"
@@ -443,9 +446,10 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     id = firebaseUser.id,
                     nombre = firebaseUser.displayName.split(" ").getOrNull(0) ?: "Usuario",
                     apellido = firebaseUser.displayName.split(" ").getOrNull(1) ?: "Ejemplo",
-                    rut = "12345678-9", // Se puede obtener de Firestore
+                    rut = firebaseUser.rut.ifEmpty { "No registrado" }, // Obtener RUT de Firestore
                     telefono = firebaseUser.phoneNumber,
-                    email = firebaseUser.email
+                    email = firebaseUser.email,
+                    direccion = firebaseUser.address // Obtener dirección de Firestore
                 )
                 currentUser = localUser
                 currentScreen = "home"
@@ -492,15 +496,76 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     id = firebaseUser.id,
                     nombre = firebaseUser.displayName.split(" ").getOrNull(0) ?: "Usuario",
                     apellido = firebaseUser.displayName.split(" ").getOrNull(1) ?: "Ejemplo",
-                    rut = "12345678-9", // Se puede obtener de Firestore
+                    rut = firebaseUser.rut.ifEmpty { "No registrado" }, // Obtener RUT de Firestore
                     telefono = firebaseUser.phoneNumber,
-                    email = firebaseUser.email
+                    email = firebaseUser.email,
+                    direccion = firebaseUser.address // Obtener dirección de Firestore
                 )
                 currentUser = localUser
                 println("MainActivity: Usuario sincronizado con roles válidos: ${userRoles}")
             } else {
                 println("MainActivity: Usuario sin roles válidos, no se sincroniza: ${userRoles}")
                 currentUser = null
+            }
+        }
+    }
+
+    // Manejar el botón de atrás del dispositivo en todas las pantallas
+    // Siempre habilitado excepto cuando estamos cargando
+    BackHandler(enabled = currentScreen != "loading" && !isCheckingAuth) {
+        // Primero verificar si hay alguna pantalla de perfil activa
+        val hasProfileScreenActive = showUserProfile || showMyData || showMyOrders || showMyBankDetails || 
+            showHelpAndContact || showWorkerOrders || showInventory || 
+            showWorkerCustomers || showWorkerProducts || showAddProduct || 
+            showEditProduct || showWorkerNotifications || showWorkerReports || 
+            showWorkerSchedule || showWorkerTeam || showWorkerSettings || 
+            showWorkerHelp || showWorkerDevolutionDinero
+        
+        android.util.Log.d("BackHandler", "Back button pressed - currentScreen: $currentScreen, hasProfileScreenActive: $hasProfileScreenActive")
+        
+        // Usar remember para capturar el estado actual
+        val currentScreenValue = currentScreen
+        
+        when {
+            // Pantallas de perfil - usar handleBackNavigation
+            hasProfileScreenActive -> {
+                android.util.Log.d("BackHandler", "Navigating back from profile screen")
+                handleBackNavigation()
+            }
+            // Pantallas principales
+            currentScreenValue == "payment" -> {
+                android.util.Log.d("BackHandler", "Navigating from payment to cart")
+                currentScreen = "cart"
+            }
+            currentScreenValue == "cart" -> {
+                android.util.Log.d("BackHandler", "Navigating from cart to home")
+                currentScreen = "home"
+            }
+            currentScreenValue == "register" -> {
+                android.util.Log.d("BackHandler", "Navigating from register to auth")
+                currentScreen = "auth"
+            }
+            currentScreenValue == "accessibility" -> {
+                android.util.Log.d("BackHandler", "Navigating from accessibility to home")
+                currentScreen = "home"
+            }
+            currentScreenValue == "home" -> {
+                android.util.Log.d("BackHandler", "On home screen - consuming back event")
+                // Si estamos en home, no hacer nada (el BackHandler consume el evento)
+                // Esto previene que la app se cierre
+            }
+            currentScreenValue == "auth" -> {
+                android.util.Log.d("BackHandler", "On auth screen - consuming back event")
+                // Si estamos en auth, no hacer nada (el BackHandler consume el evento)
+                // Esto previene que la app se cierre
+            }
+            else -> {
+                android.util.Log.d("BackHandler", "Unknown screen: $currentScreenValue - falling back to home")
+                // Si no hay ningún caso específico, intentar volver a home
+                // Esto es un fallback para cualquier pantalla no contemplada
+                if (currentScreenValue != "home" && currentScreenValue != "auth") {
+                    currentScreen = "home"
+                }
             }
         }
     }
@@ -692,6 +757,8 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     displayName = "${user.nombre} ${user.apellido}",
                     photoUrl = "",
                     phoneNumber = user.telefono,
+                    rut = user.rut,
+                    address = user.direccion,
                     isEmailVerified = true,
                     isActive = true
                 )
@@ -703,6 +770,8 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     displayName = "Usuario Invitado",
                     photoUrl = "",
                     phoneNumber = "",
+                    rut = "",
+                    address = "",
                     isEmailVerified = false,
                     isActive = true
                 )
@@ -771,6 +840,11 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     navigateTo("helpAndContact")
                     showUserProfile = false
                     showHelpAndContact = true
+                },
+                onDevolutionClick = {
+                    navigateTo("myDevolution")
+                    showUserProfile = false
+                    showWorkerDevolutionDinero = true
                 }
             )
         }
@@ -784,7 +858,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                 currentScreen = "register"
             },
             onGuestLogin = {
-                currentUser = User("guest", "Invitado", "Invitado", "", "", "")
+                currentUser = User("guest", "Invitado", "Invitado", "", "", "", "")
                 currentScreen = "home"
             }
         )
@@ -928,7 +1002,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     }
                 }
                 // Aquí se mejora lo visual del simón y las funcionalidades
-                showShortSnackbar("${product.name} se añadio al carrito Correctamente", 2000)
+                showShortSnackbar("${product.name} se añadió al carrito correctamente", 2000)
             },
             onCartClick = {
                 currentScreen = "cart"
@@ -954,7 +1028,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     }
                     cartItems = cartItems.filter { it.product.id != productId }
                     // Aquí se mejora lo visual del simón y las funcionalidades
-                    showShortSnackbar("Se ha eliminado el producto $productName del carrito", 2000)
+                    showShortSnackbar("Se ha eliminado $productName del carrito", 2000)
                 } else {
                     // Ajustar stock cuando cambia la cantidad
                     scope.launch {
@@ -973,9 +1047,9 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     // Mostrar mensaje según si aumentó o disminuyó
                     // Aquí se mejora lo visual del simón y las funcionalidades
                     val message = if (quantity > oldQuantity) {
-                        "Se aumentó la cantidad de $productName"
+                        "Se añadió $quantity unidad(es) de $productName"
                     } else {
-                        "Se disminuyó la cantidad de $productName"
+                        "Se quitó $quantity unidad(es) de $productName"
                     }
                     showShortSnackbar(message, 2000)
                 }
@@ -1039,12 +1113,18 @@ fun AuthScreen(
     var forgotPasswordEmail by remember { mutableStateOf("") }
     var forgotPasswordMessage by remember { mutableStateOf<String?>(null) }
     var forgotPasswordError by remember { mutableStateOf(false) }
+    
+    val emailFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    val passwordFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(20.dp),
+            .imePadding() // Ajusta el contenido cuando aparece el teclado
+            .padding(17.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -1056,7 +1136,7 @@ fun AuthScreen(
                 painter = painterResource(id = R.drawable.ic_logo),
                 contentDescription = "Logo de Futrono Supermercado",
                 modifier = Modifier
-                    .fillMaxWidth(0.6f)
+                    .fillMaxWidth(0.5f)
             )
         }
 
@@ -1076,13 +1156,23 @@ fun AuthScreen(
                     tint = FutronoCafe
                 )
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(emailFocusRequester)
+                .bringIntoViewRequester(bringIntoViewRequester),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = FutronoCafe,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline
             ),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Email,
+                imeAction = ImeAction.Next
+            ),
+            keyboardActions = KeyboardActions(
+                onNext = { passwordFocusRequester.requestFocus() }
+            ),
+            singleLine = true
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -1109,12 +1199,49 @@ fun AuthScreen(
                 }
             },
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(passwordFocusRequester)
+                .bringIntoViewRequester(bringIntoViewRequester),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = FutronoCafeOscuro,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline
-            )
+            ),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    keyboardController?.hide()
+                    // Intentar iniciar sesión cuando se presiona "Done"
+                    if (email.isNotEmpty() && password.isNotEmpty()) {
+                        authViewModel.signInUser(
+                            email = email,
+                            password = password,
+                            onSuccess = { firebaseUser ->
+                                val localUser = User(
+                                    id = firebaseUser.id,
+                                    nombre = firebaseUser.displayName.split(" ").getOrNull(0) ?: "Usuario",
+                                    apellido = firebaseUser.displayName.split(" ").getOrNull(1) ?: "Ejemplo",
+                                    rut = firebaseUser.rut.ifEmpty { "No registrado" },
+                                    telefono = firebaseUser.phoneNumber ?: "",
+                                    email = firebaseUser.email ?: "",
+                                    direccion = firebaseUser.address.ifEmpty { "" }
+                                )
+                                onLoginSuccess(localUser)
+                            },
+                            onError = {
+                                showError = true
+                            }
+                        )
+                    } else {
+                        showError = true
+                    }
+                }
+            ),
+            singleLine = true
         )
 
         if (showError) {
@@ -1129,21 +1256,7 @@ fun AuthScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         // Botón de "¿Olvidaste tu contraseña?"
-        TextButton(
-            onClick = { 
-                showForgotPasswordDialog = true
-                forgotPasswordEmail = email // Pre-llenar con el email del login si existe
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "¿Olvidaste tu contraseña?",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = FutronoCafe,
-                    fontWeight = FontWeight.Medium
-                )
-            )
-        }
+        // Primer botón: ¿Olvidaste tu contraseña?
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -1160,9 +1273,10 @@ fun AuthScreen(
                                 id = firebaseUser.id,
                                 nombre = firebaseUser.displayName.split(" ").getOrNull(0) ?: "Usuario",
                                 apellido = firebaseUser.displayName.split(" ").getOrNull(1) ?: "Ejemplo",
-                                rut = "12345678-9", // Se puede obtener de Firestore
+                                rut = firebaseUser.rut.ifEmpty { "No registrado" }, // Obtener RUT de Firestore
                                 telefono = firebaseUser.phoneNumber,
-                                email = firebaseUser.email
+                                email = firebaseUser.email,
+                                direccion = firebaseUser.address // Obtener dirección de Firestore
                             )
                             onLoginSuccess(localUser)
                         },
@@ -1216,15 +1330,34 @@ fun AuthScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Botón de entrar sin cuenta
+        TextButton(
+            onClick = {
+                showForgotPasswordDialog = true
+                forgotPasswordEmail = email
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = "¿Olvidaste tu contraseña?",
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    color = FutronoCafe,
+                    fontWeight = FontWeight.Medium,
+                    textDecoration = TextDecoration.Underline // <--- Agregado aquí
+                )
+            )
+        }
+
+// Segundo botón: Entrar sin iniciar sesión
         TextButton(
             onClick = onGuestLogin,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                text = "Entrar sin iniciar sesión",
+                text = "Ingresar como invitado",
                 style = MaterialTheme.typography.bodyLarge.copy(
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = FutronoCafe,
+                    fontWeight = FontWeight.Medium,
+                    textDecoration = TextDecoration.Underline // <--- Agregado aquí
                 )
             )
         }
@@ -1349,6 +1482,7 @@ fun RegisterScreen(
     var apellido by remember { mutableStateOf("") }
     var rut by remember { mutableStateOf("") }
     var telefono by remember { mutableStateOf("") }
+    var direccion by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var confirmEmail by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -1358,6 +1492,20 @@ fun RegisterScreen(
     var showError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+    
+    // Focus requesters para navegar entre campos
+    val nombreFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    val apellidoFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    val rutFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    val telefonoFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    val direccionFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    val emailFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    val confirmEmailFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    val passwordFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    val confirmPasswordFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
 
     Column(
         modifier = Modifier
@@ -1391,6 +1539,7 @@ fun RegisterScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
+                .imePadding() // Ajusta el contenido cuando aparece el teclado
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -1410,12 +1559,23 @@ fun RegisterScreen(
                     value = nombre,
                     onValueChange = { nombre = it },
                     label = { Text("Nombre") },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(nombreFocusRequester)
+                        .bringIntoViewRequester(bringIntoViewRequester),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = FutronoCafe,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
+                    ),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { apellidoFocusRequester.requestFocus() }
+                    ),
+                    singleLine = true
                 )
             }
 
@@ -1425,12 +1585,23 @@ fun RegisterScreen(
                     value = apellido,
                     onValueChange = { apellido = it },
                     label = { Text("Apellido") },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(apellidoFocusRequester)
+                        .bringIntoViewRequester(bringIntoViewRequester),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = FutronoCafe,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
+                    ),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { rutFocusRequester.requestFocus() }
+                    ),
+                    singleLine = true
                 )
             }
 
@@ -1442,12 +1613,23 @@ fun RegisterScreen(
                     label = { Text("RUT") },
                     placeholder = { Text("12345678-9") },
                     supportingText = { Text("Formato: 12345678-9 o 12.345.678-9") },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(rutFocusRequester)
+                        .bringIntoViewRequester(bringIntoViewRequester),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = FutronoCafe,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
+                    ),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { telefonoFocusRequester.requestFocus() }
+                    ),
+                    singleLine = true
                 )
             }
 
@@ -1468,13 +1650,57 @@ fun RegisterScreen(
                     label = { Text("Teléfono Móvil") },
                     placeholder = { Text("+56912345678") },
                     supportingText = { Text("Solo móviles: +569XXXXXXXX") },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(telefonoFocusRequester)
+                        .bringIntoViewRequester(bringIntoViewRequester),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = FutronoCafe,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline
                     ),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Phone,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { direccionFocusRequester.requestFocus() }
+                    ),
+                    singleLine = true
+                )
+            }
+
+            item {
+                // Campo Dirección
+                OutlinedTextField(
+                    value = direccion,
+                    onValueChange = { direccion = it },
+                    label = { Text("Dirección") },
+                    placeholder = { Text("Calle, número, comuna, región") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.HomeWork,
+                            contentDescription = "Dirección",
+                            tint = FutronoCafe
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(direccionFocusRequester)
+                        .bringIntoViewRequester(bringIntoViewRequester),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = FutronoCafe,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    ),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { emailFocusRequester.requestFocus() }
+                    ),
+                    singleLine = true
                 )
             }
 
@@ -1491,13 +1717,23 @@ fun RegisterScreen(
                             tint = FutronoCafe
                         )
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(emailFocusRequester)
+                        .bringIntoViewRequester(bringIntoViewRequester),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = FutronoCafe,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline
                     ),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { confirmEmailFocusRequester.requestFocus() }
+                    ),
+                    singleLine = true
                 )
             }
 
@@ -1514,13 +1750,23 @@ fun RegisterScreen(
                             tint = FutronoCafe
                         )
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(confirmEmailFocusRequester)
+                        .bringIntoViewRequester(bringIntoViewRequester),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = FutronoCafe,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline
                     ),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { passwordFocusRequester.requestFocus() }
+                    ),
+                    singleLine = true
                 )
             }
 
@@ -1547,12 +1793,23 @@ fun RegisterScreen(
                         }
                     },
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(passwordFocusRequester)
+                        .bringIntoViewRequester(bringIntoViewRequester),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = FutronoCafe,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
+                    ),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { confirmPasswordFocusRequester.requestFocus() }
+                    ),
+                    singleLine = true
                 )
             }
 
@@ -1579,12 +1836,57 @@ fun RegisterScreen(
                         }
                     },
                     visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(confirmPasswordFocusRequester)
+                        .bringIntoViewRequester(bringIntoViewRequester),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = FutronoCafe,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
+                    ),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            keyboardController?.hide()
+                            // Intentar registrar cuando se presiona "Done"
+                            val errorType = ValidationHelper.validateFormWithError(nombre, apellido, rut, telefono, email, confirmEmail, password, confirmPassword)
+                            if (errorType == null) {
+                                val displayName = "$nombre $apellido"
+                                authViewModel.registerUser(
+                                    email = email,
+                                    password = password,
+                                    displayName = displayName,
+                                    phoneNumber = telefono,
+                                    rut = rut,
+                                    address = direccion,
+                                    onSuccess = { firebaseUser ->
+                                        val localUser = User(
+                                            id = firebaseUser.id,
+                                            nombre = nombre,
+                                            apellido = apellido,
+                                            rut = firebaseUser.rut.ifEmpty { rut },
+                                            telefono = telefono,
+                                            email = email,
+                                            direccion = firebaseUser.address.ifEmpty { direccion }
+                                        )
+                                        onRegisterSuccess(localUser)
+                                    },
+                                    onError = { error ->
+                                        showError = true
+                                        errorMessage = error
+                                    }
+                                )
+                            } else {
+                                showError = true
+                                errorMessage = Validators.obtenerMensajeError(errorType ?: TipoError.CAMPO_OBLIGATORIO)
+                            }
+                        }
+                    ),
+                    singleLine = true
                 )
             }
 
@@ -1612,15 +1914,18 @@ fun RegisterScreen(
                                 password = password,
                                 displayName = displayName,
                                 phoneNumber = telefono,
+                                rut = rut,
+                                address = direccion,
                                 onSuccess = { firebaseUser ->
                                     // Crear usuario local para compatibilidad
                                     val localUser = User(
                                         id = firebaseUser.id,
                                         nombre = nombre,
                                         apellido = apellido,
-                                        rut = rut,
+                                        rut = firebaseUser.rut.ifEmpty { rut }, // Usar RUT de Firebase, si está vacío usar el del formulario
                                         telefono = telefono,
-                                        email = email
+                                        email = email,
+                                        direccion = firebaseUser.address.ifEmpty { direccion } // Usar dirección de Firebase, si está vacía usar la del formulario
                                     )
                                     onRegisterSuccess(localUser)
                                 },
@@ -1673,11 +1978,11 @@ private fun FutronoHeader(
             .fillMaxWidth()
             .height(80.dp)
             .background(FutronoBlanco)
-            .padding(horizontal = 16.dp) // Padding interno para el contenido
-        ,
+            .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
-    ) {
+    )
+    {
         // Logo alineado a la izquierda con margen natural
         FutronoLogo()
 
@@ -1781,7 +2086,7 @@ private fun FutronoLogo(modifier: Modifier = Modifier) {
 
         modifier = modifier
             .height(70.dp) // Altura fija
-            .widthIn(max = 190.dp) // Ancho máximo para evitar que sea demasiado grande
+            .widthIn(max = 150.dp) // Ancho máximo para evitar que sea demasiado grande
             .padding(start = 1.dp)
     )
 }
@@ -1801,25 +2106,53 @@ private fun HeaderActions(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        IconActionButton(
-            onClick = onAccessibilityClick,
-            icon = Icons.Default.Settings,
-            description = "Accesibilidad",
-            backgroundColor = FutronoCafe
-        )
+        // 1. Columna para Configuración
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            IconActionButton(
+                onClick = onAccessibilityClick,
+                icon = Icons.Default.AccessibilityNew,
+                description = "Accesibilidad",
+                backgroundColor = FutronoCafe
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Accesibilidad",
+                style = MaterialTheme.typography.bodySmall,
+                color = FutronoCafe
+            )
+        }
 
-        IconActionButton(
-            onClick = onUserProfileClick,
-            icon = Icons.Default.Person,
-            description = "Mi cuenta",
-            backgroundColor = FutronoCafe
-        )
+        // 2. Columna para Perfil
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            IconActionButton(
+                onClick = onUserProfileClick,
+                icon = Icons.Default.Person,
+                description = "Mi cuenta",
+                backgroundColor = FutronoCafe
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Perfil",
+                style = MaterialTheme.typography.bodySmall,
+                color = FutronoCafe
+            )
+        }
 
-        CartButton(
-            cartItemCount = cartItemCount,
-            onClick = onCartClick
-        )
+        // 3. Columna para Carrito
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CartButton(
+                cartItemCount = cartItemCount,
+                onClick = onCartClick
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Carrito",
+                style = MaterialTheme.typography.labelSmall,
+                color = FutronoCafe // O el color verde si prefieres
+            )
+        }
     }
+
 }
 
 //Programa las acciones de los botones del header
@@ -1880,6 +2213,7 @@ private fun CartButton(
                 modifier = Modifier.size(24.dp)
             )
         }
+
 
         if (cartItemCount > 0) {
             Badge(
@@ -2056,7 +2390,7 @@ fun ProductsScreen(
     var error by remember { mutableStateOf<String?>(null) }
     var selectedCategories by remember { mutableStateOf(setOf<String>()) }
 
-    // Carga los productos desde Firebase (tu código original, sin cambios)
+    // Carga los productos desde Firebase
     LaunchedEffect(category) {
         isLoading = true
         error = null
@@ -2100,8 +2434,17 @@ fun ProductsScreen(
             TopAppBar(
                 title = {
                     ScalableHeadlineSmall(
-                        text = if (category == "TODOS") "Todos los Productos" else category,
-                        color = MaterialTheme.colorScheme.onPrimary,
+                        text = when (category) {
+                            "TODOS" -> "Todos los Productos"
+                            "CARNES_PESCADOS" -> "Carnes y Pescados"
+                            "DESPENSA" -> "Despensa"
+                            "FRUTAS_VERDURAS" -> "Frutas y Verduras"
+                            "BEBIDAS_SNACKS" -> "Bebidas y Snacks"
+                            "FRESCOS_LACTEOS" -> "Frescos y lácteos"
+                            "PANADERIA_PASTELERIA" -> "Panadería y pastelería"
+                            else -> category
+                        },
+                        color = FutronoBlanco,
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -2110,7 +2453,7 @@ fun ProductsScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = MaterialTheme.colorScheme.onPrimary
+                            tint = FutronoBlanco
                         )
                     }
                 },
@@ -2145,8 +2488,17 @@ fun ProductsScreen(
             )
         },
         snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
-        }
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                Snackbar(
+                    modifier = Modifier.padding(12.dp),
+                    containerColor = FutronoSuccess,      // <-- Color de fondo
+                    contentColor = FutronoBlanco,        // <-- Color del texto
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(text = data.visuals.message)
+                }
+            }
+        },
     ) { paddingValues ->
         Column(
             modifier = modifier
@@ -2199,7 +2551,7 @@ fun ProductsScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            label = { Text("Ingresar elemento a buscar...") },
+            label = { Text("Ingresar búsqueda...") },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar") },
             singleLine = true,
             shape = RoundedCornerShape(24.dp)
@@ -2288,7 +2640,7 @@ fun ProductCard(
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = FutronoBlanco
         )
     ) {
         Column(
@@ -2302,7 +2654,7 @@ fun ProductCard(
                     .fillMaxWidth()
                     .height(180.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .background(FutronoBlanco),
                 contentAlignment = Alignment.Center
             ) {
                 // Si la URL de la imagen no está vacía, intenta cargarla
@@ -2558,8 +2910,17 @@ fun CartScreen(
             )
         },
         snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
-        }
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                Snackbar(
+                    modifier = Modifier.padding(12.dp),
+                    containerColor = FutronoError,
+                    contentColor = FutronoBlanco,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(text = data.visuals.message)
+                }
+            }
+        },
     ) { paddingValues ->
         // Diálogo de confirmación para vaciar el carrito
         if (showClearCartDialog) {

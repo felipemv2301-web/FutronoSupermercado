@@ -9,6 +9,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,7 +26,8 @@ import com.example.intento1app.data.models.User
 import com.example.intento1app.data.services.FirebaseService
 import com.example.intento1app.ui.theme.*
 import kotlinx.coroutines.launch
-
+import androidx.compose.ui.unit.dp
+import com.example.intento1app.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -156,13 +160,18 @@ fun SolicitudSoporte(
             )
         }
     }
-
+    onBackClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    Onclick: () -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
                         "Reclamo de Pedido",
+                        "Reclamo",
+
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold
                         ),
@@ -532,6 +541,25 @@ fun SolicitudSoporte(
             shape = RoundedCornerShape(16.dp)
         )
     }
+                .background(FutronoFondo) // Asegúrate de tener definido este color
+                .verticalScroll(rememberScrollState())
+        ) {
+            // Título de la sección (puedes cambiarlo según lo que vayas a poner)
+            Text(
+                text = "Formulario de Devolución",
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                color = FutronoCafeOscuro, // Asegúrate de tener definido este color
+                modifier = Modifier.padding(16.dp)
+            )
+
+            // AQUÍ: Agrega tus campos de texto, selectores de motivo, etc.
+
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+
 }
 
 // He dejado este componente helper por si quieres reutilizar el estilo de tarjeta

@@ -67,6 +67,8 @@ class AuthViewModel : ViewModel() {
         password: String,
         displayName: String,
         phoneNumber: String = "",
+        rut: String = "",
+        address: String = "",
         onSuccess: (FirebaseUser) -> Unit,
         onError: (String) -> Unit
     ) {
@@ -77,8 +79,10 @@ class AuthViewModel : ViewModel() {
                 
                 println("AuthViewModel: Registrando usuario: $email")
                 println("AuthViewModel: Teléfono a guardar: $phoneNumber")
+                println("AuthViewModel: RUT a guardar: $rut")
+                println("AuthViewModel: Dirección a guardar: $address")
                 
-                val result = firebaseService.registerUser(email, password, displayName, phoneNumber)
+                val result = firebaseService.registerUser(email, password, displayName, phoneNumber, rut, address)
                 
                 if (result.isSuccess) {
                     val user = result.getOrNull()!!
@@ -88,6 +92,8 @@ class AuthViewModel : ViewModel() {
                     
                     println("AuthViewModel: Usuario registrado exitosamente en Firebase: ${user.email}")
                     println("AuthViewModel: Roles del usuario: ${user.roles}")
+                    println("AuthViewModel: RUT guardado: ${user.rut}")
+                    println("AuthViewModel: Dirección guardada: ${user.address}")
                     onSuccess(user)
                 } else {
                     val error = result.exceptionOrNull()?.message ?: "Error desconocido"

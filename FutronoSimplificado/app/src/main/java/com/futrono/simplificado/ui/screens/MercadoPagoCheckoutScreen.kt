@@ -109,7 +109,7 @@ fun MercadoPagoCheckoutScreen(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Pago Seguro", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF00A1E0))
+                    Text("Pago Seguro", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = FutronoBlanco)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("Estás siendo redirigido a Mercado Pago para completar tu pago de forma segura.", style = MaterialTheme.typography.bodyMedium, color = Color(0xFF1976D2))
                 }

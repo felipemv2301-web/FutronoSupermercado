@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import com.example.intento1app.data.models.CartItem
 import com.example.intento1app.ui.components.ScalableHeadlineSmall
 import com.example.intento1app.ui.components.ScalableTitleLarge
+import com.example.intento1app.ui.components.ScalableTitleMedium
 import com.example.intento1app.ui.theme.FutronoBlanco
 import com.example.intento1app.ui.theme.LocalTypography
 import com.example.intento1app.ui.theme.FutronoCafe
@@ -45,7 +46,7 @@ fun CartScreen(
         // Top App Bar
         TopAppBar(
             title = {
-                ScalableHeadlineSmall(
+                ScalableTitleMedium(
                     text = "Carrito de Compras",
                     color = FutronoBlanco,
                     fontWeight = FontWeight.Bold
@@ -247,22 +248,29 @@ private fun CartSummary(
     cartItems: List<CartItem>,
     onCheckout: () -> Unit
 ) {
+    // 1. Cálculos explícitos fuera de la UI para asegurar reactividad
+    // Asumimos que la suma de los productos es el valor NETO
+    val netTotal = cartItems.sumOf { it.totalPrice }
+    val ivaAmount = netTotal * 0.19
+    val finalTotal = netTotal + ivaAmount
+
     val totalItems = cartItems.sumOf { it.quantity }
-    val totalPrice = cartItems.sumOf { it.totalPrice }
-    
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
+            // CAMBIO IMPORTANTE: Usamos un color oscuro para que se lea el texto blanco
+            containerColor = FutronoCafe
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Column(
             modifier = Modifier.padding(20.dp)
         ) {
-            // Resumen
+            // Fila 1: Total de productos
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -280,12 +288,58 @@ private fun CartSummary(
                     color = FutronoBlanco
                 )
             }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
+
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider(color = FutronoBlanco.copy(alpha = 0.2f))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Fila 2: Subtotal (Neto) - Opcional, ayuda a la claridad
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Neto:",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = FutronoBlanco.copy(alpha = 0.8f)
+                )
+                Text(
+                    text = "$${String.format("%,.0f", netTotal).replace(",", ".")}",
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = FutronoBlanco
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Fila 3: IVA
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "IVA (19%):",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = FutronoBlanco
+                )
+                Text(
+                    text = "$${String.format("%,.0f", ivaAmount).replace(",", ".")}",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = FutronoBlanco
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Fila 4: Total Final
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom // Alineación para que se vea mejor
             ) {
                 ScalableTitleLarge(
                     text = "Total a pagar:",
@@ -293,23 +347,24 @@ private fun CartSummary(
                     color = FutronoBlanco
                 )
                 Text(
-                    text = "$${String.format("%,.0f", totalPrice).replace(",", ".")}",
-                    style = MaterialTheme.typography.titleLarge.copy(
+                    text = "$${String.format("%,.0f", finalTotal).replace(",", ".")}",
+                    style = MaterialTheme.typography.headlineMedium.copy( // Hacemos el precio más grande
                         fontWeight = FontWeight.Bold
                     ),
-                    color = FutronoBlanco
+                    color = FutronoNaranja // Destacamos el precio final en Naranja
                 )
             }
-            
-            Spacer(modifier = Modifier.height(20.dp))
-            
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             // Botón de checkout
             Button(
                 onClick = onCheckout,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                shape = RoundedCornerShape(25.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = FutronoNaranja
+                    containerColor = FutronoNaranja,
+                    contentColor = FutronoBlanco
                 )
             ) {
                 Icon(
@@ -319,11 +374,10 @@ private fun CartSummary(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Finalizar Compra",
+                    text = "FINALIZAR COMPRA",
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold
-                    ),
-                    color = FutronoBlanco
+                    )
                 )
             }
         }

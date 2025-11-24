@@ -26,7 +26,7 @@ data class PreferenceItem(
     @SerializedName("quantity")
     val quantity: Int,
     @SerializedName("unit_price")
-    val unitPrice: Double,
+    val unitPrice: Int, // MercadoPago requiere enteros para CLP (sin decimales)
     @SerializedName("currency_id")
     val currencyId: String = MercadoPagoConfig.DEFAULT_CURRENCY
 )

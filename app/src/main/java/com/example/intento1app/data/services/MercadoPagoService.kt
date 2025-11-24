@@ -52,16 +52,33 @@ class MercadoPagoService(private val context: Context) {
                 )
             }
             // Convertir items del carrito a items de preferencia
+            // MercadoPago requiere unit_price como entero (sin decimales para CLP)
             val preferenceItems = cartItems.map { cartItem ->
                 PreferenceItem(
                     title = cartItem.product.name,
                     quantity = cartItem.quantity,
-                    unitPrice = cartItem.product.price
+                    unitPrice = kotlin.math.round(cartItem.product.price).toInt() // Redondear y convertir a entero
                 )
             }
             
-            // Calcular el total
-            val totalAmount = cartItems.sumOf { it.totalPrice }
+            // Calcular subtotal e IVA
+            val subtotal = cartItems.sumOf { it.totalPrice }
+            val iva = subtotal * 0.19 // 19% IVA
+            
+            // Agregar el IVA como un item adicional en la preferencia
+            // Convertir a entero redondeando
+            val ivaItem = PreferenceItem(
+                title = "IVA (19%)",
+                quantity = 1,
+                unitPrice = kotlin.math.round(iva).toInt() // Redondear y convertir a entero
+            )
+            
+            val allItems = preferenceItems + ivaItem
+            
+            // Calcular el total (subtotal + IVA)
+            val totalAmount = subtotal + iva
+            
+            android.util.Log.d("MercadoPago", "Subtotal: $subtotal, IVA: $iva, Total: $totalAmount")
             
             // MercadoPago requiere URLs HTTP/HTTPS válidas y accesibles desde internet
             // Si hay un servidor de redirección configurado, usarlo
@@ -83,7 +100,7 @@ class MercadoPagoService(private val context: Context) {
                 android.util.Log.d("MercadoPago", "Webhook URL: $webhookUrl")
                 
                 PaymentPreferenceRequest(
-                    items = preferenceItems,
+                    items = allItems, // Incluye productos + IVA
                     backUrls = BackUrls(
                         success = successUrl,
                         pending = pendingUrl,
@@ -97,7 +114,7 @@ class MercadoPagoService(private val context: Context) {
                 // Sin servidor de redirección: crear sin back_urls
                 android.util.Log.d("MercadoPago", "Sin servidor de redirección - usando verificación manual")
                 PaymentPreferenceRequest(
-                    items = preferenceItems,
+                    items = allItems, // Incluye productos + IVA
                     backUrls = null,
                     autoReturn = null,
                     payer = null,

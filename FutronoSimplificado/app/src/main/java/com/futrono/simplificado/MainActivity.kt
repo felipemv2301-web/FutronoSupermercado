@@ -22,7 +22,36 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.DrawerDefaults
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.fontScale
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.futrono.simplificado.data.models.*
@@ -109,6 +138,34 @@ fun SimpleFutronoApp() {
             isCheckingAuth = false
             if (!isLoggedIn) {
                 currentScreen = "auth"
+            }
+        }
+    }
+
+    // Manejar el botón de atrás del dispositivo en todas las pantallas
+    // Siempre habilitado excepto cuando estamos cargando
+    BackHandler(enabled = currentScreen != "loading" && !isCheckingAuth) {
+        when {
+            showCheckout -> {
+                // Si estamos en el checkout de MercadoPago, volver a payment
+                showCheckout = false
+                currentScreen = "payment"
+            }
+            currentScreen == "payment" -> {
+                // Si estamos en payment, volver a cart
+                currentScreen = "cart"
+            }
+            currentScreen == "cart" -> {
+                // Si estamos en cart, volver a home
+                currentScreen = "home"
+            }
+            currentScreen == "home" -> {
+                // Si estamos en home, no hacer nada (el BackHandler consume el evento)
+                // Esto previene que la app se cierre
+            }
+            currentScreen == "auth" -> {
+                // Si estamos en auth, no hacer nada (el BackHandler consume el evento)
+                // Esto previene que la app se cierre
             }
         }
     }
@@ -237,15 +294,21 @@ fun SimpleAuthScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var showError by remember { mutableStateOf(false) }
+    
+    val scrollState = rememberScrollState()
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .imePadding() // Ajusta el contenido cuando aparece el teclado
+            .verticalScroll(scrollState)
             .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(modifier = Modifier.height(32.dp))
+        
         Text(
             text = "Futrono Supermercado",
             style = MaterialTheme.typography.headlineLarge,
@@ -264,7 +327,11 @@ fun SimpleAuthScreen(
             },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Email,
+                imeAction = ImeAction.Next
+            ),
+            singleLine = true
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -287,7 +354,38 @@ fun SimpleAuthScreen(
             },
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    keyboardController?.hide()
+                    // Intentar iniciar sesión cuando se presiona "Done"
+                    if (email.isNotEmpty() && password.isNotEmpty()) {
+                        authViewModel.signInUser(
+                            email = email,
+                            password = password,
+                            onSuccess = { firebaseUser ->
+                                val localUser = User(
+                                    id = firebaseUser.id,
+                                    nombre = firebaseUser.displayName.split(" ").getOrNull(0) ?: "Usuario",
+                                    apellido = firebaseUser.displayName.split(" ").getOrNull(1) ?: "Ejemplo",
+                                    rut = "12345678-9",
+                                    telefono = firebaseUser.phoneNumber ?: "",
+                                    email = firebaseUser.email ?: ""
+                                )
+                                onLoginSuccess(localUser)
+                            },
+                            onError = {
+                                showError = true
+                            }
+                        )
+                    }
+                }
+            ),
+            singleLine = true
         )
 
         if (showError) {
@@ -303,6 +401,7 @@ fun SimpleAuthScreen(
 
         Button(
             onClick = {
+                keyboardController?.hide()
                 if (email.isNotEmpty() && password.isNotEmpty()) {
                     authViewModel.signInUser(
                         email = email,
@@ -332,9 +431,13 @@ fun SimpleAuthScreen(
         ) {
             Text("Iniciar Sesión", fontWeight = FontWeight.Bold)
         }
+        
+        // Spacer adicional para asegurar que el botón sea visible cuando aparece el teclado
+        Spacer(modifier = Modifier.height(32.dp))
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SimpleHomeScreen(
     currentUser: User?,
@@ -347,6 +450,10 @@ fun SimpleHomeScreen(
     val category = ProductCategory.DESPENSA
     var product by remember { mutableStateOf<Product?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    
+    // Estado del drawer
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val topAppBarState = rememberTopAppBarState()
 
     // Cargar el primer producto de la categoría DESPENSA desde Firebase
     LaunchedEffect(Unit) {
@@ -403,75 +510,182 @@ fun SimpleHomeScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp)
-    ) {
-        // Header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Futrono",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = FutronoCafe
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box {
-                    IconButton(onClick = onCartClick) {
-                        Icon(
-                            Icons.Default.ShoppingCart,
-                            contentDescription = "Carrito",
-                            tint = FutronoNaranja
+    // Detectar el ancho de la pantalla y el tamaño del texto
+    BoxWithConstraints {
+        val screenWidth = with(LocalDensity.current) { constraints.maxWidth.toDp() }
+        val configuration = LocalConfiguration.current
+        val fontScale = configuration.fontScale
+        
+        // Usar menú hamburguesa si la pantalla es pequeña O el texto es muy grande
+        // Para testing, puedes cambiar el umbral (por ejemplo, usar siempre true para ver el menú)
+        val useCompactLayout = screenWidth < 600.dp || fontScale > 1.2f
+        
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                ModalDrawerSheet(
+                    drawerContainerColor = MaterialTheme.colorScheme.surface,
+                    drawerContentColor = MaterialTheme.colorScheme.onSurface
+                ) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Futrono",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = FutronoCafe,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    NavigationDrawerItem(
+                        icon = {
+                            Box {
+                                Icon(
+                                    Icons.Default.ShoppingCart,
+                                    contentDescription = "Carrito",
+                                    tint = FutronoNaranja
+                                )
+                                if (cartItems.isNotEmpty()) {
+                                    Badge(
+                                        modifier = Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-6).dp),
+                                        containerColor = FutronoCafe
+                                    ) {
+                                        Text(
+                                            text = cartItems.sumOf { it.quantity }.toString(),
+                                            color = Color.White,
+                                            fontSize = 10.sp
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        label = { Text("Carrito") },
+                        selected = false,
+                        onClick = {
+                            onCartClick()
+                            drawerState.close()
+                        },
+                        colors = NavigationDrawerItemDefaults.colors(
+                            selectedContainerColor = FutronoCafe.copy(alpha = 0.12f)
                         )
-                    }
-                    if (cartItems.isNotEmpty()) {
-                        Badge(
-                            modifier = Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-6).dp),
-                            containerColor = FutronoCafe
-                        ) {
-                            Text(
-                                text = cartItems.sumOf { it.quantity }.toString(),
-                                color = Color.White,
-                                fontSize = 10.sp
+                    )
+                    
+                    NavigationDrawerItem(
+                        icon = {
+                            Icon(
+                                Icons.Default.Logout,
+                                contentDescription = "Cerrar sesión",
+                                tint = FutronoCafe
                             )
+                        },
+                        label = { Text("Cerrar Sesión") },
+                        selected = false,
+                        onClick = {
+                            onLogout()
+                            drawerState.close()
+                        },
+                        colors = NavigationDrawerItemDefaults.colors(
+                            selectedContainerColor = FutronoCafe.copy(alpha = 0.12f)
+                        )
+                    )
+                }
+            }
+        ) {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = {
+                            Text(
+                                text = "Futrono",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = FutronoCafe,
+                                modifier = Modifier.widthIn(max = screenWidth * 0.5f)
+                            )
+                        },
+                        navigationIcon = {
+                            if (useCompactLayout) {
+                                IconButton(onClick = { drawerState.open() }) {
+                                    Icon(
+                                        Icons.Default.Menu,
+                                        contentDescription = "Menú",
+                                        tint = FutronoCafe
+                                    )
+                                }
+                            }
+                        },
+                        actions = {
+                            if (!useCompactLayout) {
+                                // Mostrar botones directamente en pantallas grandes
+                                Box {
+                                    IconButton(onClick = onCartClick) {
+                                        Icon(
+                                            Icons.Default.ShoppingCart,
+                                            contentDescription = "Carrito",
+                                            tint = FutronoNaranja
+                                        )
+                                    }
+                                    if (cartItems.isNotEmpty()) {
+                                        Badge(
+                                            modifier = Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-6).dp),
+                                            containerColor = FutronoCafe
+                                        ) {
+                                            Text(
+                                                text = cartItems.sumOf { it.quantity }.toString(),
+                                                color = Color.White,
+                                                fontSize = 10.sp
+                                            )
+                                        }
+                                    }
+                                }
+                                IconButton(onClick = onLogout) {
+                                    Icon(
+                                        Icons.Default.Logout,
+                                        contentDescription = "Cerrar sesión",
+                                        tint = FutronoCafe
+                                    )
+                                }
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.background
+                        )
+                    )
+                }
+            ) { paddingValues ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                        .padding(paddingValues)
+                        .padding(16.dp)
+                ) {
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Categoría
+                    Text(
+                        text = category.displayName,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Producto
+                    if (isLoading) {
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
                         }
+                    } else if (product != null) {
+                        SimpleProductCard(
+                            product = product!!,
+                            onAddToCart = onAddToCart
+                        )
+                    } else {
+                        Text("No hay productos disponibles")
                     }
                 }
-                IconButton(onClick = onLogout) {
-                    Icon(Icons.Default.Logout, contentDescription = "Cerrar sesión", tint = FutronoCafe)
-                }
             }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Categoría
-        Text(
-            text = category.displayName,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Producto
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else if (product != null) {
-            SimpleProductCard(
-                product = product!!,
-                onAddToCart = onAddToCart
-            )
-        } else {
-            Text("No hay productos disponibles")
         }
     }
 }

@@ -70,10 +70,10 @@ fun MyDataScreen(
             // Información personal
             Text(
                 text = "Información Personal",
-                style = MaterialTheme.typography.headlineSmall.copy(
+                style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold
                 ),
-                color = FutronoCafeOscuro,
+                color = FutronoCafe,
                 modifier = Modifier.padding(16.dp, 16.dp, 16.dp, 8.dp)
             )
             
@@ -108,15 +108,21 @@ fun MyDataScreen(
                 iconVector = Icons.Default.Email
             )
             
+            DataCard(
+                title = "Dirección",
+                value = firebaseUser?.address?.ifEmpty { currentUser.direccion } ?: currentUser.direccion.ifEmpty { "No registrada" },
+                iconVector = Icons.Default.Home
+            )
+            
             Spacer(modifier = Modifier.height(24.dp))
             
             // Información de la cuenta
             Text(
                 text = "Información de la Cuenta",
-                style = MaterialTheme.typography.headlineSmall.copy(
+                style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold
                 ),
-                color = FutronoCafeOscuro,
+                color = FutronoCafe,
                 modifier = Modifier.padding(16.dp, 16.dp, 16.dp, 8.dp)
             )
             

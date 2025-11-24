@@ -2,11 +2,7 @@ package com.example.intento1app.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -17,23 +13,17 @@ import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.HeadsetMic
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.ArrowForward
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.intento1app.R
 import com.example.intento1app.data.models.User
-import com.example.intento1app.data.models.FirebasePurchase
 import com.example.intento1app.ui.theme.*
 import com.example.intento1app.viewmodel.AccessibilityViewModel
-import java.text.SimpleDateFormat
-import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,7 +40,8 @@ fun UserProfileScreen(
     onDeleteAccountClick: () -> Unit = {},
     onMyOrdersClick: () -> Unit = {},
     onHelpContactClick: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onDevolutionClick: () -> Unit ={}
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
     
@@ -59,8 +50,8 @@ fun UserProfileScreen(
             TopAppBar(
                 title = { 
                     Text(
-                        "Perfil",
-                        style = MaterialTheme.typography.titleLarge.copy(
+                        "Perfil de ${currentUser.nombre}",
+                        style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
                         color = FutronoBlanco
@@ -89,23 +80,14 @@ fun UserProfileScreen(
                 .padding(paddingValues)
                 .background(FutronoFondo)
         ) {
-            // Saludo con nombre de usuario
-            Text(
-                text = "¡Hola, ${currentUser.nombre}!",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold
-                ),
-                color = FutronoCafeOscuro,
-                modifier = Modifier.padding(16.dp, 8.dp, 16.dp, 0.dp)
-            )
-            
+
             // Información personal
             Text(
                 text = "Información personal",
-                style = MaterialTheme.typography.titleSmall.copy(
+                style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold
                 ),
-                color = FutronoCafeOscuro,
+                color = FutronoCafe,
                 modifier = Modifier.padding(16.dp, 15.dp, 16.dp, 8.dp)
             )
             
@@ -140,10 +122,10 @@ fun UserProfileScreen(
             // Pedidos
             Text(
                 text = "Pedidos",
-                style = MaterialTheme.typography.titleLarge.copy(
+                style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold
                 ),
-                color = FutronoCafeOscuro,
+                color = FutronoCafe,
                 modifier = Modifier.padding(16.dp, 24.dp, 16.dp, 8.dp)
             )
             
@@ -153,14 +135,19 @@ fun UserProfileScreen(
                 title = "Mis pedidos",
                 onClick = onMyOrdersClick
             )
+            ProfileOptionCard(
+                iconVector = Icons.Default.AssignmentReturn,
+                title = "Reclamo de pedido",
+                onClick = onDevolutionClick
+            )
             
             // Centro de ayuda
             Text(
                 text = "Centro de ayuda",
-                style = MaterialTheme.typography.titleLarge.copy(
+                style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold
                 ),
-                color = FutronoCafeOscuro,
+                color = FutronoCafe,
                 modifier = Modifier.padding(16.dp, 24.dp, 16.dp, 8.dp)
             )
             

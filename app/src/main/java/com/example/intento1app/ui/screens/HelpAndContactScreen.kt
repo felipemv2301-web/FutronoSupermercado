@@ -103,11 +103,16 @@ fun HelpAndContactScreen(
 <<<<<<< Updated upstream
 =======
 
+
                 HelpOptionCard(
                     iconVector = Icons.Default.ReportProblem,
                     title = "Reclamo de pedido",
                     onClick = onClaimClick
                 )
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
+
 >>>>>>> Stashed changes
             }
         }

@@ -100,25 +100,12 @@ fun HelpAndContactScreen(
                     title = "Términos y condiciones",
                     onClick = onTermsAndConditionsClick
                 )
-<<<<<<< Updated upstream
-=======
-
-
 
                 HelpOptionCard(
                     iconVector = Icons.Default.ReportProblem,
                     title = "Reclamo de pedido",
                     onClick = onClaimClick
                 )
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
-
->>>>>>> Stashed changes
-=======
-
->>>>>>> Stashed changes
             }
         }
     )

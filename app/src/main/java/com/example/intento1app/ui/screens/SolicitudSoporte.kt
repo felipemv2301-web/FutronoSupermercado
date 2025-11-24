@@ -156,13 +156,7 @@ fun SolicitudSoporte(
             )
         }
     }
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-    
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
+
     Scaffold(
         topBar = {
             TopAppBar(

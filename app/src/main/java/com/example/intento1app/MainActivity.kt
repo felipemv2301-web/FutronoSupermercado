@@ -95,6 +95,7 @@ import com.example.intento1app.ui.screens.MyOrdersScreen
 import com.example.intento1app.ui.screens.MyDataScreen
 import com.example.intento1app.ui.screens.MyBankDetailsScreen
 import com.example.intento1app.ui.screens.HelpAndContactScreen
+import com.example.intento1app.ui.screens.SolicitudSoporte
 import com.example.intento1app.ui.screens.WorkerOrdersScreen
 import com.example.intento1app.ui.screens.WorkerHomeScreen
 import com.example.intento1app.ui.screens.InventoryScreen
@@ -259,6 +260,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
     var showWorkerTeam by remember { mutableStateOf(false) }
     var showWorkerSettings by remember { mutableStateOf(false) }
     var showWorkerHelp by remember { mutableStateOf(false) }
+    var showWorkerDevolutionDinero by remember { mutableStateOf(false) }
 
     var searchQuery by remember { mutableStateOf("") }
 
@@ -305,6 +307,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
         showWorkerTeam = false
         showWorkerSettings = false
         showWorkerHelp = false
+        showWorkerDevolutionDinero = false
 
         // Mostrar la pantalla anterior basándose en la pila
         when (previousScreen) {
@@ -666,9 +669,6 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                 }
             )
         }
-<<<<<<< Updated upstream
-=======
-
         showWorkerDevolutionDinero -> {
             SolicitudSoporte(
                 currentUser = currentUser,
@@ -680,7 +680,6 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                 }
             )
         }
->>>>>>> Stashed changes
         showMyData && currentUser != null -> {
             // Pantalla de mis datos
             val user = currentUser!!

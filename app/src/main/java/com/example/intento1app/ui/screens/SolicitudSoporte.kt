@@ -9,9 +9,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,8 +23,7 @@ import com.example.intento1app.data.models.User
 import com.example.intento1app.data.services.FirebaseService
 import com.example.intento1app.ui.theme.*
 import kotlinx.coroutines.launch
-import androidx.compose.ui.unit.dp
-import com.example.intento1app.ui.theme.*
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,35 +35,35 @@ fun SolicitudSoporte(
 ) {
     val firebaseService = remember { FirebaseService() }
     val coroutineScope = rememberCoroutineScope()
-    
+
     // Estados para cargar órdenes
     var isLoadingOrders by remember { mutableStateOf(false) }
     var orderNumbers by remember { mutableStateOf<List<String>>(emptyList()) }
     var isOrderDropdownExpanded by remember { mutableStateOf(false) }
-    
+
     // Estados del formulario
     var orderNumber by remember { mutableStateOf("") }
     var problem by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf(currentUser?.telefono ?: "") }
     var observation by remember { mutableStateOf("") }
-    
+
     // Estados de validación y UI
     var isLoading by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
     var showErrorDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
-    
+
     // Errores de validación
     var orderNumberError by remember { mutableStateOf("") }
     var problemError by remember { mutableStateOf("") }
     var phoneNumberError by remember { mutableStateOf("") }
-    
+
     // Cargar órdenes del usuario cuando se monta el componente
     LaunchedEffect(currentUser?.id) {
         if (currentUser != null && currentUser.id != "guest") {
             isLoadingOrders = true
             val result = firebaseService.getUserPurchasesFromPayments(currentUser.id)
-            
+
             result.fold(
                 onSuccess = { purchases ->
                     // Extraer números de orden únicos y ordenarlos (más recientes primero)
@@ -88,24 +84,24 @@ fun SolicitudSoporte(
             isLoadingOrders = false
         }
     }
-    
+
     fun validateForm(): Boolean {
         var isValid = true
-        
+
         orderNumberError = ""
         problemError = ""
         phoneNumberError = ""
-        
+
         if (orderNumber.isBlank()) {
             orderNumberError = "El número de orden es requerido"
             isValid = false
         }
-        
+
         if (problem.isBlank()) {
             problemError = "Debes describir el problema"
             isValid = false
         }
-        
+
         if (phoneNumber.isBlank()) {
             phoneNumberError = "El número de teléfono es requerido"
             isValid = false
@@ -113,23 +109,23 @@ fun SolicitudSoporte(
             phoneNumberError = "El número de teléfono debe tener al menos 8 dígitos"
             isValid = false
         }
-        
+
         return isValid
     }
-    
+
     fun submitClaim() {
         if (!validateForm()) {
             return
         }
-        
+
         if (currentUser == null || currentUser.id == "guest") {
             errorMessage = "Debes iniciar sesión para realizar un reclamo"
             showErrorDialog = true
             return
         }
-        
+
         isLoading = true
-        
+
         val claim = FirebaseClaim(
             orderNumber = orderNumber.trim(),
             problem = problem.trim(),
@@ -139,10 +135,10 @@ fun SolicitudSoporte(
             userEmail = currentUser.email,
             status = listOf("Reclamo pendiente")
         )
-        
+
         coroutineScope.launch {
             val result = firebaseService.saveClaim(claim)
-            
+
             result.fold(
                 onSuccess = {
                     isLoading = false
@@ -160,18 +156,13 @@ fun SolicitudSoporte(
             )
         }
     }
-    onBackClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    Onclick: () -> Unit
-) {
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
                         "Reclamo de Pedido",
-                        "Reclamo",
-
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold
                         ),
@@ -213,16 +204,16 @@ fun SolicitudSoporte(
                 color = FutronoCafeOscuro,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
-            
+
             Text(
                 text = "Completa el siguiente formulario para realizar un reclamo sobre tu pedido",
                 style = MaterialTheme.typography.bodyMedium,
                 color = FutronoCafeOscuro.copy(alpha = 0.7f),
                 modifier = Modifier.padding(bottom = 8.dp)
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             // Campo: N° de Orden (Lista desplegable)
             if (isLoadingOrders) {
                 // Mostrar indicador de carga mientras se cargan las órdenes
@@ -280,7 +271,7 @@ fun SolicitudSoporte(
                 ) {
                     OutlinedTextField(
                         value = orderNumber,
-                        onValueChange = { 
+                        onValueChange = {
                             orderNumber = it
                             orderNumberError = ""
                         },
@@ -313,14 +304,14 @@ fun SolicitudSoporte(
                             { Text("Selecciona un pedido de la lista", color = FutronoCafeOscuro.copy(alpha = 0.7f)) }
                         }
                     )
-                    
+
                     ExposedDropdownMenu(
                         expanded = isOrderDropdownExpanded,
                         onDismissRequest = { isOrderDropdownExpanded = false }
                     ) {
                         orderNumbers.forEach { orderNum ->
                             DropdownMenuItem(
-                                text = { 
+                                text = {
                                     Text(
                                         text = orderNum,
                                         style = MaterialTheme.typography.bodyLarge
@@ -337,11 +328,11 @@ fun SolicitudSoporte(
                     }
                 }
             }
-            
+
             // Campo: Problema
             OutlinedTextField(
                 value = problem,
-                onValueChange = { 
+                onValueChange = {
                     problem = it
                     problemError = ""
                 },
@@ -371,11 +362,11 @@ fun SolicitudSoporte(
                     { Text("Describe el problema con tu pedido", color = FutronoCafeOscuro.copy(alpha = 0.7f)) }
                 }
             )
-            
+
             // Campo: Número de Teléfono
             OutlinedTextField(
                 value = phoneNumber,
-                onValueChange = { 
+                onValueChange = {
                     phoneNumber = it
                     phoneNumberError = ""
                 },
@@ -401,7 +392,7 @@ fun SolicitudSoporte(
                     { Text(phoneNumberError, color = Color.Red) }
                 } else null
             )
-            
+
             // Campo: Observación
             OutlinedTextField(
                 value = observation,
@@ -429,9 +420,9 @@ fun SolicitudSoporte(
                     Text("Información adicional que pueda ayudar a resolver tu reclamo", color = FutronoCafeOscuro.copy(alpha = 0.7f))
                 }
             )
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Botón de envío
             Button(
                 onClick = { submitClaim() },
@@ -463,9 +454,9 @@ fun SolicitudSoporte(
                     )
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Text(
                 text = "* Campos obligatorios",
                 style = MaterialTheme.typography.bodySmall,
@@ -474,11 +465,11 @@ fun SolicitudSoporte(
             )
         }
     }
-    
+
     // Diálogo de éxito
     if (showSuccessDialog) {
         AlertDialog(
-            onDismissRequest = { 
+            onDismissRequest = {
                 showSuccessDialog = false
                 onSuccess()
                 onBackClick()
@@ -496,7 +487,7 @@ fun SolicitudSoporte(
             },
             confirmButton = {
                 Button(
-                    onClick = { 
+                    onClick = {
                         showSuccessDialog = false
                         onSuccess()
                         onBackClick()
@@ -511,7 +502,7 @@ fun SolicitudSoporte(
             shape = RoundedCornerShape(16.dp)
         )
     }
-    
+
     // Diálogo de error
     if (showErrorDialog) {
         AlertDialog(
@@ -541,25 +532,6 @@ fun SolicitudSoporte(
             shape = RoundedCornerShape(16.dp)
         )
     }
-                .background(FutronoFondo) // Asegúrate de tener definido este color
-                .verticalScroll(rememberScrollState())
-        ) {
-            // Título de la sección (puedes cambiarlo según lo que vayas a poner)
-            Text(
-                text = "Formulario de Devolución",
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    fontWeight = FontWeight.Bold
-                ),
-                color = FutronoCafeOscuro, // Asegúrate de tener definido este color
-                modifier = Modifier.padding(16.dp)
-            )
-
-            // AQUÍ: Agrega tus campos de texto, selectores de motivo, etc.
-
-            Spacer(modifier = Modifier.height(32.dp))
-        }
-    }
-
 }
 
 // He dejado este componente helper por si quieres reutilizar el estilo de tarjeta

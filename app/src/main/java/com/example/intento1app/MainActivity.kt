@@ -92,7 +92,6 @@ import com.example.intento1app.ui.screens.MyOrdersScreen
 import com.example.intento1app.ui.screens.SolicitudSoporte
 import com.example.intento1app.ui.screens.MyDataScreen
 import com.example.intento1app.ui.screens.MyBankDetailsScreen
-import com.example.intento1app.ui.screens.HelpAndContac
 import com.example.intento1app.ui.screens.SolicitudSoporte
 import com.example.intento1app.ui.screens.WorkerOrdersScreen
 import com.example.intento1app.ui.screens.WorkerHomeScreen
@@ -116,6 +115,7 @@ import com.example.intento1app.ui.screens.AddProductScreen
 import com.example.intento1app.ui.screens.SolicitudSoporte
 import com.example.intento1app.ui.screens.WorkerProductsScreen
 import com.example.intento1app.ui.screens.EditProductScreen
+import com.example.intento1app.ui.screens.HelpAndContactScreen
 import com.example.intento1app.ui.screens.PaymentScreen
 import com.example.intento1app.ui.screens.SolicitudSoporte
 import com.example.intento1app.ui.theme.FutronoBlanco

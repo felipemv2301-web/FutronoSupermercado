@@ -532,6 +532,11 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
             HelpAndContactScreen(
                 onBackClick = {
                     handleBackNavigation()
+                },
+                onClaimClick = {
+                    navigateTo("myDevolution")
+                    showHelpAndContact = false
+                    showWorkerDevolutionDinero = true
                 }
             )
         }
@@ -661,6 +666,21 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                 }
             )
         }
+<<<<<<< Updated upstream
+=======
+
+        showWorkerDevolutionDinero -> {
+            SolicitudSoporte(
+                currentUser = currentUser,
+                onBackClick = {
+                    handleBackNavigation()
+                },
+                onSuccess = {
+                    // Opcional: mostrar mensaje de éxito o actualizar UI
+                }
+            )
+        }
+>>>>>>> Stashed changes
         showMyData && currentUser != null -> {
             // Pantalla de mis datos
             val user = currentUser!!

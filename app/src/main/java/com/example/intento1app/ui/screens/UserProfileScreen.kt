@@ -41,7 +41,7 @@ fun UserProfileScreen(
     onMyOrdersClick: () -> Unit = {},
     onHelpContactClick: () -> Unit = {},
     modifier: Modifier = Modifier,
-    onDevolutionClick: () -> Unit ={}
+    onDevolutionClick: () -> Unit ={},
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
     
@@ -149,6 +149,8 @@ fun UserProfileScreen(
                 title = "Reclamo de pedido",
                 onClick = onDevolutionClick
             )
+
+
             
             // Centro de ayuda
             Text(
@@ -166,7 +168,10 @@ fun UserProfileScreen(
                 title = "Ayuda y contacto",
                 onClick = onHelpContactClick
             )
-            
+
+
+
+
             // Cerrar sesión
             ProfileOptionCard(
                 iconVector = Icons.Default.Logout,

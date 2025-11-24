@@ -32,6 +32,7 @@ fun HelpAndContactScreen(
     onWhatsAppClick: () -> Unit = {},
     onReportErrorClick: () -> Unit = {},
     onTermsAndConditionsClick: () -> Unit = {},
+    onTerminosAndCondiciones: () -> Unit ={},
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -97,13 +98,7 @@ fun HelpAndContactScreen(
                 HelpOptionCard(
                     iconVector = Icons.Default.Description,
                     title = "Términos y condiciones",
-                    onClick = onTermsAndConditionsClick
-                )
-
-                HelpOptionCard(
-                    iconVector = Icons.Default.ReportProblem,
-                    title = "Reclamo de compra",
-                    onClick = onTermsAndConditionsClick
+                    onClick = onTerminosAndCondiciones
                 )
             }
         }

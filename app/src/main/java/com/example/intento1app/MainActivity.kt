@@ -74,11 +74,11 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.runtime.rememberCoroutineScope
 import com.example.intento1app.ui.screens.UserProfileScreen
+import com.example.intento1app.ui.screens.HelpAndContactScreen
 import com.example.intento1app.ui.screens.MyOrdersScreen
 import com.example.intento1app.ui.screens.SolicitudSoporte
 import com.example.intento1app.ui.screens.MyDataScreen
 import com.example.intento1app.ui.screens.MyBankDetailsScreen
-import com.example.intento1app.ui.screens.HelpAndContactScreen
 import com.example.intento1app.ui.screens.WorkerHomeScreen
 import com.example.intento1app.ui.screens.InventoryScreen
 import com.example.intento1app.ui.screens.WorkerCustomersScreen
@@ -102,6 +102,7 @@ import com.example.intento1app.ui.screens.WorkerProductsScreen
 import com.example.intento1app.ui.screens.EditProductScreen
 import com.example.intento1app.ui.screens.PaymentScreen
 import com.example.intento1app.ui.screens.SolicitudSoporte
+import com.example.intento1app.ui.screens.TerminoAndCondiciones
 import com.example.intento1app.ui.theme.FutronoBlanco
 import com.example.intento1app.ui.theme.FutronoVerde
 import com.example.intento1app.ui.theme.StockHigh
@@ -245,6 +246,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
     var showWorkerSettings by remember { mutableStateOf(false) }
     var showWorkerHelp by remember { mutableStateOf(false) }
     var showWorkerDevolutionDinero by remember { mutableStateOf(false) }
+    var showWorkerTerminoAndCondiciones by remember { mutableStateOf(false) }
 
     var searchQuery by remember { mutableStateOf("") }
 
@@ -292,6 +294,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
         showWorkerSettings = false
         showWorkerHelp = false
         showWorkerDevolutionDinero = false
+        showWorkerTerminoAndCondiciones = false
 
         // Mostrar la pantalla anterior basándose en la pila
         when (previousScreen) {
@@ -311,6 +314,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
             "workerSettings" -> showWorkerSettings = true
             "workerHelp" -> showWorkerHelp = true
             "onMyDevolutionDinero" -> showWorkerDevolutionDinero = true
+            "workerTerminoAndCondiciones" -> showWorkerTerminoAndCondiciones = true
             else -> {
                 // Si no hay pantalla anterior, volver a home
                 currentScreen = "home"
@@ -520,6 +524,12 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
             HelpAndContactScreen(
                 onBackClick = {
                     handleBackNavigation()
+                },
+                // --- AGREGA ESTO ---
+                onTerminosAndCondiciones = {
+                    navigateTo("TermsAndConditions") // Agrega al historial de navegación
+                    showHelpAndContact = false       // Oculta la pantalla de Ayuda
+                    showWorkerTerminoAndCondiciones = true // Muestra la pantalla de Términos
                 }
             )
         }
@@ -657,6 +667,17 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                 Onclick = { /* Lógica futura */ }
             )
         }
+
+        // Dentro de tu bloque de contenido principal (when o if)
+        showWorkerTerminoAndCondiciones -> {
+            TerminoAndCondiciones(
+                onBackClick = {
+                    handleBackNavigation()
+                },
+                Onclick = { /* Lógica futura si es necesaria */ }
+            )
+        }
+
         showMyData && currentUser != null -> {
             // Pantalla de mis datos
             val user = currentUser!!
@@ -749,13 +770,10 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     showUserProfile = false
                     showHelpAndContact = true
                 },
-                onDevolutionClick = {
-                    navigateTo("myDevolution")
-                    showUserProfile = false
-                    showWorkerDevolutionDinero = true
-                }
+
             )
         }
+
         currentScreen == "auth" -> AuthScreen(
             authViewModel = authViewModel,
             onLoginSuccess = { user ->
@@ -884,7 +902,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     if (currentProduct != null && currentProduct.stock > 0) {
                         val existingItem = cartItems.find { it.product.id == product.id }
                         val quantityToAdd = 1
-                        
+
                         if (existingItem != null) {
                             // Si ya existe, aumentar cantidad y descontar stock
                             cartItems = cartItems.map { item ->
@@ -928,7 +946,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                 val existingItem = cartItems.find { it.product.id == productId }
                 val productName = existingItem?.product?.name ?: ""
                 val oldQuantity = existingItem?.quantity ?: 0
-                
+
                 if (quantity <= 0) {
                     // Restaurar stock cuando se elimina (cantidad llega a 0)
                     if (oldQuantity > 0) {

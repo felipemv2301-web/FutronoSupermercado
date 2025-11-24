@@ -98,12 +98,7 @@ fun UserProfileScreen(
                 onClick = onMyDataClick
             )
             
-            // Mis medios de pago
-            ProfileOptionCard(
-                iconVector = Icons.Default.CreditCard,
-                title = "Mis medios de pago",
-                onClick = onPaymentMethodsClick
-            )
+
             
             // Mis datos bancarios
             ProfileOptionCard(
@@ -134,11 +129,6 @@ fun UserProfileScreen(
                 iconVector = Icons.Default.ShoppingBag,
                 title = "Mis pedidos",
                 onClick = onMyOrdersClick
-            )
-            ProfileOptionCard(
-                iconVector = Icons.Default.AssignmentReturn,
-                title = "Reclamo de pedido",
-                onClick = onDevolutionClick
             )
             
             // Centro de ayuda

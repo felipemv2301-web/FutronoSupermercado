@@ -92,7 +92,7 @@ import com.example.intento1app.ui.screens.MyOrdersScreen
 import com.example.intento1app.ui.screens.SolicitudSoporte
 import com.example.intento1app.ui.screens.MyDataScreen
 import com.example.intento1app.ui.screens.MyBankDetailsScreen
-import com.example.intento1app.ui.screens.HelpAndContac
+import com.example.intento1app.ui.screens.HelpAndContactScreen
 import com.example.intento1app.ui.screens.SolicitudSoporte
 import com.example.intento1app.ui.screens.WorkerOrdersScreen
 import com.example.intento1app.ui.screens.WorkerHomeScreen

@@ -105,9 +105,7 @@ fun HelpAndContactScreen(
                     iconVector = Icons.Default.ReportProblem,
 
                     title = "Reclamo de pedido",
-                    onClick = onClaimClick
-                    title = "Reclamo de compra",
-                    onClick = onTermsAndConditionsClick
+                    onClick = onClaimClick,
 
                 )
             }

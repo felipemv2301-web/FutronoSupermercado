@@ -118,6 +118,7 @@ import com.example.intento1app.ui.screens.EditProductScreen
 import com.example.intento1app.ui.screens.HelpAndContactScreen
 import com.example.intento1app.ui.screens.PaymentScreen
 import com.example.intento1app.ui.screens.SolicitudSoporte
+import com.example.intento1app.ui.screens.TerminoAndCondiciones
 import com.example.intento1app.ui.theme.FutronoBlanco
 import com.example.intento1app.ui.theme.FutronoError
 import com.example.intento1app.ui.theme.FutronoSuccess
@@ -249,6 +250,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
     var showMyData by remember { mutableStateOf(false) }
     var showMyBankDetails by remember { mutableStateOf(false) }
     var showHelpAndContact by remember { mutableStateOf(false) }
+    var showTerminosCondiciones by remember { mutableStateOf(false) }
     var showWorkerOrders by remember { mutableStateOf(false) }
     var showInventory by remember { mutableStateOf(false) }
     var showWorkerCustomers by remember { mutableStateOf(false) }
@@ -299,6 +301,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
         showMyOrders = false
         showMyBankDetails = false
         showHelpAndContact = false
+        showTerminosCondiciones = false
         showWorkerOrders = false
         showInventory = false
         showWorkerCustomers = false
@@ -318,6 +321,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
             "myOrders" -> showMyOrders = true
             "myBankDetails" -> showMyBankDetails = true
             "helpAndContact" -> showHelpAndContact = true
+            "terminosCondiciones" -> showTerminosCondiciones = true
             "workerOrders" -> showWorkerOrders = true
             "inventory" -> showInventory = true
             "workerCustomers" -> showWorkerCustomers = true
@@ -515,7 +519,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
     BackHandler(enabled = currentScreen != "loading" && !isCheckingAuth) {
         // Primero verificar si hay alguna pantalla de perfil activa
         val hasProfileScreenActive = showUserProfile || showMyData || showMyOrders || showMyBankDetails || 
-            showHelpAndContact || showWorkerOrders || showInventory || 
+            showHelpAndContact || showTerminosCondiciones || showWorkerOrders || showInventory || 
             showWorkerCustomers || showWorkerProducts || showAddProduct || 
             showEditProduct || showWorkerNotifications || showWorkerReports || 
             showWorkerSchedule || showWorkerTeam || showWorkerSettings || 
@@ -601,10 +605,26 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                 onBackClick = {
                     handleBackNavigation()
                 },
+                onTermsAndConditionsClick = {
+                    navigateTo("terminosCondiciones")
+                    showHelpAndContact = false
+                    showTerminosCondiciones = true
+                },
                 onClaimClick = {
                     navigateTo("myDevolution")
                     showHelpAndContact = false
                     showWorkerDevolutionDinero = true
+                }
+            )
+        }
+        showTerminosCondiciones -> {
+            // Pantalla de términos y condiciones
+            TerminoAndCondiciones(
+                onBackClick = {
+                    handleBackNavigation()
+                },
+                Onclick = {
+                    // Callback opcional si se necesita alguna acción
                 }
             )
         }

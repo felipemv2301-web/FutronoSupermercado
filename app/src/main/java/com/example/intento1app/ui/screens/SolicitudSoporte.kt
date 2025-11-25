@@ -163,7 +163,7 @@ fun SolicitudSoporte(
                 title = {
                     Text(
                         "Reclamo de Pedido",
-                        style = MaterialTheme.typography.titleLarge.copy(
+                        style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
                         color = FutronoBlanco

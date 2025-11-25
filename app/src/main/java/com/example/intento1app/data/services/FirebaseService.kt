@@ -460,7 +460,8 @@ class FirebaseService {
                 paymentId = paymentId,
                 paymentStatus = "approved", // Pago aprobado
                 orderNumber = trackingNumber,
-                trackingNumber = trackingNumber
+                trackingNumber = trackingNumber,
+                estado = listOf("En preparacion") // Estado por defecto
             )
             
             android.util.Log.d("FirebaseService", "Objeto FirebasePurchase creado correctamente")
@@ -494,7 +495,8 @@ class FirebaseService {
                         "totalPrice" to item.totalPrice
                     )
                 },
-                "notes" to purchase.notes
+                "notes" to purchase.notes,
+                "estado" to listOf("En preparacion") // Array de estados, por defecto "En preparacion"
             )
             
             android.util.Log.d("FirebaseService", "Mapa creado, guardando en Firestore...")
@@ -633,6 +635,142 @@ class FirebaseService {
             Result.success(Unit)
         } catch (e: Exception) {
             println(" FirebaseService: Error al actualizar estado: ${e.message}")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Obtiene todos los pedidos que tienen "En preparacion" en el array estado
+     */
+    suspend fun getOrdersInPreparation(): Result<List<FirebasePurchase>> {
+        return try {
+            println(" FirebaseService: Obteniendo pedidos en preparación...")
+            
+            val snapshot = firestore.collection("purchases")
+                .whereArrayContains("estado", "En preparacion")
+                .orderBy("purchaseDate", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .get()
+                .await()
+            
+            val orders = snapshot.documents.mapNotNull { doc ->
+                val purchase = doc.toObject<FirebasePurchase>()?.copy(id = doc.id)
+                if (purchase != null) {
+                    println(" FirebaseService: Pedido encontrado: ${purchase.orderNumber}")
+                }
+                purchase
+            }
+            
+            println(" FirebaseService: Pedidos en preparación obtenidos: ${orders.size}")
+            Result.success(orders)
+        } catch (e: com.google.firebase.firestore.FirebaseFirestoreException) {
+            if (e.code == com.google.firebase.firestore.FirebaseFirestoreException.Code.FAILED_PRECONDITION) {
+                println(" FirebaseService: Índice no encontrado, obteniendo sin orderBy...")
+                // Si falta el índice, obtener sin orderBy y ordenar en memoria
+                val snapshot = firestore.collection("purchases")
+                    .whereArrayContains("estado", "En preparacion")
+                    .get()
+                    .await()
+                
+                val orders = snapshot.documents.mapNotNull { doc ->
+                    doc.toObject<FirebasePurchase>()?.copy(id = doc.id)
+                }.sortedByDescending { purchase ->
+                    purchase.purchaseDate?.toDate()?.time ?: 0L
+                }
+                
+                println(" FirebaseService: Pedidos en preparación obtenidos (sin orderBy): ${orders.size}")
+                Result.success(orders)
+            } else {
+                println(" FirebaseService: Error al obtener pedidos en preparación: ${e.message}")
+                Result.failure(e)
+            }
+        } catch (e: Exception) {
+            println(" FirebaseService: Error al obtener pedidos en preparación: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Obtiene todos los pedidos que tienen "completado" en el array estado
+     */
+    suspend fun getCompletedOrders(): Result<List<FirebasePurchase>> {
+        return try {
+            println(" FirebaseService: Obteniendo pedidos completados...")
+            
+            val snapshot = firestore.collection("purchases")
+                .whereArrayContains("estado", "completado")
+                .orderBy("purchaseDate", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .get()
+                .await()
+            
+            val orders = snapshot.documents.mapNotNull { doc ->
+                val purchase = doc.toObject<FirebasePurchase>()?.copy(id = doc.id)
+                if (purchase != null) {
+                    println(" FirebaseService: Pedido completado encontrado: ${purchase.orderNumber}")
+                }
+                purchase
+            }
+            
+            println(" FirebaseService: Pedidos completados obtenidos: ${orders.size}")
+            Result.success(orders)
+        } catch (e: com.google.firebase.firestore.FirebaseFirestoreException) {
+            if (e.code == com.google.firebase.firestore.FirebaseFirestoreException.Code.FAILED_PRECONDITION) {
+                println(" FirebaseService: Índice no encontrado, obteniendo sin orderBy...")
+                // Si falta el índice, obtener sin orderBy y ordenar en memoria
+                val snapshot = firestore.collection("purchases")
+                    .whereArrayContains("estado", "completado")
+                    .get()
+                    .await()
+                
+                val orders = snapshot.documents.mapNotNull { doc ->
+                    doc.toObject<FirebasePurchase>()?.copy(id = doc.id)
+                }.sortedByDescending { purchase ->
+                    purchase.purchaseDate?.toDate()?.time ?: 0L
+                }
+                
+                println(" FirebaseService: Pedidos completados obtenidos (sin orderBy): ${orders.size}")
+                Result.success(orders)
+            } else {
+                println(" FirebaseService: Error al obtener pedidos completados: ${e.message}")
+                Result.failure(e)
+            }
+        } catch (e: Exception) {
+            println(" FirebaseService: Error al obtener pedidos completados: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Actualiza el estado del pedido agregando "completado" al array estado
+     */
+    suspend fun completeOrder(purchaseId: String): Result<Unit> {
+        return try {
+            println(" FirebaseService: Completando pedido: $purchaseId")
+            
+            // Obtener el pedido actual para ver su estado
+            val doc = firestore.collection("purchases").document(purchaseId).get().await()
+            val currentEstado = doc.get("estado") as? List<*> ?: listOf("En preparacion")
+            
+            // Crear nuevo array de estado: remover "En preparacion" y agregar "completado"
+            val newEstado = currentEstado.map { it.toString() }
+                .filter { it != "En preparacion" }
+                .toMutableList()
+            
+            if (!newEstado.contains("completado")) {
+                newEstado.add("completado")
+            }
+            
+            // Actualizar el campo estado
+            firestore.collection("purchases").document(purchaseId)
+                .update("estado", newEstado)
+                .await()
+            
+            println(" FirebaseService: Pedido completado exitosamente: $purchaseId")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            println(" FirebaseService: Error al completar pedido: ${e.message}")
+            e.printStackTrace()
             Result.failure(e)
         }
     }

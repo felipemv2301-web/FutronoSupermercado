@@ -610,9 +610,11 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
         }
         showWorkerOrders -> {
             // Pantalla de gestión de pedidos para trabajadores
-            // TODO: WorkerOrdersScreen requiere PaymentViewModel que fue eliminado
-            // Implementar alternativa para obtener órdenes
-            Text("Pantalla de órdenes no disponible temporalmente")
+            WorkerOrdersScreen(
+                onBackClick = {
+                    handleBackNavigation()
+                }
+            )
         }
         showInventory -> {
             // Pantalla de inventario para trabajadores

@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.intento1app.data.models.User
 import com.example.intento1app.ui.theme.*
@@ -37,13 +38,19 @@ fun UserProfileScreen(
     onPaymentMethodsClick: () -> Unit = {},
     onBankDataClick: () -> Unit = {},
     onMyBankDetailsClick: () -> Unit = {},
-    onDeleteAccountClick: () -> Unit = {},
+    onDeleteAccountClick: (String) -> Unit = {},
     onMyOrdersClick: () -> Unit = {},
     onHelpContactClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     onDevolutionClick: () -> Unit ={}
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showFirstDeleteDialog by remember { mutableStateOf(false) }
+    var showSecondDeleteDialog by remember { mutableStateOf(false) }
+    var isAgreementChecked by remember { mutableStateOf(false) }
+    var isDeletingAccount by remember { mutableStateOf(false) }
+    var password by remember { mutableStateOf("") }
+    var showPasswordError by remember { mutableStateOf(false) }
     
     Scaffold(
         topBar = {
@@ -111,7 +118,8 @@ fun UserProfileScreen(
             ProfileOptionCard(
                 iconVector = Icons.Default.Delete,
                 title = "Eliminar cuenta",
-                onClick = onDeleteAccountClick
+                onClick = { showFirstDeleteDialog = true },
+                isDelete = true
             )
             
             // Pedidos
@@ -195,6 +203,223 @@ fun UserProfileScreen(
             }
         )
     }
+    
+    // Primer diálogo de confirmación para eliminar cuenta
+    if (showFirstDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showFirstDeleteDialog = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = FutronoError,
+                    modifier = Modifier.size(48.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "Eliminar Cuenta",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = FutronoError
+                )
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "¿Estás seguro de que quieres eliminar tu cuenta?",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = "Esta acción es irreversible y eliminará todos tus datos permanentemente.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = FutronoCafeOscuro.copy(alpha = 0.8f)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showFirstDeleteDialog = false
+                        showSecondDeleteDialog = true
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = FutronoNaranja
+                    )
+                ) {
+                    Text("Continuar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showFirstDeleteDialog = false }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+    
+    // Segundo diálogo con advertencia y checkbox
+    if (showSecondDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showSecondDeleteDialog = false
+                isAgreementChecked = false
+            },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = FutronoError,
+                    modifier = Modifier.size(48.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "Advertencia Importante",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = FutronoError
+                )
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Por políticas del sistema, después de eliminar tu cuenta NO podrás crear una nueva cuenta con los mismos datos por un período mínimo de 1 año.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Esto significa que:",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = FutronoError
+                    )
+                    Column(
+                        modifier = Modifier.padding(start = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "• No podrás usar el mismo email",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            text = "• No podrás usar el mismo teléfono",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            text = "• No podrás usar el mismo RUT",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            text = "• Deberás esperar al menos 1 año",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    // Campo de contraseña para reautenticación
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { 
+                            password = it
+                            showPasswordError = false
+                        },
+                        label = { Text("Contraseña") },
+                        placeholder = { Text("Ingresa tu contraseña") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        isError = showPasswordError,
+                        supportingText = {
+                            if (showPasswordError) {
+                                Text(
+                                    text = "La contraseña es requerida",
+                                    color = FutronoError
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = FutronoCafe,
+                            unfocusedBorderColor = FutronoCafeOscuro.copy(alpha = 0.5f),
+                            errorBorderColor = FutronoError
+                        )
+                    )
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = isAgreementChecked,
+                            onCheckedChange = { isAgreementChecked = it },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = FutronoError
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Estoy de acuerdo con esto",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (password.isBlank()) {
+                            showPasswordError = true
+                        } else if (isAgreementChecked) {
+                            isDeletingAccount = true
+                            showSecondDeleteDialog = false
+                            onDeleteAccountClick(password)
+                            // Limpiar campos después de cerrar
+                            password = ""
+                            isAgreementChecked = false
+                            showPasswordError = false
+                        }
+                    },
+                    enabled = isAgreementChecked && password.isNotBlank() && !isDeletingAccount,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = FutronoError
+                    )
+                ) {
+                    if (isDeletingAccount) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Eliminar Cuenta")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showSecondDeleteDialog = false
+                        isAgreementChecked = false
+                        password = ""
+                        showPasswordError = false
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -203,6 +428,7 @@ private fun ProfileOptionCard(
     title: String,
     onClick: () -> Unit,
     isLogout: Boolean = false,
+    isDelete: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -225,7 +451,11 @@ private fun ProfileOptionCard(
                 imageVector = iconVector,
                 contentDescription = null,
                 modifier = Modifier.size(24.dp),
-                tint = if (isLogout) FutronoError else FutronoCafe
+                tint = when {
+                    isLogout -> FutronoError
+                    isDelete -> FutronoError
+                    else -> FutronoCafe
+                }
             )
             Spacer(modifier = Modifier.width(16.dp))
             Text(
@@ -233,7 +463,11 @@ private fun ProfileOptionCard(
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Medium
                 ),
-                color = if (isLogout) FutronoError else FutronoCafeOscuro,
+                color = when {
+                    isLogout -> FutronoError
+                    isDelete -> FutronoError
+                    else -> FutronoCafeOscuro
+                },
                 modifier = Modifier.weight(1f)
             )
             if (!isLogout) {

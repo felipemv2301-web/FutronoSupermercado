@@ -146,6 +146,62 @@ class FirebaseService {
     }
     
     /**
+     * Elimina la cuenta del usuario
+     * Elimina el usuario de Firebase Authentication y su documento en Firestore
+     * Requiere reautenticación antes de eliminar (medida de seguridad de Firebase)
+     */
+    suspend fun deleteUserAccount(password: String): Result<Unit> {
+        return try {
+            val currentUser = auth.currentUser
+            if (currentUser == null) {
+                return Result.failure(Exception("No hay usuario autenticado"))
+            }
+            
+            val userId = currentUser.uid
+            val userEmail = currentUser.email
+            
+            if (userEmail == null) {
+                return Result.failure(Exception("No se pudo obtener el email del usuario"))
+            }
+            
+            println(" FirebaseService: Iniciando eliminación de cuenta para usuario: $userId")
+            
+            // 1. Reautenticar al usuario (requerido por Firebase para operaciones sensibles)
+            try {
+                val credential = com.google.firebase.auth.EmailAuthProvider.getCredential(userEmail, password)
+                currentUser.reauthenticate(credential).await()
+                println(" FirebaseService: Usuario reautenticado exitosamente")
+            } catch (e: Exception) {
+                println(" FirebaseService: Error al reautenticar: ${e.message}")
+                return Result.failure(Exception("Contraseña incorrecta. Por favor, verifica tu contraseña."))
+            }
+            
+            // 2. Eliminar documento del usuario en Firestore
+            try {
+                firestore.collection("users").document(userId).delete().await()
+                println(" FirebaseService: Documento de usuario eliminado de Firestore")
+            } catch (e: Exception) {
+                println(" FirebaseService: Advertencia - Error al eliminar documento de Firestore: ${e.message}")
+                // Continuar con la eliminación de Authentication aunque falle Firestore
+            }
+            
+            // 3. Eliminar usuario de Firebase Authentication
+            currentUser.delete().await()
+            println(" FirebaseService: Usuario eliminado de Firebase Authentication")
+            
+            // 4. Cerrar sesión
+            auth.signOut()
+            println(" FirebaseService: Sesión cerrada después de eliminar cuenta")
+            
+            Result.success(Unit)
+        } catch (e: Exception) {
+            println(" FirebaseService: Error al eliminar cuenta: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+    
+    /**
      * Obtiene el usuario actual
      */
     fun getCurrentUser(): FirebaseUser? {

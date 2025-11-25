@@ -849,9 +849,50 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     showUserProfile = false
                     showMyBankDetails = true
                 },
-                onDeleteAccountClick = {
-                    // TODO: Implementar eliminación de cuenta
-                    println("Eliminar cuenta - No implementado aún")
+                onDeleteAccountClick = { password ->
+                    scope.launch {
+                        try {
+                            val firebaseService = com.example.intento1app.data.services.FirebaseService()
+                            val result = firebaseService.deleteUserAccount(password)
+                            
+                            result.fold(
+                                onSuccess = {
+                                    // Cuenta eliminada exitosamente
+                                    showUserProfile = false
+                                    currentUser = null
+                                    cartItems = emptyList()
+                                    authViewModel.signOut()
+                                    currentScreen = "auth"
+                                    
+                                    // Mostrar mensaje de éxito
+                                    showShortSnackbar(
+                                        message = "Cuenta eliminada exitosamente",
+                                        durationMs = 3000
+                                    )
+                                },
+                                onFailure = { error ->
+                                    // Error al eliminar cuenta
+                                    val errorMessage = when {
+                                        error.message?.contains("Contraseña incorrecta") == true -> 
+                                            "Contraseña incorrecta. Por favor, verifica tu contraseña."
+                                        error.message?.contains("recent authentication") == true -> 
+                                            "Se requiere autenticación reciente. Por favor, intenta nuevamente."
+                                        else -> 
+                                            "Error al eliminar cuenta: ${error.message ?: "Error desconocido"}"
+                                    }
+                                    showShortSnackbar(
+                                        message = errorMessage,
+                                        durationMs = 4000
+                                    )
+                                }
+                            )
+                        } catch (e: Exception) {
+                            showShortSnackbar(
+                                message = "Error inesperado: ${e.message ?: "Error desconocido"}",
+                                durationMs = 4000
+                            )
+                        }
+                    }
                 },
                 onMyOrdersClick = {
                     navigateTo("myOrders")

@@ -112,7 +112,8 @@ data class FirebasePurchase(
     @ServerTimestamp
     val purchaseDate: Timestamp? = null,
     val shippingAddress: FirebaseAddress? = null,
-    val notes: String = ""
+    val notes: String = "",
+    val estado: List<String> = listOf("En preparacion") // Array de estados del pedido
 )
 
 // Dirección de envío

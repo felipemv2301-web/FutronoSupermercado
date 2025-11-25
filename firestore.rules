@@ -1,0 +1,135 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Función helper para verificar si es un documento de inicialización
+    function isInitDocument(userId) {
+      return userId != null && userId.size() >= 5 && 
+             userId[0] == 'i' && userId[1] == 'n' && 
+             userId[2] == 'i' && userId[3] == 't' && userId[4] == '_';
+    }
+    
+    // Función helper para verificar si el usuario es trabajador o admin
+    function isWorkerOrAdmin() {
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles.hasAny(['trabajador', 'admin']);
+    }
+    
+    // ==================== USUARIOS ====================
+    match /users/{userId} {
+      // Permitir lectura y escritura solo al propietario del documento
+      // PERMITIR creación si es documento de inicialización (sin autenticación)
+      allow create: if isInitDocument(userId) || 
+                       (request.auth != null && request.auth.uid == userId);
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+     
+      // Permitir lectura y escritura en subcolecciones de users
+      match /{document=**} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+   
+    // ==================== PRODUCTOS ====================
+    // Reglas para productos (lectura pública, escritura para sincronización inicial)
+    match /products/{productId} {
+      allow read: if true; // Cualquiera puede leer productos
+      // Permitir escritura sin autenticación para sincronización inicial
+      allow create, update, delete: if true; // Permitir escritura para sincronización inicial
+      // TODO: Después de sincronizar, cambiar a: allow write: if request.auth != null;
+    }
+   
+    // ==================== COMPRAS ====================
+    // Reglas para compras/historial de compras
+    match /purchases/{purchaseId} {
+      // Permitir lectura si el usuario está autenticado y es el propietario
+      // O si es trabajador/admin (para gestión de pedidos)
+      allow read: if request.auth != null && 
+                     (resource.data.userId == request.auth.uid || isWorkerOrAdmin());
+      
+      // Permitir creación si el usuario está autenticado O si es documento de inicialización
+      allow create: if (request.auth != null && 
+                       request.resource.data.userId == request.auth.uid) ||
+                       isInitDocument(request.resource.data.userId);
+      
+      // Permitir actualización si el usuario es el propietario
+      // O si es trabajador/admin (para actualizar estado de pedidos)
+      allow update: if request.auth != null && 
+                       (resource.data.userId == request.auth.uid || isWorkerOrAdmin());
+    }
+   
+    // ==================== ÓRDENES ====================
+    // Reglas para órdenes - CORREGIDAS PARA USUARIOS INVITADOS E INICIALIZACIÓN
+    match /orders/{orderId} {
+      // Permitir lectura y escritura para usuarios autenticados
+      allow read, write: if request.auth != null;
+      
+      // CORREGIDO: Permitir escritura para usuarios invitados (sin autenticación)
+      allow write: if request.auth == null &&
+        request.resource.data.userId.matches('guest_.*');
+      
+      // NUEVO: Permitir escritura para documentos de inicialización
+      allow create: if isInitDocument(request.resource.data.userId);
+      
+      // Permitir lectura pública para empleados
+      allow read: if true;
+    }
+   
+    // ==================== RECLAMOS ====================
+    // Reglas para reclamos de pedidos
+    match /claims/{claimId} {
+      // Permitir lectura si el usuario está autenticado y es el propietario del reclamo
+      // O si es trabajador/admin (para gestión de reclamos)
+      allow read: if request.auth != null && 
+                     (resource.data.userId == request.auth.uid || isWorkerOrAdmin());
+      
+      // Permitir creación si el usuario está autenticado y el userId del reclamo coincide
+      allow create: if request.auth != null && 
+                       request.resource.data.userId == request.auth.uid;
+      
+      // Permitir actualización solo al propietario o trabajadores/admin
+      allow update: if request.auth != null && 
+                      (resource.data.userId == request.auth.uid || isWorkerOrAdmin());
+      
+      // Permitir eliminación solo al propietario o admin
+      allow delete: if request.auth != null && 
+                       (resource.data.userId == request.auth.uid || isWorkerOrAdmin());
+    }
+   
+    // ==================== CARRITOS ====================
+    // Reglas para carritos
+    match /carts/{cartId} {
+      allow read, write: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+    }
+   
+    // ==================== CATEGORÍAS ====================
+    // Reglas para categorías (lectura pública)
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+   
+    // ==================== RESEÑAS ====================
+    // Reglas para reseñas
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow write: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+    }
+   
+    // ==================== CONFIGURACIÓN DE LA APP ====================
+    // Reglas para configuración de la app
+    match /app_config/{configId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+   
+    // ==================== TEST ====================
+    // NUEVA: Reglas para colección test (para pruebas)
+    match /test/{document} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+

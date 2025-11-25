@@ -225,9 +225,10 @@ fun WorkerHomeScreen(
                     painter = BitmapPainter(bitmap.asImageBitmap()),
                     contentDescription = "Logo de Futrono Supermercado",
                     modifier = Modifier
-                        .fillMaxWidth(0.1f)
+                        .fillMaxWidth(0.4f)
                 )
             }
+
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 IconButton(
                     onClick = onNotificationsClick,

@@ -37,7 +37,7 @@ fun MyDataScreen(
                 title = { 
                     Text(
                         "Mis Datos",
-                        style = MaterialTheme.typography.titleLarge.copy(
+                        style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
                         color = FutronoBlanco

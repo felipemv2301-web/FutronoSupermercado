@@ -170,6 +170,9 @@ fun UserProfileScreen(
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
+            containerColor = FutronoBlanco, // Color de fondo del diálogo
+            titleContentColor = FutronoCafeOscuro, // Color del título
+            textContentColor = FutronoCafeOscuro, // Color del texto
             title = {
                 Text(
                     text = "Cerrar Sesión",

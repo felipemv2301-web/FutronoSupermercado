@@ -75,7 +75,7 @@ fun MyOrdersScreen(
                 title = { 
                     Text(
                         "Mis Pedidos",
-                        style = MaterialTheme.typography.titleLarge.copy(
+                        style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
                         color = FutronoBlanco
@@ -297,7 +297,7 @@ private fun OrderCard(
                 Column {
                     Text(
                         text = " #${purchase.orderNumber}",
-                        style = MaterialTheme.typography.titleLarge.copy(
+                        style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.Bold
                         ),
                         color = FutronoCafeOscuro
@@ -314,14 +314,14 @@ private fun OrderCard(
                 ) {
                     Text(
                         text = "$${String.format("%.0f", purchase.totalPrice)}",
-                        style = MaterialTheme.typography.titleLarge.copy(
+                        style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.Bold
                         ),
                         color = FutronoNaranja
                     )
                     Text(
                         text = "${purchase.totalItems} productos",
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodySmall,
                         color = FutronoCafeOscuro.copy(alpha = 0.7f)
                     )
                 }
@@ -386,7 +386,7 @@ private fun OrderCard(
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "Productos:",
-                    style = MaterialTheme.typography.titleMedium.copy(
+                    style = MaterialTheme.typography.titleSmall.copy(
                         fontWeight = FontWeight.Bold
                     ),
                     color = FutronoCafeOscuro

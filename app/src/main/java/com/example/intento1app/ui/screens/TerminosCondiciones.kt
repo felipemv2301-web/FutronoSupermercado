@@ -30,7 +30,7 @@ fun TerminoAndCondiciones(
                 title = {
                     Text(
                         "Condiciones",
-                        style = MaterialTheme.typography.titleMedium.copy(
+                        style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.Bold
                         ),
                         color = FutronoBlanco

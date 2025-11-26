@@ -21,6 +21,11 @@ data class DailyStats(
     val totalRevenue: Double = 0.0
 )
 
+data class DateRange(
+    val startDate: java.util.Date? = null,
+    val endDate: java.util.Date? = null
+)
+
 class AnalyticsViewModel(
     private val firebaseService: FirebaseService = FirebaseService()
 ) : ViewModel() {
@@ -30,6 +35,9 @@ class AnalyticsViewModel(
     
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    
+    private val _dateRange = MutableStateFlow<DateRange?>(null)
+    val dateRange: StateFlow<DateRange?> = _dateRange.asStateFlow()
     
     private val firebaseAnalytics: FirebaseAnalytics by lazy {
         Firebase.analytics
@@ -41,7 +49,57 @@ class AnalyticsViewModel(
     }
     
     /**
-     * Inicia el listener para obtener estadísticas del día
+     * Establece un rango de fechas para filtrar las estadísticas
+     * Si se pasa null, muestra estadísticas del día actual
+     */
+    fun setDateRange(startDate: java.util.Date? = null, endDate: java.util.Date? = null) {
+        _dateRange.value = DateRange(startDate, endDate)
+        // Recargar estadísticas con el nuevo rango
+        loadStatsForDateRange(startDate, endDate)
+    }
+    
+    /**
+     * Carga estadísticas para un rango de fechas específico
+     */
+    private fun loadStatsForDateRange(startDate: java.util.Date? = null, endDate: java.util.Date? = null) {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                
+                val startTimestamp = startDate?.let { 
+                    com.google.firebase.Timestamp(it) 
+                }
+                val endTimestamp = endDate?.let { 
+                    com.google.firebase.Timestamp(it) 
+                }
+                
+                val statsResult = firebaseService.getSalesStatistics(startTimestamp, endTimestamp)
+                
+                statsResult.fold(
+                    onSuccess = { stats ->
+                        _dailyStats.value = DailyStats(
+                            totalOrders = stats.totalOrders,
+                            completedOrders = stats.completedOrders,
+                            pendingOrders = stats.pendingOrders,
+                            totalRevenue = stats.totalRevenue
+                        )
+                        _isLoading.value = false
+                        logDailyStatsEvent(_dailyStats.value)
+                    },
+                    onFailure = { error ->
+                        println("AnalyticsViewModel: Error al cargar estadísticas: ${error.message}")
+                        _isLoading.value = false
+                    }
+                )
+            } catch (e: Exception) {
+                println("AnalyticsViewModel: Error al cargar estadísticas: ${e.message}")
+                _isLoading.value = false
+            }
+        }
+    }
+    
+    /**
+     * Inicia el listener para obtener estadísticas del día o del rango de fechas
      */
     private fun startDailyStatsListener() {
         viewModelScope.launch {
@@ -49,11 +107,18 @@ class AnalyticsViewModel(
                 _isLoading.value = true
                 
                 firebaseService.listenToAllOrders().collect { allOrders ->
-                    // Filtrar órdenes del día actual
-                    val todayOrders = filterTodayOrders(allOrders)
+                    val dateRange = _dateRange.value
+                    
+                    // Si hay un rango de fechas específico, usarlo; sino, mostrar totales
+                    val filteredOrders = if (dateRange != null && (dateRange.startDate != null || dateRange.endDate != null)) {
+                        filterOrdersByDateRange(allOrders, dateRange.startDate, dateRange.endDate)
+                    } else {
+                        // Sin rango de fechas, mostrar totales de todas las órdenes
+                        allOrders
+                    }
                     
                     // Calcular estadísticas
-                    val stats = calculateDailyStats(todayOrders)
+                    val stats = calculateDailyStats(filteredOrders)
                     
                     _dailyStats.value = stats
                     _isLoading.value = false
@@ -65,6 +130,23 @@ class AnalyticsViewModel(
                 println("AnalyticsViewModel: Error al obtener estadísticas: ${e.message}")
                 _isLoading.value = false
             }
+        }
+    }
+    
+    /**
+     * Filtra órdenes por un rango de fechas
+     */
+    private fun filterOrdersByDateRange(
+        orders: List<FirebasePurchase>,
+        startDate: java.util.Date?,
+        endDate: java.util.Date?
+    ): List<FirebasePurchase> {
+        val startTime = startDate?.time ?: 0L
+        val endTime = endDate?.time ?: Long.MAX_VALUE
+        
+        return orders.filter { order ->
+            val orderDate = order.purchaseDate?.toDate()?.time ?: 0L
+            orderDate >= startTime && orderDate <= endTime
         }
     }
     
@@ -94,14 +176,25 @@ class AnalyticsViewModel(
     private fun calculateDailyStats(orders: List<FirebasePurchase>): DailyStats {
         val totalOrders = orders.size
         val completedOrders = orders.count { order ->
+            // Una orden está completada SOLO si tiene el estado "completado" o "entregado"
+            // NO contar "approved" porque solo indica pago aprobado, no orden completada
             order.paymentStatus == "pedido_listo" || 
             order.paymentStatus == "entregado" ||
-            order.paymentStatus == "completado"
+            order.paymentStatus == "completado" ||
+            // Verificar array de estado (el más importante)
+            order.estado.contains("completado") ||
+            order.estado.contains("entregado") ||
+            order.estado.contains("pedido_listo")
         }
         val pendingOrders = orders.count { order ->
+            // Verificar paymentStatus
             order.paymentStatus == "en_preparacion" || 
             order.paymentStatus == "pendiente" ||
-            order.paymentStatus == "pending"
+            order.paymentStatus == "pending" ||
+            // Verificar array de estado
+            order.estado.contains("En preparacion") ||
+            order.estado.contains("en_preparacion") ||
+            order.estado.contains("pendiente")
         }
         val totalRevenue = orders.sumOf { it.totalPrice }
         

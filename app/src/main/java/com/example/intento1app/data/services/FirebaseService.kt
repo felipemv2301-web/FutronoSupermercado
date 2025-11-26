@@ -1326,11 +1326,36 @@ class FirebaseService {
      * Listener en tiempo real para todas las órdenes (para trabajadores)
      */
     fun listenToAllOrders(): kotlinx.coroutines.flow.Flow<List<FirebasePurchase>> = kotlinx.coroutines.flow.callbackFlow {
-        val listener = firestore.collection("orders")
+        // Usar la colección "purchases" que es donde se guardan las compras
+        val listener = firestore.collection("purchases")
             .orderBy("purchaseDate", com.google.firebase.firestore.Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    println("❌ FirebaseService: Error en listener de todas las órdenes: ${error.message}")
+                    println("❌ FirebaseService: Error en listener de purchases: ${error.message}")
+                    // Si falla por falta de índice, intentar sin orderBy
+                    try {
+                        firestore.collection("purchases")
+                            .addSnapshotListener { snapshotWithoutOrder, errorWithoutOrder ->
+                                if (errorWithoutOrder != null) {
+                                    println("❌ FirebaseService: Error en listener sin orderBy: ${errorWithoutOrder.message}")
+                                    return@addSnapshotListener
+                                }
+                                if (snapshotWithoutOrder != null) {
+                                    val orders = snapshotWithoutOrder.documents.mapNotNull { doc ->
+                                        try {
+                                            doc.toObject<FirebasePurchase>()?.copy(id = doc.id)
+                                        } catch (e: Exception) {
+                                            println("FirebaseService: Error al convertir documento ${doc.id}: ${e.message}")
+                                            null
+                                        }
+                                    }
+                                    println("✅ FirebaseService: Listener de purchases actualizado (sin orderBy): ${orders.size} órdenes")
+                                    trySend(orders)
+                                }
+                            }
+                    } catch (e: Exception) {
+                        println("❌ FirebaseService: Error al intentar sin orderBy: ${e.message}")
+                    }
                     return@addSnapshotListener
                 }
                 
@@ -1343,7 +1368,7 @@ class FirebaseService {
                             null
                         }
                     }
-                    println("✅ FirebaseService: Listener de todas las órdenes actualizado: ${orders.size} órdenes")
+                    println("✅ FirebaseService: Listener de purchases actualizado: ${orders.size} órdenes")
                     trySend(orders)
                 }
             }
@@ -1521,4 +1546,134 @@ class FirebaseService {
             Result.failure(e)
         }
     }
+    
+    /**
+     * Obtiene todas las órdenes con filtro opcional de rango de fechas
+     * @param startDate Fecha de inicio (opcional). Si es null, obtiene desde el inicio
+     * @param endDate Fecha de fin (opcional). Si es null, obtiene hasta el final
+     * @return Result con la lista de órdenes
+     */
+    suspend fun getOrdersByDateRange(
+        startDate: Timestamp? = null,
+        endDate: Timestamp? = null
+    ): Result<List<FirebasePurchase>> {
+        return try {
+            println("FirebaseService: Obteniendo órdenes por rango de fechas...")
+            
+            var query: com.google.firebase.firestore.Query = firestore.collection("purchases")
+            
+            // Aplicar filtros de fecha si se proporcionan
+            if (startDate != null) {
+                query = query.whereGreaterThanOrEqualTo("purchaseDate", startDate)
+            }
+            if (endDate != null) {
+                query = query.whereLessThanOrEqualTo("purchaseDate", endDate)
+            }
+            
+            // Intentar ordenar por fecha
+            val snapshot = try {
+                query.orderBy("purchaseDate", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                    .get()
+                    .await()
+            } catch (e: com.google.firebase.firestore.FirebaseFirestoreException) {
+                if (e.code == com.google.firebase.firestore.FirebaseFirestoreException.Code.FAILED_PRECONDITION) {
+                    println("FirebaseService: Índice no encontrado, obteniendo sin orderBy...")
+                    query.get().await()
+                } else {
+                    throw e
+                }
+            }
+            
+            val orders = snapshot.documents.mapNotNull { doc ->
+                try {
+                    doc.toObject<FirebasePurchase>()?.copy(id = doc.id)
+                } catch (e: Exception) {
+                    println("FirebaseService: Error al convertir orden ${doc.id}: ${e.message}")
+                    null
+                }
+            }.let { ordersList ->
+                // Si no se pudo ordenar en la consulta, ordenar en memoria
+                if (startDate == null && endDate == null) {
+                    ordersList.sortedByDescending { it.purchaseDate?.toDate()?.time ?: 0L }
+                } else {
+                    ordersList
+                }
+            }
+            
+            println("✅ FirebaseService: Órdenes obtenidas: ${orders.size}")
+            Result.success(orders)
+        } catch (e: Exception) {
+            println("❌ FirebaseService: Error al obtener órdenes por rango: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Obtiene estadísticas de ventas para un rango de fechas
+     * @param startDate Fecha de inicio (opcional). Si es null, calcula desde el inicio
+     * @param endDate Fecha de fin (opcional). Si es null, calcula hasta el final
+     * @return Result con las estadísticas calculadas
+     */
+    suspend fun getSalesStatistics(
+        startDate: Timestamp? = null,
+        endDate: Timestamp? = null
+    ): Result<SalesStatistics> {
+        return try {
+            val ordersResult = getOrdersByDateRange(startDate, endDate)
+            
+            ordersResult.fold(
+                onSuccess = { orders ->
+                    val totalOrders = orders.size
+                    val completedOrders = orders.count { order ->
+                        // Una orden está completada SOLO si tiene el estado "completado" o "entregado"
+                        // NO contar "approved" porque solo indica pago aprobado, no orden completada
+                        order.paymentStatus == "pedido_listo" || 
+                        order.paymentStatus == "entregado" ||
+                        order.paymentStatus == "completado" ||
+                        // Verificar array de estado (el más importante)
+                        order.estado.contains("completado") ||
+                        order.estado.contains("entregado") ||
+                        order.estado.contains("pedido_listo")
+                    }
+                    val pendingOrders = orders.count { order ->
+                        order.paymentStatus == "en_preparacion" || 
+                        order.paymentStatus == "pendiente" ||
+                        order.paymentStatus == "pending" ||
+                        order.estado.contains("En preparacion") ||
+                        order.estado.contains("pendiente")
+                    }
+                    val totalRevenue = orders.sumOf { it.totalPrice }
+                    
+                    val stats = SalesStatistics(
+                        totalOrders = totalOrders,
+                        completedOrders = completedOrders,
+                        pendingOrders = pendingOrders,
+                        totalRevenue = totalRevenue
+                    )
+                    
+                    println("✅ FirebaseService: Estadísticas calculadas - Total: $totalOrders, Completados: $completedOrders, Pendientes: $pendingOrders, Ingresos: $totalRevenue")
+                    Result.success(stats)
+                },
+                onFailure = { error ->
+                    println("❌ FirebaseService: Error al obtener estadísticas: ${error.message}")
+                    Result.failure(error)
+                }
+            )
+        } catch (e: Exception) {
+            println("❌ FirebaseService: Error al calcular estadísticas: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
 }
+
+/**
+ * Clase de datos para estadísticas de ventas
+ */
+data class SalesStatistics(
+    val totalOrders: Int = 0,
+    val completedOrders: Int = 0,
+    val pendingOrders: Int = 0,
+    val totalRevenue: Double = 0.0
+)

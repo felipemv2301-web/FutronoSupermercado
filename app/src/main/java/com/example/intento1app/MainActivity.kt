@@ -3472,14 +3472,7 @@ fun CategorySelectionScreen(
             contentPadding = PaddingValues(bottom = 32.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            // Se cambia "ProductCategory.values()" por "filteredCategories"
             items(filteredCategories) { category ->
-                // Este es un Composable de tu proyecto, asumo que existe y funciona
-                // CategoryCard(
-                //     category = category,
-                //     onClick = { onCategoryClick(category.name) },
-                //     modifier = Modifier.fillMaxWidth()
-                // )
                 Text(text = category.displayName, modifier = Modifier.clickable { onCategoryClick(category.name) })
             }
         }

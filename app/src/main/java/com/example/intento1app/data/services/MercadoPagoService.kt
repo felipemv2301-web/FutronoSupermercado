@@ -61,24 +61,13 @@ class MercadoPagoService(private val context: Context) {
                 )
             }
             
-            // Calcular subtotal e IVA
+            // Calcular subtotal (sin IVA)
             val subtotal = cartItems.sumOf { it.totalPrice }
-            val iva = subtotal * 0.19 // 19% IVA
+            val totalAmount = subtotal
             
-            // Agregar el IVA como un item adicional en la preferencia
-            // Convertir a entero redondeando
-            val ivaItem = PreferenceItem(
-                title = "IVA (19%)",
-                quantity = 1,
-                unitPrice = kotlin.math.round(iva).toInt() // Redondear y convertir a entero
-            )
+            val allItems = preferenceItems
             
-            val allItems = preferenceItems + ivaItem
-            
-            // Calcular el total (subtotal + IVA)
-            val totalAmount = subtotal + iva
-            
-            android.util.Log.d("MercadoPago", "Subtotal: $subtotal, IVA: $iva, Total: $totalAmount")
+            android.util.Log.d("MercadoPago", "Subtotal: $subtotal, Total: $totalAmount")
             
             // MercadoPago requiere URLs HTTP/HTTPS válidas y accesibles desde internet
             // Si hay un servidor de redirección configurado, usarlo

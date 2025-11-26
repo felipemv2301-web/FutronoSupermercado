@@ -249,10 +249,9 @@ private fun CartSummary(
     onCheckout: () -> Unit
 ) {
     // 1. Cálculos explícitos fuera de la UI para asegurar reactividad
-    // Asumimos que la suma de los productos es el valor NETO
+    // Total sin IVA
     val netTotal = cartItems.sumOf { it.totalPrice }
-    val ivaAmount = netTotal * 0.19
-    val finalTotal = netTotal + ivaAmount
+    val finalTotal = netTotal
 
     val totalItems = cartItems.sumOf { it.quantity }
 
@@ -292,46 +291,6 @@ private fun CartSummary(
             Spacer(modifier = Modifier.height(12.dp))
             HorizontalDivider(color = FutronoBlanco.copy(alpha = 0.2f))
             Spacer(modifier = Modifier.height(12.dp))
-
-            // Fila 2: Subtotal (Neto) - Opcional, ayuda a la claridad
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "Neto:",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = FutronoBlanco.copy(alpha = 0.8f)
-                )
-                Text(
-                    text = "$${String.format("%,.0f", netTotal).replace(",", ".")}",
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = FutronoBlanco
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Fila 3: IVA
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "IVA (19%):",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = FutronoBlanco
-                )
-                Text(
-                    text = "$${String.format("%,.0f", ivaAmount).replace(",", ".")}",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = FutronoBlanco
-                )
-            }
 
             Spacer(modifier = Modifier.height(16.dp))
 

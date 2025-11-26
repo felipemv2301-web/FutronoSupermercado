@@ -63,8 +63,21 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.ImageNotSupported
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.DrawerDefaults
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.painter.Painter
@@ -1271,6 +1284,7 @@ fun RegisterScreen(
 
 
 //Pantalla de Home, que llama los componentes separados de header y body
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FutronoHomeScreen(
     currentUser: User?,
@@ -1287,46 +1301,235 @@ fun FutronoHomeScreen(
     onWorkerOrdersClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp)
-    ) {
-        FutronoHeader(
-            cartItemCount = cartItemCount,
-            onAccessibilityClick = onAccessibilityClick,
-            onUserProfileClick = onUserProfileClick,
-            onCartClick = onCartClick
-        )
+    // Estado del drawer
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    
+    // Detectar el ancho de la pantalla y el tamaño del texto
+    BoxWithConstraints {
+        val screenWidth = with(LocalDensity.current) { constraints.maxWidth.toDp() }
+        val configuration = LocalConfiguration.current
+        val fontScale = configuration.fontScale
+        
+        // Usar menú hamburguesa si la pantalla es pequeña O el texto es muy grande
+        val useCompactLayout = screenWidth < 600.dp || fontScale > 1.2f
+        
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                ModalDrawerSheet(
+                    drawerContainerColor = MaterialTheme.colorScheme.surface,
+                    drawerContentColor = MaterialTheme.colorScheme.onSurface
+                ) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Futrono",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = FutronoCafe,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    NavigationDrawerItem(
+                        icon = {
+                            Box {
+                                Icon(
+                                    Icons.Default.ShoppingCart,
+                                    contentDescription = "Carrito",
+                                    tint = FutronoNaranja
+                                )
+                                if (cartItemCount > 0) {
+                                    Badge(
+                                        modifier = Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-6).dp),
+                                        containerColor = FutronoCafe
+                                    ) {
+                                        Text(
+                                            text = if (cartItemCount > 99) "99+" else cartItemCount.toString(),
+                                            color = Color.White,
+                                            fontSize = 10.sp
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        label = { Text("Carrito") },
+                        selected = false,
+                        onClick = {
+                            onCartClick()
+                            drawerState.close()
+                        },
+                        colors = NavigationDrawerItemDefaults.colors(
+                            selectedContainerColor = FutronoCafe.copy(alpha = 0.12f)
+                        )
+                    )
+                    
+                    NavigationDrawerItem(
+                        icon = {
+                            Icon(
+                                Icons.Default.Settings,
+                                contentDescription = "Accesibilidad",
+                                tint = FutronoCafe
+                            )
+                        },
+                        label = { Text("Accesibilidad") },
+                        selected = false,
+                        onClick = {
+                            onAccessibilityClick()
+                            drawerState.close()
+                        },
+                        colors = NavigationDrawerItemDefaults.colors(
+                            selectedContainerColor = FutronoCafe.copy(alpha = 0.12f)
+                        )
+                    )
+                    
+                    NavigationDrawerItem(
+                        icon = {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = "Mi cuenta",
+                                tint = FutronoCafe
+                            )
+                        },
+                        label = { Text("Mi Perfil") },
+                        selected = false,
+                        onClick = {
+                            onUserProfileClick()
+                            drawerState.close()
+                        },
+                        colors = NavigationDrawerItemDefaults.colors(
+                            selectedContainerColor = FutronoCafe.copy(alpha = 0.12f)
+                        )
+                    )
+                    
+                    NavigationDrawerItem(
+                        icon = {
+                            Icon(
+                                Icons.Default.Logout,
+                                contentDescription = "Cerrar sesión",
+                                tint = FutronoCafe
+                            )
+                        },
+                        label = { Text("Cerrar Sesión") },
+                        selected = false,
+                        onClick = {
+                            onLogout()
+                            drawerState.close()
+                        },
+                        colors = NavigationDrawerItemDefaults.colors(
+                            selectedContainerColor = FutronoCafe.copy(alpha = 0.12f)
+                        )
+                    )
+                }
+            }
+        ) {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = {
+                            Text(
+                                text = "Futrono",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = FutronoCafe,
+                                modifier = Modifier.widthIn(max = screenWidth * 0.5f)
+                            )
+                        },
+                        navigationIcon = {
+                            if (useCompactLayout) {
+                                IconButton(onClick = { drawerState.open() }) {
+                                    Icon(
+                                        Icons.Default.Menu,
+                                        contentDescription = "Menú",
+                                        tint = FutronoCafe
+                                    )
+                                }
+                            }
+                        },
+                        actions = {
+                            if (!useCompactLayout) {
+                                // Mostrar botones directamente en pantallas grandes
+                                IconActionButton(
+                                    onClick = onAccessibilityClick,
+                                    icon = Icons.Default.Settings,
+                                    description = "Accesibilidad",
+                                    backgroundColor = FutronoCafe
+                                )
+                                IconActionButton(
+                                    onClick = onUserProfileClick,
+                                    icon = Icons.Default.Person,
+                                    description = "Mi cuenta",
+                                    backgroundColor = FutronoCafe
+                                )
+                                Box {
+                                    IconButton(onClick = onCartClick) {
+                                        Icon(
+                                            Icons.Default.ShoppingCart,
+                                            contentDescription = "Carrito",
+                                            tint = FutronoNaranja
+                                        )
+                                    }
+                                    if (cartItemCount > 0) {
+                                        Badge(
+                                            modifier = Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-6).dp),
+                                            containerColor = FutronoCafe
+                                        ) {
+                                            Text(
+                                                text = if (cartItemCount > 99) "99+" else cartItemCount.toString(),
+                                                color = Color.White,
+                                                fontSize = 10.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.background
+                        )
+                    )
+                }
+            ) { paddingValues ->
+                Column(
+                    modifier = modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                        .padding(paddingValues)
+                        .padding(16.dp)
+                ) {
+                    if (!useCompactLayout) {
+                        // Mostrar logo solo si no es layout compacto
+                        FutronoLogo()
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
 
-        Spacer(modifier = Modifier.height(16.dp))
+                    if (isWorker || isAdmin) {
+                        WorkerOrdersButton(onClick = onWorkerOrdersClick)
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
 
-        if (isWorker || isAdmin) {
-            WorkerOrdersButton(onClick = onWorkerOrdersClick)
-            Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Categorías Disponibles",
+                        // Se usa el estilo headlineMedium para títulos importantes de sección.
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Bold, // Se mantiene el grosor personalizado
+                            textAlign = TextAlign.Center   // Se centra el texto
+                        ),
+                        color = MaterialTheme.colorScheme.FutronoBlanco,
+                        modifier = Modifier
+                            .fillMaxWidth() // 1. El texto ocupa todo el ancho de la pantalla
+                            .padding(top = 16.dp, bottom = 36.dp) // 2. Padding superior e inferior modificable
+                    )
+
+                    CategoriesGrid(
+                        categories = categories,
+                        onCategoryClick = onCategoryClick,
+                        accessibilityViewModel = accessibilityViewModel
+                    )
+
+                    ViewAllProductsButton(onClick = { onCategoryClick("TODOS") })
+                }
+            }
         }
-
-        Text(
-            text = "Categorías Disponibles",
-            // Se usa el estilo headlineMedium para títulos importantes de sección.
-            style = MaterialTheme.typography.headlineSmall.copy(
-                fontWeight = FontWeight.Bold, // Se mantiene el grosor personalizado
-                textAlign = TextAlign.Center   // Se centra el texto
-            ),
-            color = MaterialTheme.colorScheme.FutronoBlanco,
-            modifier = Modifier
-                .fillMaxWidth() // 1. El texto ocupa todo el ancho de la pantalla
-                .padding(top = 16.dp, bottom = 36.dp) // 2. Padding superior e inferior modificable
-        )
-
-        CategoriesGrid(
-            categories = categories,
-            onCategoryClick = onCategoryClick,
-            accessibilityViewModel = accessibilityViewModel
-        )
-
-        ViewAllProductsButton(onClick = { onCategoryClick("TODOS") })
     }
 }
 
@@ -1337,6 +1540,8 @@ private fun FutronoHeader(
     onAccessibilityClick: () -> Unit,
     onUserProfileClick: () -> Unit,
     onCartClick: () -> Unit,
+    onMenuClick: (() -> Unit)? = null,
+    useCompactLayout: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -1349,15 +1554,29 @@ private fun FutronoHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        // Logo alineado a la izquierda con margen natural
-        FutronoLogo()
+        // Botón hamburguesa o logo según el layout
+        if (useCompactLayout && onMenuClick != null) {
+            IconButton(onClick = onMenuClick) {
+                Icon(
+                    Icons.Default.Menu,
+                    contentDescription = "Menú",
+                    tint = FutronoCafe
+                )
+            }
+        } else {
+            // Logo alineado a la izquierda con margen natural
+            FutronoLogo()
+        }
 
-        HeaderActions(
-            cartItemCount = cartItemCount,
-            onAccessibilityClick = onAccessibilityClick,
-            onUserProfileClick = onUserProfileClick,
-            onCartClick = onCartClick
-        )
+        // Mostrar acciones solo si no es layout compacto
+        if (!useCompactLayout) {
+            HeaderActions(
+                cartItemCount = cartItemCount,
+                onAccessibilityClick = onAccessibilityClick,
+                onUserProfileClick = onUserProfileClick,
+                onCartClick = onCartClick
+            )
+        }
     }
 }
 

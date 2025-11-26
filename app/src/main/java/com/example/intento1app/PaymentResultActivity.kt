@@ -446,7 +446,7 @@ fun PaymentResultScreen(
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = tracking,
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold
                         )
@@ -544,15 +544,14 @@ fun PaymentResultScreen(
  */
 @Composable
 private fun CartItemsTable(cartItems: List<CartItem>) {
-    // Calcular subtotal, IVA y total
+    // Calcular total (sin IVA)
     val subtotal = cartItems.sumOf { it.totalPrice }
-    val iva = subtotal * 0.19 // 19% IVA
-    val total = subtotal + iva
+    val total = subtotal
     
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = FutronoBlanco
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -560,8 +559,8 @@ private fun CartItemsTable(cartItems: List<CartItem>) {
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = "Detalle de la Compra",
-                style = MaterialTheme.typography.titleMedium,
+                text = "Detalle de compra",
+                style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = FutronoCafe
             )
@@ -669,26 +668,6 @@ private fun CartItemsTable(cartItems: List<CartItem>) {
                 Text(
                     text = "$${String.format("%,.0f", subtotal).replace(",", ".")}",
                     style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.weight(0.4f),
-                    textAlign = TextAlign.End
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(4.dp))
-            
-            // IVA
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "IVA (19%)",
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.weight(0.5f)
-                )
-                Text(
-                    text = "$${String.format("%,.0f", iva).replace(",", ".")}",
-                    style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.weight(0.4f),
                     textAlign = TextAlign.End
                 )

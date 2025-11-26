@@ -482,10 +482,9 @@ class FirebaseService {
             android.util.Log.d("FirebaseService", "Tracking Number generado: $trackingNumber")
             
             val subtotal = cartItems.sumOf { it.totalPrice }
-            val iva = subtotal * 0.19 // 19% IVA
-            val totalPrice = subtotal + iva // Total con IVA incluido
+            val totalPrice = subtotal // Total sin IVA
             val totalItems = cartItems.sumOf { it.quantity }
-            android.util.Log.d("FirebaseService", "Subtotal: $subtotal, IVA: $iva, Total Price: $totalPrice, Total Items: $totalItems")
+            android.util.Log.d("FirebaseService", "Subtotal: $subtotal, Total Price: $totalPrice, Total Items: $totalItems")
             
             // Convertir CartItem a FirebaseCartItem
             val firebaseItems = cartItems.map { cartItem ->
@@ -508,9 +507,9 @@ class FirebaseService {
                 userAddress = userAddress, // Dirección del usuario
                 items = firebaseItems,
                 subtotal = subtotal,
-                iva = iva,
+                iva = 0.0, // IVA eliminado
                 shipping = 0.0,
-                totalPrice = totalPrice, // Total con IVA incluido
+                totalPrice = totalPrice, // Total sin IVA
                 totalItems = totalItems,
                 paymentMethod = "Mercado Pago",
                 paymentId = paymentId,
@@ -572,10 +571,10 @@ class FirebaseService {
                     android.util.Log.d("FirebaseService", "UserEmail: $userEmail")
                     android.util.Log.d("FirebaseService", "TrackingNumber: $trackingNumber")
                     
-                    // Usar los valores ya calculados arriba (subtotal, iva, totalPrice)
+                    // Usar los valores ya calculados arriba (subtotal, totalPrice)
                     val shipping = 0.0 // Por ahora sin costo de envío
                     
-                    android.util.Log.d("FirebaseService", "Subtotal: $subtotal, IVA: $iva, Total con IVA: $totalPrice")
+                    android.util.Log.d("FirebaseService", "Subtotal: $subtotal, Total sin IVA: $totalPrice")
                     android.util.Log.d("FirebaseService", "Items count: ${cartItems.size}")
                     
                     val emailService = com.example.intento1app.data.services.EmailJSService()
@@ -583,9 +582,9 @@ class FirebaseService {
                         userName = userName,
                         userEmail = userEmail,
                         orderNumber = trackingNumber,
-                        totalPrice = totalPrice, // Total con IVA incluido (ya calculado arriba)
+                        totalPrice = totalPrice, // Total sin IVA (ya calculado arriba)
                         subtotal = subtotal, // Subtotal sin IVA (ya calculado arriba)
-                        iva = iva, // IVA del 19% (ya calculado arriba)
+                        iva = 0.0, // IVA eliminado
                         shipping = shipping,
                         totalItems = totalItems,
                         cartItems = cartItems,

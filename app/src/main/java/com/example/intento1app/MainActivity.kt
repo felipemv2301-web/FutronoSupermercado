@@ -5,6 +5,8 @@ import android.util.Patterns
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.BackHandler
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.google.firebase.FirebaseApp
 import com.example.intento1app.utils.Validators
 import com.example.intento1app.utils.TipoError
@@ -41,6 +43,8 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.remember
@@ -70,6 +74,11 @@ import androidx.compose.material.icons.filled.ImageNotSupported
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.HomeWork
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.DrawerValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
@@ -131,6 +140,14 @@ import com.example.intento1app.ui.theme.StockMedium
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Configurar la barra de estado para que sea blanca y el contenido no se dibuje debajo
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        val windowInsetsController = WindowInsetsControllerCompat(window, window.decorView)
+        windowInsetsController.isAppearanceLightStatusBars = true // Iconos oscuros en barra blanca
+        
+        // Configurar color de fondo de la barra de estado (blanco)
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
 
         try {
             FirebaseApp.initializeApp(this)
@@ -1020,6 +1037,10 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                     onUserProfileClick = {
                         navigateTo("userProfile")
                         showUserProfile = true
+                    },
+                    onMyOrdersClick = {
+                        navigateTo("myOrders")
+                        showMyOrders = true
                     },
                     accessibilityViewModel = accessibilityViewModel
                 )
@@ -2030,15 +2051,15 @@ fun RegisterScreen(
 //Componente que engloba todo el header
 @Composable
 private fun FutronoHeader(
+    onMenuClick: () -> Unit,
     cartItemCount: Int,
-    onAccessibilityClick: () -> Unit,
-    onUserProfileClick: () -> Unit,
     onCartClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .statusBarsPadding()
             .height(80.dp)
             .background(FutronoBlanco)
             .padding(horizontal = 16.dp),
@@ -2049,16 +2070,63 @@ private fun FutronoHeader(
         // Logo alineado a la izquierda con margen natural
         FutronoLogo()
 
-        HeaderActions(
-            cartItemCount = cartItemCount,
-            onAccessibilityClick = onAccessibilityClick,
-            onUserProfileClick = onUserProfileClick,
-            onCartClick = onCartClick
-        )
+        // Botones a la derecha: Carrito y Menú
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Botón del carrito con texto
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "Carrito",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = FutronoCafe
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                CartButton(
+                    cartItemCount = cartItemCount,
+                    onClick = onCartClick
+                )
+            }
+
+            // Botón de hamburguesa con texto
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "Opciones",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = FutronoCafe
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                IconButton(
+                    onClick = onMenuClick,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(
+                            color = Color(0xFF424242), // Gris oscuro
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                )
+                {
+                    Icon(
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = "Menú",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+        }
     }
 }
 
 //Pantalla de Home, que llama los componentes separados de header y body
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FutronoHomeScreen(
     currentUser: User?,
@@ -2069,64 +2137,263 @@ fun FutronoHomeScreen(
     cartItemCount: Int,
     onAccessibilityClick: () -> Unit = {},
     onUserProfileClick: () -> Unit = {},
+    onMyOrdersClick: () -> Unit = {},
     accessibilityViewModel: AccessibilityViewModel,
     isWorker: Boolean = false,
     isAdmin: Boolean = false,
     onWorkerOrdersClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-        ) {
-            FutronoHeader(
-                cartItemCount = cartItemCount,
-                onAccessibilityClick = onAccessibilityClick,
-                onUserProfileClick = onUserProfileClick,
-                onCartClick = onCartClick
-            )
-            
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet(
+                modifier = Modifier.width(280.dp)
             ) {
+                // Encabezado del drawer
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .background(FutronoBlanco)
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_logo2),
+                        contentDescription = "Logo Futrono",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .height(80.dp)
+                            .widthIn(max = 200.dp)
+                    )
+                }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-            if (isWorker || isAdmin) {
-                WorkerOrdersButton(onClick = onWorkerOrdersClick)
-                Spacer(modifier = Modifier.height(16.dp))
-            }
+                // Botón de Accesibilidad
+                NavigationDrawerItem(
+                    icon = {
+                        Icon(
+                            Icons.Default.AccessibilityNew,
+                            contentDescription = "Accesibilidad",
+                            tint = FutronoCafe
+                        )
+                    },
+                    label = { 
+                        Text(
+                            "Accesibilidad",
+                            style = MaterialTheme.typography.bodyLarge,
+                            textDecoration = TextDecoration.Underline
+                        ) 
+                    },
+                    selected = false,
+                    onClick = {
+                        onAccessibilityClick()
+                        scope.launch {
+                            drawerState.close()
+                        }
+                    },
+                    colors = NavigationDrawerItemDefaults.colors(
+                        selectedContainerColor = FutronoCafe.copy(alpha = 0.12f),
+                        unselectedContainerColor = Color.Transparent
+                    )
+                )
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 3.dp, bottom = 30.dp)
-                    .padding(5.dp) // Ajusta el padding interno del recuadro
-            ) {
-                ScalableHeadlineLarge(
-                    text = "Categorías Disponibles",
-                    modifier = Modifier.fillMaxWidth(),
-                    color = FutronoCafe,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                    fontSize = MaterialTheme.typography.headlineSmall.fontSize // Cambia entre: headlineSmall, headlineMedium, headlineLarge, titleLarge, titleMedium, titleSmall
+                // Botón de Perfil
+                NavigationDrawerItem(
+                    icon = {
+                        Icon(
+                            Icons.Default.Person,
+                            contentDescription = "Perfil",
+                            tint = FutronoCafe
+                        )
+                    },
+                    label = { 
+                        Text(
+                            "Perfil",
+                            style = MaterialTheme.typography.bodyLarge,
+                            textDecoration = TextDecoration.Underline
+                        ) 
+                    },
+                    selected = false,
+                    onClick = {
+                        onUserProfileClick()
+                        scope.launch {
+                            drawerState.close()
+                        }
+                    },
+                    colors = NavigationDrawerItemDefaults.colors(
+                        selectedContainerColor = FutronoCafe.copy(alpha = 0.12f),
+                        unselectedContainerColor = Color.Transparent
+                    )
+                )
+
+                // Botón de Carrito
+                NavigationDrawerItem(
+                    icon = {
+                        Box {
+                            Icon(
+                                Icons.Default.ShoppingCart,
+                                contentDescription = "Carrito",
+                                tint = FutronoCafe
+                            )
+                            if (cartItemCount > 0) {
+                                Badge(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .offset(x = 8.dp, y = (-8).dp),
+                                    containerColor = FutronoNaranja
+                                ) {
+                                    Text(
+                                        if (cartItemCount > 99) "99+" else cartItemCount.toString(),
+                                        color = Color.White,
+                                        fontSize = 10.sp
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    label = { 
+                        Text(
+                            "Carrito",
+                            style = MaterialTheme.typography.bodyLarge,
+                            textDecoration = TextDecoration.Underline
+                        ) 
+                    },
+                    selected = false,
+                    onClick = {
+                        onCartClick()
+                        scope.launch {
+                            drawerState.close()
+                        }
+                    },
+                    colors = NavigationDrawerItemDefaults.colors(
+                        selectedContainerColor = FutronoCafe.copy(alpha = 0.12f),
+                        unselectedContainerColor = Color.Transparent
+                    )
+                )
+
+                // Botón de Mis Pedidos
+                NavigationDrawerItem(
+                    icon = {
+                        Icon(
+                            Icons.Default.Receipt,
+                            contentDescription = "Mis pedidos",
+                            tint = FutronoCafe
+                        )
+                    },
+                    label = { 
+                        Text(
+                            "Mis Pedidos",
+                            style = MaterialTheme.typography.bodyLarge,
+                            textDecoration = TextDecoration.Underline
+                        ) 
+                    },
+                    selected = false,
+                    onClick = {
+                        onMyOrdersClick()
+                        scope.launch {
+                            drawerState.close()
+                        }
+                    },
+                    colors = NavigationDrawerItemDefaults.colors(
+                        selectedContainerColor = FutronoCafe.copy(alpha = 0.12f),
+                        unselectedContainerColor = Color.Transparent
+                    )
+                )
+
+                // Botón de Cerrar Sesión
+                NavigationDrawerItem(
+                    icon = {
+                        Icon(
+                            Icons.Default.Logout,
+                            contentDescription = "Cerrar sesión",
+                            tint = FutronoError
+                        )
+                    },
+                    label = { 
+                        Text(
+                            "Cerrar Sesión",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = FutronoError,
+                            textDecoration = TextDecoration.Underline
+                        ) 
+                    },
+                    selected = false,
+                    onClick = {
+                        onLogout()
+                        scope.launch {
+                            drawerState.close()
+                        }
+                    },
+                    colors = NavigationDrawerItemDefaults.colors(
+                        selectedContainerColor = FutronoCafe.copy(alpha = 0.12f),
+                        unselectedContainerColor = Color.Transparent
+                    )
                 )
             }
+        }
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            Column(
+                modifier = modifier
+                    .fillMaxSize()
+            ) {
+                FutronoHeader(
+                    onMenuClick = {
+                        scope.launch {
+                            drawerState.open()
+                        }
+                    },
+                    cartItemCount = cartItemCount,
+                    onCartClick = onCartClick
+                )
+                
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp)
+                ) {
 
-            CategoriesGrid(
-                categories = categories,
-                onCategoryClick = onCategoryClick,
-                accessibilityViewModel = accessibilityViewModel
-            )
+                Spacer(modifier = Modifier.height(16.dp))
 
-            ViewAllProductsButton(onClick = { onCategoryClick("TODOS") })
+                if (isWorker || isAdmin) {
+                    WorkerOrdersButton(onClick = onWorkerOrdersClick)
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 3.dp, bottom = 30.dp)
+                        .padding(5.dp) // Ajusta el padding interno del recuadro
+                ) {
+                    ScalableHeadlineLarge(
+                        text = "Categorías Disponibles",
+                        modifier = Modifier.fillMaxWidth(),
+                        color = FutronoCafe,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        fontSize = MaterialTheme.typography.headlineSmall.fontSize // Cambia entre: headlineSmall, headlineMedium, headlineLarge, titleLarge, titleMedium, titleSmall
+                    )
+                }
+
+                CategoriesGrid(
+                    categories = categories,
+                    onCategoryClick = onCategoryClick,
+                    accessibilityViewModel = accessibilityViewModel
+                )
+
+                ViewAllProductsButton(onClick = { onCategoryClick("TODOS") })
+                }
             }
         }
     }
@@ -2149,7 +2416,7 @@ private fun FutronoLogo(modifier: Modifier = Modifier) {
 
         modifier = modifier
             .height(70.dp) // Altura fija
-            .widthIn(max = 150.dp) // Ancho máximo para evitar que sea demasiado grande
+            .widthIn(max = 165.dp) // Ancho máximo para evitar que sea demasiado grande
             .padding(start = 1.dp)
     )
 }
@@ -2257,7 +2524,8 @@ private fun IconActionButton(
 private fun CartButton(
     cartItemCount: Int,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    text: String = "Carrito"
 ) {
     Box(modifier = modifier) {
         IconButton(

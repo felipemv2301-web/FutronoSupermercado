@@ -293,44 +293,8 @@ private fun PaymentSummaryCard(cartItems: List<CartItem>) {
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-            // Calcular subtotal, IVA y total
-            val subtotal = cartItems.sumOf { it.totalPrice }
-            val iva = subtotal * 0.19 // 19% IVA
-            val total = subtotal + iva
-            
-            // Subtotal
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "Subtotal",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    text = "$${String.format("%,.0f", subtotal).replace(",", ".")}",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-            
-            // IVA
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "IVA (19%)",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    text = "$${String.format("%,.0f", iva).replace(",", ".")}",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            HorizontalDivider()
-            Spacer(modifier = Modifier.height(8.dp))
+            // Calcular total (sin IVA)
+            val total = cartItems.sumOf { it.totalPrice }
             
             // Total
             Row(

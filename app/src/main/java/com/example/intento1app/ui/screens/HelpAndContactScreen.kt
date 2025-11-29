@@ -13,6 +13,8 @@ import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +23,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import android.content.ClipData
+import android.content.ClipboardManager
 import com.example.intento1app.R
 import com.example.intento1app.ui.theme.*
 
@@ -35,6 +40,10 @@ fun HelpAndContactScreen(
     onClaimClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    var showWhatsAppDialog by remember { mutableStateOf(false) }
+    var showScheduleDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val whatsAppNumber = "+56972630846"
     Scaffold(
         topBar = {
             TopAppBar(
@@ -77,21 +86,14 @@ fun HelpAndContactScreen(
                 HelpOptionCard(
                     iconVector = Icons.Default.Store,
                     title = "Local y horario",
-                    onClick = onLocalAndScheduleClick
+                    onClick = { showScheduleDialog = true }
                 )
                 
                 // Contáctanos por WhatsApp
                 HelpOptionCard(
                     iconVector = Icons.Default.Message,
                     title = "Contáctanos por WhatsApp",
-                    onClick = onWhatsAppClick
-                )
-                
-                // Reporta un error en la app
-                HelpOptionCard(
-                    iconVector = Icons.Default.Email,
-                    title = "Reporta un error en la app",
-                    onClick = onReportErrorClick
+                    onClick = { showWhatsAppDialog = true }
                 )
                 
                 // Términos y condiciones
@@ -108,6 +110,199 @@ fun HelpAndContactScreen(
             }
         }
     )
+    
+    // Diálogo modal de WhatsApp
+    if (showWhatsAppDialog) {
+        AlertDialog(
+            onDismissRequest = { showWhatsAppDialog = false },
+            containerColor = FutronoBlanco,
+            titleContentColor = FutronoCafeOscuro,
+            textContentColor = FutronoCafeOscuro,
+            title = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Número de WhatsApp",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
+                    IconButton(
+                        onClick = { showWhatsAppDialog = false }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Cerrar",
+                            tint = FutronoCafeOscuro
+                        )
+                    }
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = whatsAppNumber,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = FutronoCafe,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                    Text(
+                        text = "Copia el número para contactarnos por WhatsApp",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = FutronoCafeOscuro.copy(alpha = 0.7f)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        // Copiar al portapapeles
+                        val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        val clip = ClipData.newPlainText("WhatsApp Number", whatsAppNumber)
+                        clipboard.setPrimaryClip(clip)
+                        
+                        // Mostrar mensaje de confirmación
+                        android.widget.Toast.makeText(
+                            context,
+                            "Número copiado al portapapeles",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = FutronoCafe
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Copiar número",
+                        color = FutronoBlanco
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showWhatsAppDialog = false },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Cerrar")
+                }
+            }
+        )
+    }
+    
+    // Diálogo modal de Horarios
+    if (showScheduleDialog) {
+        AlertDialog(
+            onDismissRequest = { showScheduleDialog = false },
+            containerColor = FutronoBlanco,
+            titleContentColor = FutronoCafeOscuro,
+            textContentColor = FutronoCafeOscuro,
+            title = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Horarios de Atención",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
+                    IconButton(
+                        onClick = { showScheduleDialog = false }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Cerrar",
+                            tint = FutronoCafeOscuro
+                        )
+                    }
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Lunes a Viernes
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Text(
+                            text = "Lunes a Sábado:",
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = FutronoCafeOscuro,
+                            modifier = Modifier.width(120.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "9:00 AM - 1:00 PM",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = FutronoCafeOscuro
+                            )
+                            Text(
+                                text = "3:00 PM - 7:30 PM",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = FutronoCafeOscuro
+                            )
+                        }
+                    }
+
+                    
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    
+                    // Sábados y Domingos
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Text(
+                            text = "Domingo:",
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = FutronoCafeOscuro,
+                            modifier = Modifier.width(120.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Cerrado",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = FutronoCafeOscuro.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { showScheduleDialog = false },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Cerrar")
+                }
+            }
+        )
+    }
 }
 
 @Composable

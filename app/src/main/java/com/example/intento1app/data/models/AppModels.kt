@@ -104,6 +104,7 @@ data class CartItem(
     val product: Product,
     val quantity: Int
 ) {
+    // Precio total (los precios en BD ya incluyen IVA)
     val totalPrice: Double
         get() = product.price * quantity
 }

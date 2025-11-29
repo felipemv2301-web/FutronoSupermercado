@@ -25,6 +25,60 @@ class EmailJSService {
     private val mediaType = "application/json".toMediaType()
     
     /**
+     * Convierte una URL de Google Drive a una URL de visualización directa
+     * Soporta formatos: /file/d/ID/view y id=ID
+     * 
+     * @param urlOriginal URL original de Google Drive
+     * @return URL de visualización directa o la URL original si no es de Drive
+     */
+    private fun obtenerUrlImagenDrive(urlOriginal: String?): String {
+        // Si no es un link de drive, devolver tal cual
+        if (urlOriginal.isNullOrEmpty() || !urlOriginal.contains("drive.google.com")) {
+            return urlOriginal ?: ""
+        }
+        
+        // Extraer el ID del archivo
+        // Soporta formatos: /file/d/ID/view y id=ID
+        var id = ""
+        
+        // Intentar extraer de formato /file/d/ID/
+        val partes = urlOriginal.split("/d/")
+        if (partes.size > 1) {
+            id = partes[1].split("/")[0].split("?")[0]
+        } else {
+            // Intentar buscar parámetro id=
+            try {
+                val url = java.net.URL(urlOriginal)
+                val query = url.query
+                if (query != null) {
+                    val params = query.split("&")
+                    for (param in params) {
+                        if (param.startsWith("id=")) {
+                            id = param.substring(3)
+                            break
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w("EmailJSService", "Error al parsear URL: ${e.message}")
+            }
+        }
+        
+        if (id.isEmpty()) {
+            Log.w("EmailJSService", "No se pudo extraer ID de la URL: $urlOriginal")
+            return "https://via.placeholder.com/64?text=Error"
+        }
+        
+        // Retornar la URL de descarga directa/visualización directa
+        return "https://drive.google.com/uc?export=view&id=$id"
+    }
+    
+    /**
+     * URL del logo del supermercado (convertida a formato de visualización directa)
+     */
+    private val logoUrl: String = obtenerUrlImagenDrive("https://drive.google.com/file/d/1aMWwVo6qJNS0BUJczFNeSyMaYWW5sBos/view?usp=sharing")
+    
+    /**
      * Envía un email de confirmación de compra al cliente
      * 
      * @param userName Nombre del usuario
@@ -82,9 +136,11 @@ class EmailJSService {
                     put("quantity", item.quantity.toString())
                     put("unit_price", formatPrice(item.product.price))
                     put("total_price", formatPrice(item.totalPrice))
-                    // EmailJS puede manejar URLs de imagen, si está disponible
+                    // Convertir URL de Google Drive a formato de visualización directa
                     if (item.product.imageUrl.isNotEmpty()) {
-                        put("image_url", item.product.imageUrl)
+                        val imageUrlConvertida = obtenerUrlImagenDrive(item.product.imageUrl)
+                        put("image_url", imageUrlConvertida)
+                        Log.d("EmailJSService", "Imagen convertida: ${item.product.imageUrl} -> $imageUrlConvertida")
                     }
                 }
                 itemsArray.put(itemObj)
@@ -107,7 +163,12 @@ class EmailJSService {
                 // Agregar dirección del usuario
                 if (userAddress.isNotEmpty()) {
                     put("user_address", userAddress)
+                } else {
+                    put("user_address", "No especificada")
                 }
+                // Agregar logo del supermercado
+                put("logo_url", logoUrl)
+                Log.d("EmailJSService", "Logo URL: $logoUrl")
                 // Agregar el array de items directamente
                 put("items", itemsArray)
             }

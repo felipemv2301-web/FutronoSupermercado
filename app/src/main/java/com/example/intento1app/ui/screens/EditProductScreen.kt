@@ -8,8 +8,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.intento1app.ui.theme.FutronoBlanco
+import com.example.intento1app.ui.theme.FutronoCafe
 import com.example.intento1app.viewmodel.EditProductViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,12 +31,28 @@ fun EditProductScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Editar Producto") },
+                title = {
+                    Text(
+                        "Editar Producto",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = FutronoBlanco
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = FutronoBlanco
+                        )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = FutronoCafe,
+                    titleContentColor = FutronoBlanco
+                )
             )
         }
     ) { innerPadding ->

@@ -52,22 +52,22 @@ class MercadoPagoService(private val context: Context) {
                 )
             }
             // Convertir items del carrito a items de preferencia
+            // Los precios en BD ya incluyen IVA, así que los usamos directamente
             // MercadoPago requiere unit_price como entero (sin decimales para CLP)
             val preferenceItems = cartItems.map { cartItem ->
                 PreferenceItem(
                     title = cartItem.product.name,
                     quantity = cartItem.quantity,
-                    unitPrice = kotlin.math.round(cartItem.product.price).toInt() // Redondear y convertir a entero
+                    unitPrice = kotlin.math.round(cartItem.product.price).toInt() // Precio ya incluye IVA
                 )
             }
             
-            // Calcular subtotal (sin IVA)
-            val subtotal = cartItems.sumOf { it.totalPrice }
-            val totalAmount = subtotal
+            // Calcular total (los precios ya incluyen IVA)
+            val totalAmount = cartItems.sumOf { it.totalPrice }
             
             val allItems = preferenceItems
             
-            android.util.Log.d("MercadoPago", "Subtotal: $subtotal, Total: $totalAmount")
+            android.util.Log.d("MercadoPago", "Total con IVA incluido: $totalAmount")
             
             // MercadoPago requiere URLs HTTP/HTTPS válidas y accesibles desde internet
             // Si hay un servidor de redirección configurado, usarlo

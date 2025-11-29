@@ -293,10 +293,53 @@ private fun PaymentSummaryCard(cartItems: List<CartItem>) {
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-            // Calcular total (sin IVA)
+            // Calcular total (los precios en BD ya incluyen IVA)
             val total = cartItems.sumOf { it.totalPrice }
             
-            // Total
+            // Calcular desglose: subtotal sin IVA e IVA
+            // Si precio incluye IVA: precio_con_iva = precio_sin_iva * 1.19
+            // Entonces: precio_sin_iva = precio_con_iva / 1.19
+            val ivaRate = 0.19
+            val subtotalSinIVA = total / (1 + ivaRate)
+            val ivaAmount = total - subtotalSinIVA
+            
+            // Subtotal sin IVA
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Subtotal (sin IVA)",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = "$${String.format("%,.0f", subtotalSinIVA).replace(",", ".")}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            // IVA
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "IVA (19%)",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = "$${String.format("%,.0f", ivaAmount).replace(",", ".")}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            // Total a Pagar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween

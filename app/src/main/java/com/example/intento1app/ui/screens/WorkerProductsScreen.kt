@@ -18,15 +18,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.intento1app.ui.theme.*
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import com.example.intento1app.data.models.Product
 import com.example.intento1app.data.models.ProductCategory
 import com.example.intento1app.viewmodel.WorkerProductsViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.intento1app.ui.components.WorkerProductCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -127,7 +124,7 @@ fun WorkerProductsScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFF2196F3)
+                        containerColor = FutronoVerde
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -136,7 +133,7 @@ fun WorkerProductsScreen(
                     ) {
                         Text(
                             text = "Resumen de Productos",
-                            style = MaterialTheme.typography.titleLarge.copy(
+                            style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
                             )
@@ -170,7 +167,7 @@ fun WorkerProductsScreen(
             item {
                 Text(
                     text = "Categorías",
-                    style = MaterialTheme.typography.headlineMedium.copy(
+                    style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
                     )
@@ -217,7 +214,7 @@ fun WorkerProductsScreen(
                 ) {
                     Text(
                         text = "Productos",
-                        style = MaterialTheme.typography.headlineMedium.copy(
+                        style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onBackground
                         )
@@ -233,11 +230,9 @@ fun WorkerProductsScreen(
             }
 
             items(filteredProducts) { product ->
-                ProductCard(
+                WorkerProductCard(
                     product = product,
-                    onEditProduct = { onEditProductClick(product.id) },
-                    onUpdateStock = {},
-                    onViewDetails = {}
+                    onEditProduct = { onEditProductClick(product.id) }
                 )
             }
         }
@@ -288,158 +283,6 @@ private fun CategoryChip(
     )
 }
 
-@Composable
-private fun ProductCard(
-    product: Product,
-    onEditProduct: () -> Unit,
-    onUpdateStock: () -> Unit,
-    onViewDetails: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Imagen del producto (placeholder)
-                Box(
-                    modifier = Modifier
-                        .size(60.dp)
-                        .background(
-                            color = FutronoCafe.copy(alpha = 0.1f),
-                            shape = RoundedCornerShape(8.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Photo,
-                        contentDescription = null,
-                        tint = FutronoCafe,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                // Información del producto
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = product.name,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = product.category.name,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "$${String.format("%,.0f", product.price).replace(",", ".")}",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = FutronoCafe
-                        )
-                    )
-                }
-
-                // Estado del stock
-                StockStatusChip(stock = product.stock)
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Botones de acción
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedButton(
-                    onClick = onViewDetails,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = null,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Ver",
-                        style = MaterialTheme.typography.bodySmall)
-                }
-
-                OutlinedButton(
-                    onClick = onEditProduct,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = null,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Editar",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-
-                OutlinedButton(
-                    onClick = onUpdateStock,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Inventory,
-                        contentDescription = null,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Stock",
-                        style = MaterialTheme.typography.bodySmall)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun StockStatusChip(
-    stock: Int,
-    modifier: Modifier = Modifier
-) {
-    val (color, text) = when {
-        stock <= 0 -> Color(0xFFF44336) to "Agotado"
-        stock <= 50 -> Color(0xFFFF9800) to "Bajo Stock"
-        else -> Color(0xFF4CAF50) to "En Stock"
-    }
-
-    Surface(
-        modifier = modifier,
-        color = color.copy(alpha = 0.1f),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Text(
-            text = text,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            style = MaterialTheme.typography.bodySmall.copy(
-                fontWeight = FontWeight.Medium,
-                color = color
-            )
-        )
-    }
-}
 
 // Funciones para obtener categorías de productos
 private fun getProductCategories(): List<String> {

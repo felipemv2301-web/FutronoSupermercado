@@ -77,6 +77,7 @@ data class Stat(
 /**
  * Componente para seleccionar rango de fechas
  */
+
 @Composable
 fun DateRangeSelector(
     startDate: Date?,
@@ -351,14 +352,7 @@ fun WorkerHomeScreen(
             titleColor = FutronoBlanco,
             onClick = onCustomersClick
         ),
-        WorkerFunction(
-            title = "Ayuda",
-            icon = Icons.Filled.HelpOutline,
-            iconColor = FutronoBlanco,
-            backgroundColor = Color(0xFF787E5A),
-            titleColor = FutronoBlanco,
-            onClick = onHelpClick
-        ),
+
     )
     // Filtrar funciones según el rol: trabajador solo ve Gestión de Pedidos e Inventario
     val mainFunctions = if (isAdmin) {

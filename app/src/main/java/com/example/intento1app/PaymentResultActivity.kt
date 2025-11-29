@@ -34,6 +34,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import android.content.SharedPreferences
 import com.example.intento1app.ui.theme.FutronoBlanco
 import com.example.intento1app.ui.theme.FutronoCafe
+import com.example.intento1app.utils.CartPersistenceManager
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.launch
@@ -75,6 +76,14 @@ class PaymentResultActivity : ComponentActivity() {
                 android.util.Log.d("PaymentResult", "PaymentId: ${paymentResult.paymentId}")
                 android.util.Log.d("PaymentResult", "Llamando a savePaymentToFirebase...")
                 savePaymentToFirebase(paymentResult.paymentId!!, cartItems)
+                
+                // Limpiar el carrito persistente cuando el pago es exitoso
+                CartPersistenceManager.clearCart(this)
+                android.util.Log.d("PaymentResult", "Carrito persistente limpiado después de pago exitoso")
+                
+                // Marcar que el carrito debe limpiarse cuando se vuelva a MainActivity
+                val prefs = getSharedPreferences("payment_prefs", MODE_PRIVATE)
+                prefs.edit().putBoolean("should_clear_cart", true).apply()
             } else {
                 android.util.Log.w("PaymentResult", "⚠️ No se guardará el pago:")
                 android.util.Log.w("PaymentResult", "Status: ${paymentResult.status}")
@@ -544,9 +553,11 @@ fun PaymentResultScreen(
  */
 @Composable
 private fun CartItemsTable(cartItems: List<CartItem>) {
-    // Calcular total (sin IVA)
-    val subtotal = cartItems.sumOf { it.totalPrice }
-    val total = subtotal
+    // Los precios en BD ya incluyen IVA
+    val total = cartItems.sumOf { it.totalPrice } // Total con IVA incluido
+    val ivaRate = 0.19
+    val subtotalSinIVA = total / (1 + ivaRate) // Subtotal sin IVA
+    val ivaAmount = total - subtotalSinIVA // IVA calculado
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -655,18 +666,38 @@ private fun CartItemsTable(cartItems: List<CartItem>) {
             
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             
-            // Subtotal
+            // Subtotal sin IVA
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Subtotal",
+                    text = "Subtotal (sin IVA)",
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.weight(0.5f)
                 )
                 Text(
-                    text = "$${String.format("%,.0f", subtotal).replace(",", ".")}",
+                    text = "$${String.format("%,.0f", subtotalSinIVA).replace(",", ".")}",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.weight(0.4f),
+                    textAlign = TextAlign.End
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            // IVA
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "IVA (19%)",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.weight(0.5f)
+                )
+                Text(
+                    text = "$${String.format("%,.0f", ivaAmount).replace(",", ".")}",
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.weight(0.4f),
                     textAlign = TextAlign.End

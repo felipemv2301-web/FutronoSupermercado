@@ -2,6 +2,8 @@ package com.example.intento1app
 
 import android.os.Bundle
 import android.util.Patterns
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.BackHandler
@@ -75,6 +77,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.HomeWork
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.rememberDrawerState
@@ -86,6 +89,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
@@ -135,6 +139,7 @@ import com.example.intento1app.ui.theme.FutronoVerde
 import com.example.intento1app.ui.theme.StockHigh
 import com.example.intento1app.ui.theme.StockLow
 import com.example.intento1app.ui.theme.StockMedium
+import com.example.intento1app.utils.CartPersistenceManager
 
 
 class MainActivity : ComponentActivity() {
@@ -435,7 +440,27 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
     // Obtener el contexto una vez (fuera del LaunchedEffect)
     val context = LocalContext.current
     
-    // Verificar si se debe limpiar el carrito (cuando el pago falla)
+    // Cargar el carrito guardado cuando se inicia la app y el usuario está en home
+    LaunchedEffect(currentScreen, isLoggedIn) {
+        if (currentScreen == "home" && isLoggedIn && cartItems.isEmpty()) {
+            val savedCart = CartPersistenceManager.loadCart(context)
+            if (savedCart.isNotEmpty()) {
+                cartItems = savedCart
+                android.util.Log.d("MainActivity", "Carrito cargado desde almacenamiento: ${savedCart.size} items")
+            }
+        }
+    }
+    
+    // Guardar el carrito automáticamente cada vez que cambia
+    LaunchedEffect(cartItems) {
+        if (isLoggedIn && currentScreen != "payment") {
+            // Solo guardar si no estamos en la pantalla de pago
+            CartPersistenceManager.saveCart(context, cartItems)
+            android.util.Log.d("MainActivity", "Carrito guardado: ${cartItems.size} items")
+        }
+    }
+    
+    // Verificar si se debe limpiar el carrito (cuando el pago se completa o falla)
     LaunchedEffect(currentScreen) {
         if (currentScreen == "home") {
             val prefs = context.getSharedPreferences("payment_prefs", android.content.Context.MODE_PRIVATE)
@@ -444,8 +469,9 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                 // Limpiar carrito y bandera
                 cartItems = emptyList()
                 originalStockMap = emptyMap()
+                CartPersistenceManager.clearCart(context) // Limpiar también del almacenamiento persistente
                 prefs.edit().remove("should_clear_cart").apply()
-                android.util.Log.d("MainActivity", "Carrito limpiado después de pago fallido")
+                android.util.Log.d("MainActivity", "Carrito limpiado después de procesamiento de pago")
             }
         }
     }
@@ -1165,6 +1191,7 @@ fun FutronoApp(accessibilityViewModel: AccessibilityViewModel) {
                 println("MainActivity: onPaymentComplete llamado - limpiando carrito y navegando a home")
                 cartItems = emptyList()
                 originalStockMap = emptyMap() // Limpiar el mapa ya que el stock queda descontado permanentemente
+                CartPersistenceManager.clearCart(context) // Limpiar el carrito del almacenamiento persistente
                 currentScreen = "home"
                 println("MainActivity: Navegación completada - currentScreen = $currentScreen")
             },
@@ -1202,6 +1229,7 @@ fun AuthScreen(
     val passwordFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -1224,7 +1252,50 @@ fun AuthScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Botón "Aprende como usar la aplicación"
+        OutlinedButton(
+            onClick = {
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://youtu.be/rCFKVNz6RnQ"))
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    android.util.Log.e("AuthScreen", "Error al abrir el enlace de YouTube: ${e.message}", e)
+                    // Opcional: mostrar un Toast al usuario
+                    android.widget.Toast.makeText(
+                        context,
+                        "No se pudo abrir el enlace. Por favor, intenta nuevamente.",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+            },
+            modifier = Modifier.fillMaxWidth(0.85f),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = FutronoVerde
+            ),
+            border = BorderStroke(
+                width = 1.5.dp,
+                color = FutronoVerde
+            )
+        ) {
+            Icon(
+                imageVector = Icons.Default.School,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = FutronoVerde
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "¿Cómo usar la aplicación?",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = FutronoVerde
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         Spacer(modifier = Modifier.height(32.dp))
 
